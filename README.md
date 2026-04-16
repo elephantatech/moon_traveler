@@ -13,7 +13,7 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 ## Features
 
 - **Procedural world generation** with seeded RNG and chain-connected locations for replayable maps
-- **LLM-powered creature dialogue** using a local Gemma 4 E2B model (auto-downloads on first run, no internet needed after)
+- **LLM-powered creature dialogue** using a local AI model (Qwen3.5 2B default, Gemma 4 E2B optional — auto-downloads on first run)
 - **Creature actions in conversation** — NPCs can give you food, water, materials, healing, and suit repair based on trust
 - **Escort system** — befriend creatures and bring them to your ship for hands-on repair help
 - **AI drone companion** that translates alien speech, gives tactical advice, and comments during travel
@@ -38,24 +38,24 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 | **OS** | Windows 10+, macOS 12+, Linux (glibc 2.31+) |
 | **Python** | 3.11+ (not needed for pre-built releases) |
 
-### Recommended (with AI-powered dialogue)
+### Recommended — Qwen3.5 2B (default model)
 
 | Resource | Requirement |
 |----------|-------------|
 | **CPU** | 4+ cores (inference uses 4 threads) |
-| **RAM** | 6 GB (game ~50 MB + model ~4.4 GB in memory) |
-| **Disk** | 3.5 GB (game 50 MB + model 2.9 GB) |
+| **RAM** | 4 GB (game ~50 MB + model ~2.3 GB in memory) |
+| **Disk** | 1.5 GB (game 50 MB + model 1.3 GB) |
 | **GPU** | Optional — CUDA/Metal/Vulkan for faster inference |
 
-### With GPU Acceleration
+### Full Quality — Gemma 4 E2B (optional)
 
 | Resource | Requirement |
 |----------|-------------|
-| **VRAM** | 4 GB+ (full model offload to GPU) |
-| **RAM** | 2 GB (game only, model in VRAM) |
-| **GPU** | NVIDIA (CUDA), Apple Silicon (Metal), or AMD/Intel (Vulkan) |
+| **RAM** | 6 GB (game ~50 MB + model ~4.4 GB in memory) |
+| **Disk** | 3.5 GB (game 50 MB + model 3.1 GB) |
+| **GPU** | Optional — 4 GB+ VRAM for full model offload |
 
-> The game runs without the AI model using pre-written dialogue — no performance impact. The AI model (~2.9 GB) downloads automatically on first launch if you choose to enable it.
+> On first launch you choose which model to download. Qwen3.5 2B (1.3 GB) is recommended for most machines. Gemma 4 E2B (3.1 GB) offers slightly richer dialogue. The game also runs without any model using pre-written dialogue.
 
 ## Installation
 
@@ -81,12 +81,14 @@ pip install rich prompt_toolkit psutil
 
 ### 3. LLM Model (optional)
 
-On first launch, the game will offer to **download the AI model automatically** (~2.9 GB from Hugging Face). You can also place a GGUF model file manually in the `models/` directory:
-```
-models/gemma-4-E2B-it-Q4_K_M.gguf
-```
+On first launch, the game offers to download an AI model:
 
-Any `.gguf` file in `models/` will work. The game falls back to pre-written dialogue if no model is found.
+| Model | Size | RAM | Quality |
+|-------|------|-----|---------|
+| **Qwen3.5 2B** (default) | 1.3 GB | ~2.3 GB | Good — best for most machines |
+| **Gemma 4 E2B** (optional) | 3.1 GB | ~4.4 GB | Very Good — richer dialogue |
+
+You can also place any `.gguf` model file manually in the `models/` directory. The game falls back to pre-written dialogue if no model is found.
 
 ## Running
 

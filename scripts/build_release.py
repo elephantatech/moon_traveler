@@ -137,8 +137,9 @@ def build_executable(target_platform: str):
 
     # Create a README for the models directory
     (models_dir / "PLACE_MODEL_HERE.txt").write_text(
-        "Place your GGUF model file here, or let the game download it on first run.\n"
-        "Expected: gemma-4-E2B-it-Q4_K_M.gguf (~2.9 GB)\n"
+        "Place your GGUF model file here, or let the game download one on first run.\n\n"
+        "Recommended: Qwen3.5-2B-Q4_K_M.gguf (~1.3 GB, lower RAM usage)\n"
+        "Full quality: gemma-4-E2B-it-Q4_K_M.gguf (~3.1 GB)\n\n"
         "Any .gguf file will work. The game falls back to\n"
         "pre-written dialogue if no model is found.\n"
     )
