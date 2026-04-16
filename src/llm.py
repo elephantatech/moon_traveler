@@ -2,13 +2,12 @@
 
 import os
 import random
+import re
 import sys
 import urllib.request
 from pathlib import Path
 
 from src import ui
-import re
-
 from src.data.prompts import (
     BASE_CREATURE_PROMPT,
     CREATURE_ACTION_INSTRUCTIONS,

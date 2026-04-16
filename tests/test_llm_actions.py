@@ -84,13 +84,13 @@ class TestApplyActions:
     def test_give_food(self):
         p = Player(food=30.0)
         c = _make_creature(trust=50)
-        msgs = apply_actions([{"action": "GIVE_FOOD"}], p, Drone(), c, {})
+        apply_actions([{"action": "GIVE_FOOD"}], p, Drone(), c, {})
         assert p.food == 100.0
 
     def test_heal(self):
         p = Player(food=50.0, water=40.0)
         c = _make_creature(trust=50)
-        msgs = apply_actions([{"action": "HEAL"}], p, Drone(), c, {})
+        apply_actions([{"action": "HEAL"}], p, Drone(), c, {})
         assert p.food == 80.0
         assert p.water == 70.0
 
@@ -145,5 +145,5 @@ class TestApplyActions:
     def test_medium_trust_allows_actions(self):
         p = Player(water=50.0)
         c = _make_creature(trust=40)  # medium
-        msgs = apply_actions([{"action": "GIVE_WATER"}], p, Drone(), c, {})
+        apply_actions([{"action": "GIVE_WATER"}], p, Drone(), c, {})
         assert p.water == 100.0

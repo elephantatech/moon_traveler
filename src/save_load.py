@@ -237,7 +237,7 @@ def _reconstruct_state(kv: dict, chat: dict[str, list[dict]] | None = None) -> d
         t.step = TutorialStep.COMPLETED
         state["tutorial"] = t
 
-    ui.success(f"Game loaded.")
+    ui.success("Game loaded.")
     return state
 
 
@@ -270,7 +270,7 @@ def _load_legacy_json(path: Path) -> dict | None:
             t.step = TutorialStep.COMPLETED
             state["tutorial"] = t
 
-        ui.success(f"Game loaded (legacy format).")
+        ui.success("Game loaded (legacy format).")
         return state
     except Exception as e:
         ui.error(f"Failed to load legacy save: {e}")

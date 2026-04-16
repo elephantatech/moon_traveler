@@ -73,10 +73,10 @@ def build_executable(target_platform: str):
 
     current = detect_platform()
     if target_platform != current:
-        print(f"WARNING: Cross-compilation is not supported by PyInstaller.")
+        print("WARNING: Cross-compilation is not supported by PyInstaller.")
         print(f"  Current platform: {current}")
         print(f"  Target platform:  {target_platform}")
-        print(f"  You must build on the target platform itself.")
+        print("  You must build on the target platform itself.")
         print(f"  Skipping {target_platform} build.\n")
         return False
 
@@ -144,10 +144,10 @@ def build_executable(target_platform: str):
         "pre-written dialogue if no model is found.\n"
     )
 
-    print(f"\nBuild successful!")
+    print("\nBuild successful!")
     print(f"  Output: {output_dir}")
     print(f"  Executable: {exe_root / exe_name}")
-    print(f"\nTo distribute:")
+    print("\nTo distribute:")
     print(f"  1. Place a .gguf model in {models_dir}")
     print(f"  2. Zip the entire {output_name}/ directory")
     print(f"  3. Users unzip and run {exe_name}")

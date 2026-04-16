@@ -93,7 +93,8 @@ class TutorialManager:
         ui.console.print("[bold]═══ CREW VITALS ═══[/bold]")
         _boot_line("Food Reserves", f"{player.food:.0f}%", "green")
         _boot_line("Water Reserves", f"{player.water:.0f}%", "green")
-        _boot_line("Suit Integrity", f"{player.suit_integrity:.0f}%", "green" if player.suit_integrity > 60 else "yellow")
+        suit_color = "green" if player.suit_integrity > 60 else "yellow"
+        _boot_line("Suit Integrity", f"{player.suit_integrity:.0f}%", suit_color)
         ui.console.print()
         time.sleep(0.3)
 
@@ -115,7 +116,8 @@ class TutorialManager:
         ui.console.print()
 
         # Drone introduction
-        ui.console.print(drone.speak("Online and operational. I'll handle translation, scanning, and keeping you alive out there."))
+        intro = "Online and operational. I'll handle translation, scanning, and keeping you alive."
+        ui.console.print(drone.speak(intro))
         ui.console.print()
 
         # First ARIA line + tutorial hint

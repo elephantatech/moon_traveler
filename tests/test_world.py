@@ -12,7 +12,7 @@ def _scan_reachability(locations, scanner_range=10) -> set:
     while changed:
         changed = False
         for kn in list(known):
-            kloc = next(l for l in locations if l.name == kn)
+            kloc = next(loc for loc in locations if loc.name == kn)
             for loc in locations:
                 if loc.name in known:
                     continue
@@ -48,15 +48,15 @@ class TestWorldGeneration:
     def test_seed_reproducibility(self):
         w1 = generate_world("short", seed=123)
         w2 = generate_world("short", seed=123)
-        names1 = [l.name for l in w1["locations"]]
-        names2 = [l.name for l in w2["locations"]]
+        names1 = [loc.name for loc in w1["locations"]]
+        names2 = [loc.name for loc in w2["locations"]]
         assert names1 == names2
 
     def test_different_seeds_different_worlds(self):
         w1 = generate_world("short", seed=42)
         w2 = generate_world("short", seed=999)
-        names1 = {l.name for l in w1["locations"]}
-        names2 = {l.name for l in w2["locations"]}
+        names1 = {loc.name for loc in w1["locations"]}
+        names2 = {loc.name for loc in w2["locations"]}
         assert names1 != names2
 
 
@@ -98,14 +98,11 @@ class TestLocationProperties:
 
     def test_unique_names(self):
         world = generate_world("long", seed=42)
-        names = [l.name for l in world["locations"]]
+        names = [loc.name for loc in world["locations"]]
         assert len(names) == len(set(names))
 
     def test_food_water_sources_exist(self):
         world = generate_world("medium", seed=42)
-        has_food = any(l.food_source for l in world["locations"])
-        has_water = any(l.water_source for l in world["locations"])
-        # Not guaranteed on every seed, but likely on medium
         # Just check the fields exist and are boolean
         for loc in world["locations"]:
             assert isinstance(loc.food_source, bool)

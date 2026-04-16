@@ -95,5 +95,5 @@ def prompt_save_location():
 
     set_save_dir(save_path)
     ui.success(f"Saves will be stored in: {save_path}")
-    ui.dim(f"(Change later with the 'config' command)")
+    ui.dim("(Change later with the 'config' command)")
     ui.console.print()

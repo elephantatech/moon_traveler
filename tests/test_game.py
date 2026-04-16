@@ -1,10 +1,7 @@
 """Tests for game initialization, win/lose conditions, and repair checklist."""
 
 from src.commands import GameContext
-from src.drone import Drone
-from src.game import build_repair_checklist, check_lose, check_win, init_game, REPAIR_MATERIALS
-from src.player import Player
-from src.ship_ai import ShipAI
+from src.game import REPAIR_MATERIALS, build_repair_checklist, check_lose, check_win, init_game
 
 
 def _make_ctx(mode="short", **overrides) -> GameContext:
@@ -102,6 +99,6 @@ class TestInitGame:
     def test_init_different_seeds(self):
         c1 = init_game("short", seed=1)
         c2 = init_game("short", seed=2)
-        names1 = {l.name for l in c1.locations}
-        names2 = {l.name for l in c2.locations}
+        names1 = {loc.name for loc in c1.locations}
+        names2 = {loc.name for loc in c2.locations}
         assert names1 != names2
