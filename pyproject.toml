@@ -1,0 +1,38 @@
+[project]
+name = "moon-traveler-cli"
+version = "0.1.0"
+description = "A text-based survival game set on Saturn's moon Enceladus"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "rich",
+    "prompt_toolkit",
+    "llama-cpp-python",
+    "jinja2>=3.1.6",
+    "diskcache>=5.6.3",
+    "markupsafe>=3.0.3",
+    "numpy>=2.4.4",
+    "typing-extensions>=4.15.0",
+    "psutil>=7.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.10",
+    "pyinstaller>=6.0",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/data/*" = ["E501"]
+"src/world.py" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

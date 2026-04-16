@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[oc]
+*.egg-info/
+*.egg
+
+# Build artifacts
+build/
+dist/
+wheels/
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Models (too large for git)
+models/*.gguf
+
+# Save files (user data)
+saves/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+nul
+
+# Logs
+*.log
+
+# UV
+uv.lock
