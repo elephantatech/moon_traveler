@@ -8,14 +8,14 @@ You've crash-landed on Enceladus, Saturn's frozen moon. Your ship is wrecked. Yo
 
 The game has two modes depending on whether you use the AI model:
 
-| | Without AI Model | With AI Model | With GPU |
+| | No AI Model | Qwen3.5 2B (default) | Gemma 4 E2B (full) |
 |---|---|---|---|
-| **RAM** | 256 MB | 6 GB | 2 GB (model in VRAM) |
-| **CPU** | Any | 4+ cores | Any |
-| **Disk** | 50 MB | 3.5 GB | 3.5 GB |
-| **GPU** | Not needed | Not needed | 4 GB+ VRAM |
+| **RAM** | 256 MB | 4 GB | 6 GB |
+| **Disk** | 50 MB | 1.5 GB | 3.5 GB |
+| **CPU** | Any | 4+ cores | 4+ cores |
+| **GPU** | Not needed | Optional | Optional |
 
-Without the AI model, creatures use pre-written dialogue — the game is fully playable, just less dynamic. The AI model downloads automatically on first launch (~2.9 GB).
+On first launch you choose which model to download. Qwen3.5 2B (1.3 GB) is recommended — it's lightweight and handles creature dialogue well. Gemma 4 E2B (3.1 GB) offers richer, more creative responses. Without any model, creatures use pre-written dialogue.
 
 ---
 
@@ -30,7 +30,7 @@ You'll be asked to choose:
 1. **Game length** — Short, Medium, or Long (see [Game Modes](#game-modes) below)
 2. **Compute mode** — CPU + GPU or CPU Only (if a GPU is detected)
 
-If no AI model is found, the game will offer to **download one automatically** (~2.9 GB from Hugging Face). You can skip this — the game works without it using pre-written dialogue, but conversations are much richer with the AI model.
+If no AI model is found, the game will offer to **download one automatically**. You can choose between Qwen3.5 2B (1.3 GB, recommended) or Gemma 4 E2B (3.1 GB, richer dialogue). You can also skip — the game works without it using pre-written dialogue.
 
 The game opens with ARIA (your ship's AI) running a boot diagnostic, then drops you at the Crash Site. Follow the tutorial prompts — they'll walk you through the basics without getting in the way.
 

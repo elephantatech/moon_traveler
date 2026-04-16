@@ -65,20 +65,37 @@ def detect_gpu() -> dict:
     return {"available": False, "backend": "none"}
 
 
-MODEL_FILENAME = "gemma-4-E2B-it-Q4_K_M.gguf"
-MODEL_URL = "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf"
+# Available models — ordered by preference (smallest first)
+AVAILABLE_MODELS = [
+    {
+        "name": "Qwen3.5 2B (Lite — recommended)",
+        "filename": "Qwen3.5-2B-Q4_K_M.gguf",
+        "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
+        "size": "1.3 GB",
+        "ram": "~2.3 GB",
+    },
+    {
+        "name": "Gemma 4 E2B (Full quality)",
+        "filename": "gemma-4-E2B-it-Q4_K_M.gguf",
+        "url": "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf",
+        "size": "3.1 GB",
+        "ram": "~4.4 GB",
+    },
+]
+
+# Default model (Qwen3.5 2B — best balance of size and quality for this game)
+DEFAULT_MODEL = AVAILABLE_MODELS[0]
 
 
 def _get_models_dir() -> Path:
     """Get the models directory, handling both dev and frozen (PyInstaller) contexts."""
     if getattr(sys, "frozen", False):
-        # Frozen executable: models dir is next to the executable
         return Path(sys.executable).parent / "models"
     return Path(__file__).parent.parent / "models"
 
 
 def find_model_path() -> str | None:
-    """Find the GGUF model file."""
+    """Find a GGUF model file. Checks for any .gguf, then known model filenames."""
     models_dir = _get_models_dir()
     candidates = []
 
@@ -87,8 +104,9 @@ def find_model_path() -> str | None:
         for f in models_dir.glob("*.gguf"):
             candidates.insert(0, f)
 
-    # Default expected filename
-    candidates.append(models_dir / MODEL_FILENAME)
+    # Check known model filenames
+    for model in AVAILABLE_MODELS:
+        candidates.append(models_dir / model["filename"])
 
     for path in candidates:
         if path.exists():
@@ -96,34 +114,8 @@ def find_model_path() -> str | None:
     return None
 
 
-def maybe_download_model() -> bool:
-    """Prompt the user to download the model if not present. Returns True if model is ready."""
-    if find_model_path():
-        return True
-
-    ui.console.print()
-    ui.warn(f"No GGUF model found in {_get_models_dir()}")
-    ui.info("The game uses a local AI model (~2.9 GB) for creature conversations.")
-    ui.info("Without it, creatures will use simpler pre-written dialogue.")
-    ui.console.print()
-
-    try:
-        answer = ui.console.input("[bold]Download model from Hugging Face? (y/N) > [/bold]").strip().lower()
-    except (EOFError, KeyboardInterrupt):
-        return False
-
-    if answer != "y":
-        ui.dim("Skipping download. Fallback dialogue will be used.")
-        return False
-
-    models_dir = _get_models_dir()
-    models_dir.mkdir(parents=True, exist_ok=True)
-    target = models_dir / MODEL_FILENAME
-
-    ui.info(f"Downloading {MODEL_FILENAME}...")
-    ui.dim("Source: huggingface.co/unsloth/gemma-4-E2B-it-GGUF")
-    ui.console.print()
-
+def _download_file(url: str, target: Path) -> bool:
+    """Download a file with progress bar. Returns True on success."""
     try:
         def _progress(block_num, block_size, total_size):
             downloaded = block_num * block_size
@@ -133,17 +125,93 @@ def maybe_download_model() -> bool:
                 gb_total = total_size / 1e9
                 print(f"\r  Progress: {pct:5.1f}%  ({gb_down:.2f} / {gb_total:.2f} GB)", end="", flush=True)
 
-        urllib.request.urlretrieve(MODEL_URL, str(target), reporthook=_progress)
-        print()  # newline after progress
-        ui.success(f"Model downloaded to {target}")
+        urllib.request.urlretrieve(url, str(target), reporthook=_progress)
+        print()
         return True
     except Exception as e:
-        print()  # newline after progress
+        print()
         ui.error(f"Download failed: {e}")
-        ui.dim("You can manually download the model and place it in the models/ directory.")
-        # Clean up partial download
         if target.exists():
             target.unlink()
+        return False
+
+
+def maybe_download_model() -> bool:
+    """Prompt the user to choose and download a model if none present. Returns True if model is ready."""
+    if find_model_path():
+        return True
+
+    import platform as _platform
+
+    ui.console.print()
+    ui.warn(f"No GGUF model found in {_get_models_dir()}")
+    ui.info("The game uses a local AI model for creature conversations.")
+    ui.info("Without it, creatures will use simpler pre-written dialogue.")
+    ui.console.print()
+
+    # Detect system and show relevant info
+    system = _platform.system()
+    machine = _platform.machine()
+    gpu_info = detect_gpu()
+    sys_label = f"{system} ({machine})"
+    if gpu_info["available"]:
+        sys_label += f" [green]GPU: {gpu_info['backend']}[/green]"
+    ui.dim(f"  System: {sys_label}")
+
+    # Recommend model based on available RAM
+    try:
+        import psutil
+        total_ram_gb = psutil.virtual_memory().total / (1024 ** 3)
+        ui.dim(f"  RAM: {total_ram_gb:.0f} GB total")
+        if total_ram_gb < 4:
+            ui.dim("  [yellow]Low RAM detected — Qwen3.5 2B (Lite) recommended[/yellow]")
+        elif total_ram_gb >= 8:
+            ui.dim("  Enough RAM for either model")
+    except ImportError:
+        pass
+    ui.console.print()
+
+    ui.console.print("[bold]Available models:[/bold]")
+    for i, model in enumerate(AVAILABLE_MODELS, 1):
+        ui.console.print(
+            f"  [cyan]{i}[/cyan]. {model['name']}  "
+            f"[dim]({model['size']} download, {model['ram']} RAM)[/dim]"
+        )
+    ui.console.print(f"  [cyan]{len(AVAILABLE_MODELS) + 1}[/cyan]. Skip (use fallback dialogue)")
+    ui.console.print()
+
+    try:
+        answer = ui.console.input("[bold]Choose model > [/bold]").strip()
+    except (EOFError, KeyboardInterrupt):
+        return False
+
+    try:
+        idx = int(answer) - 1
+    except ValueError:
+        if answer.lower() in ("y", "yes"):
+            idx = 0  # default to first model
+        else:
+            ui.dim("Skipping download. Fallback dialogue will be used.")
+            return False
+
+    if idx < 0 or idx >= len(AVAILABLE_MODELS):
+        ui.dim("Skipping download. Fallback dialogue will be used.")
+        return False
+
+    model = AVAILABLE_MODELS[idx]
+    models_dir = _get_models_dir()
+    models_dir.mkdir(parents=True, exist_ok=True)
+    target = models_dir / model["filename"]
+
+    ui.info(f"Downloading {model['name']}...")
+    ui.dim(f"File: {model['filename']} ({model['size']})")
+    ui.console.print()
+
+    if _download_file(model["url"], target):
+        ui.success(f"Model downloaded to {target}")
+        return True
+    else:
+        ui.dim("You can manually download a .gguf model and place it in the models/ directory.")
         return False
 
 
