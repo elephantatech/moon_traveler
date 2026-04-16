@@ -11,7 +11,7 @@ from src.drone import Drone
 from src.player import Player
 from src.world import Location
 
-SAVE_VERSION = 3
+SAVE_VERSION = 4
 
 
 def _saves_dir() -> Path:
@@ -100,8 +100,34 @@ def save_game(
     quiet: bool = False,
 ):
     """Save the entire game state to SQLite as key-value pairs."""
-    conn = _get_db()
+    try:
+        conn = _get_db()
+    except Exception as e:
+        if not quiet:
+            ui.error(f"Could not open save database: {e}")
+        return
 
+    try:
+        _save_to_db(conn, slot, player, drone, locations, creatures,
+                     world_seed, world_mode, repair_checklist, ship_ai, tutorial)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        if not quiet:
+            ui.error(f"Save failed: {e}")
+        return
+
+    if not quiet:
+        ui.success(f"Game saved to slot '{slot}'.")
+
+
+def _save_to_db(conn, slot, player, drone, locations, creatures,
+                world_seed, world_mode, repair_checklist, ship_ai, tutorial):
+    """Write game state to the database (no commit)."""
     # Build state as key-value pairs
     kv = {
         "world_seed": json.dumps(world_seed),
@@ -143,11 +169,6 @@ def save_game(
             chat_rows,
         )
 
-    conn.commit()
-    conn.close()
-
-    if not quiet:
-        ui.success(f"Game saved to slot '{slot}'.")
 
 
 def _load_kv(conn: sqlite3.Connection, slot: str) -> dict | None:

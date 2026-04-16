@@ -111,6 +111,8 @@ PERSONALITY_ARCHETYPES = [
     "Wanderer",
     "Hermit",
     "Warrior",
+    "Merchant",
+    "Enforcer",
 ]
 
 

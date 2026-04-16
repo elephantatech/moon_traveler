@@ -32,7 +32,7 @@ You'll be asked to choose:
 
 If no AI model is found, the game will offer to **download one automatically**. You can choose between Qwen3.5 2B (1.3 GB, recommended) or Gemma 4 E2B (3.1 GB, richer dialogue). You can also skip — the game works without it using pre-written dialogue.
 
-The game opens with ARIA (your ship's AI) running a boot diagnostic, then drops you at the Crash Site. Follow the tutorial prompts — they'll walk you through the basics without getting in the way.
+The game opens with a brief context line and offers to **skip the tutorial** for returning players. New players will see ARIA (your ship's AI) run a boot diagnostic before being dropped at the Crash Site. Follow the tutorial prompts — they'll walk you through the basics and then point you toward key mechanics like giving gifts, trading, escorting, and ship repair.
 
 <p align="center">
   <img src="assets/screenshot-title-screen.svg" alt="Title Screen" width="700"/>
@@ -44,7 +44,7 @@ The game opens with ARIA (your ship's AI) running a boot diagnostic, then drops 
 
 Type commands at the prompt and press Enter. Tab autocomplete is supported for commands, locations, items, and creature names.
 
-A **status bar** is displayed before every prompt showing your food, water, suit, battery, ship repair progress, and elapsed time. When at the Crash Site, ship bay details are shown. When a creature is at your location, their name, archetype, disposition, and trust level appear.
+A **status bar** is displayed before every prompt showing food, water, suit, battery, inventory count, ship repair progress, and elapsed time. All vitals are always visible. When at the Crash Site, ship bay details are shown. When a creature is at your location, their name, archetype, disposition, and trust level appear. The **GPS** (`gps` command) shows food and water source markers for locations you've visited.
 
 <p align="center">
   <img src="assets/screenshot-crash-site--first-look.svg" alt="Status Bar and Crash Site" width="700"/>
@@ -71,10 +71,12 @@ A **status bar** is displayed before every prompt showing your food, water, suit
 
 | Command | Aliases | What it does |
 |---|---|---|
-| `talk <creature>` | `speak` | Start a conversation with a creature at your location |
-| `give <item> to <creature>` | — | Give an item to a creature to build trust |
+| `talk <creature>` | `speak` | Start a conversation with a creature at your location (including followers) |
+| `give <item> to <creature>` | — | Give an item to a creature to build trust (works with followers too) |
+| `trade` | — | Trade items with a Merchant creature |
 | `escort` | — | Ask a creature (trust 50+) to travel with you |
-| `escort dismiss` | — | Let all followers stay at the current location |
+| `escort dismiss` | — | Choose which follower to dismiss (or dismiss all) |
+| `rest` | — | Rest for 1 hour to recover food/water (+10%, or +20% at Crash Site) |
 
 ### Ship & Status
 
@@ -98,7 +100,8 @@ A **status bar** is displayed before every prompt showing your food, water, suit
 | `clear` | `cls` | Clear the screen |
 | `help` | — | Show the command list |
 | `quit` | `exit` | Exit the game (prompts for confirmation) |
-| `dev` | `devmode` | Toggle the developer diagnostics panel |
+| `dev` | `devmode` | Toggle developer logging to `~/.moonwalker/dev/dev_diagnostics.jsonl` |
+| `config` | — | View/change game settings (e.g. save path) |
 
 ### Scanning and Navigation
 
@@ -127,7 +130,8 @@ During conversations:
 - A **translation frame** occasionally appears, showing the drone working to translate the creature's speech.
 - Each exchange increases trust by **+3 points**.
 - ARIA comments after conversations when trust reaches certain thresholds.
-- **Creatures can give you things during conversation** — ask for water, food, healing, suit repair, or materials. At medium trust they may share water/food; at high trust they may give materials, heal you, or repair your suit. You'll see a cyan status message when something is given.
+- **Creatures can give you things during conversation** — what they offer depends on their archetype and trust level. Healers help even at low trust. Builders share materials at medium trust. Guardians and Hermits require high trust. You'll see a cyan status message when something is given.
+- **Merchants trade** — use `/trade` during conversation or the `trade` command. They show what they have and what they want.
 
 <p align="center">
   <img src="assets/screenshot-creature-conversation.svg" alt="Creature Conversation" width="700"/>
@@ -139,7 +143,7 @@ If no AI model is loaded, creatures use pre-written dialogue that still responds
 
 ## Survival
 
-Three meters track your condition. If either food or water reaches zero, you die.
+Four meters track your condition. If food, water, or suit integrity reaches zero, you die.
 
 ### Food
 - Starts at **100%**
@@ -218,15 +222,22 @@ Better translation quality means creatures speak more clearly and with fewer gar
 Enceladus is inhabited by alien creatures. Each one has a unique name, species, personality, and attitude toward you.
 
 ### Archetypes
-Every creature has one of eight personalities that affect how they behave in conversation:
-- **Wise Elder** — patient, philosophical, shares deep knowledge
-- **Trickster** — playful, evasive, speaks in riddles
-- **Guardian** — protective, territorial, values strength
-- **Healer** — gentle, empathetic, concerned with well-being
-- **Builder** — practical, focused on construction and materials
-- **Wanderer** — curious, well-traveled, tells stories of distant places
-- **Hermit** — reclusive, distrustful, but deeply knowledgeable
-- **Warrior** — aggressive, respects direct confrontation
+Every creature has one of ten archetypes that determine their personality AND what they can provide:
+
+| Archetype | Personality | What They Provide | Trust Needed |
+|---|---|---|---|
+| **Healer** | Gentle, empathetic | Healing, suit repair, food, water | 0 (heal/suit), 10 (food/water) |
+| **Builder** | Practical, curious | Repair materials | 35 |
+| **Wise Elder** | Patient, philosophical | Repair materials, creature intel | 50 (materials), 35 (intel) |
+| **Guardian** | Protective, territorial | Repair materials | 70 |
+| **Hermit** | Reclusive, secretive | Rare repair materials | 80 |
+| **Wanderer** | Restless, well-traveled | Food, water, location reveals | 25 |
+| **Trickster** | Playful, unpredictable | Materials, food, water | 35 |
+| **Warrior** | Fierce, direct | Repair materials | 50 |
+| **Merchant** | Fair, transactional | Trades items (never free) | 20 (trade) |
+| **Enforcer** | Methodical, authoritative | Creature intel, ship repair advice | 15 (intel), 60 (materials) |
+
+Every game guarantees at least one Merchant, one Builder, and one Healer.
 
 ### Dispositions
 Each creature starts with one of three dispositions:
@@ -254,13 +265,16 @@ Trust ranges from **0 to 100** and determines what a creature is willing to shar
 - Giving gifts: **+15** (friendly/neutral) or **+10** (hostile)
 - Escorting to Crash Site: **+10** bonus
 
-**At medium trust (35+):**
-- Creatures may share **food or water** if you ask during conversation
+**Role-based thresholds** — each archetype has different trust requirements for different actions:
+- **Healers** heal and repair suits at **trust 0** — it's their calling
+- **Wanderers** share food/water at **trust 25**
+- **Builders** give repair materials at **trust 35**
+- **Guardians** only share at **trust 70** — they protect their resources
+- **Hermits** need **trust 80** — the hardest to crack, but they have rare materials
+- **Merchants** trade at **trust 20** but never give for free
 
 **At high trust (70+):**
-- The creature gives you **1–2 repair materials**
-- It may reveal the locations of **food or water sources** you haven't discovered
-- **Healers** may heal you (+30% food/water) or repair your suit (+25%)
+- Creatures may reveal the locations of **food or water sources** you haven't discovered
 - **Builders** may help install materials at the Crash Site
 
 ### Escorting Creatures
@@ -273,7 +287,7 @@ At trust **50+**, you can ask a creature to **travel with you** using the `escor
   - **Builders / Wise Elders** — install a repair material from your inventory
   - **Any creature with materials** — donates their repair materials
 - After helping at the ship, you can send them home or keep them
-- Use `escort dismiss` to let followers stay at any location
+- Use `escort dismiss` to choose which follower to release (or dismiss all)
 
 <p align="center">
   <img src="assets/screenshot-escort-system.svg" alt="Escort System" width="700"/>
@@ -291,6 +305,25 @@ Movement between locations takes time and consumes resources.
 - **Drone battery cost:** 0.5% per km traveled
 
 During travel, you'll see narrated events — atmospheric moments, environmental details, drone observations, and ARIA weather data. Longer trips have more events (1 per ~2 hours, up to 5). On trips of 3+ hours, the drone may suggest a closer waypoint for future reference.
+
+### Hazards
+The environment is dangerous. During travel, you may encounter:
+- **Geyser eruptions** — suit damage
+- **Crevasse falls** — suit damage + food loss
+- **Ice storms** — water loss + extra time
+- **Thin ice collapse** — suit damage + water loss
+- **Toxic vents** — suit damage
+- **Thermal shocks** — suit + water damage
+
+Hazard probability scales with trip length (more rolls on longer trips). ARIA will advise you on what to do after taking damage.
+
+### Late-Game Weather
+After extended time on the moon (30-60 hours depending on game mode), weather deteriorates:
+- Hazard probabilities increase
+- Extra water drain during travel
+- Dramatic weather narration
+
+This creates urgency to finish repairs before conditions become unmanageable.
 
 There's a **15% chance** of finding a loose item (ice crystal or metal shard) during any trip.
 
@@ -315,8 +348,9 @@ Your goal is to collect all required repair materials and install them at the Cr
 | **Long** | + Thermal Paste, Hull Patch, Antenna Array |
 
 ### Where to Find Materials
-- **On the ground** at locations — use `take` to pick them up
-- **From creatures** at high trust (70+) — each creature can give 1–2 random materials
+- **From creatures** — the primary source. Each archetype provides different materials at different trust thresholds
+- **Trading with Merchants** — offer items they want in exchange for repair materials
+- **On the ground** at locations — some survival items (ice crystals, bio gel) can be picked up
 - **During travel** — 15% chance to find ice crystals or metal shards
 
 ### Ship Bays
@@ -392,22 +426,193 @@ Speaks in magenta: `DRONE: ...`
 - The game **auto-saves** after every travel and conversation (slot: "autosave")
 - Use `save` for manual saves (default slot: "manual"), or `save myslot` for named slots
 - Use `load` to list available saves, or `load myslot` to load directly
-- Save files are stored in the `saves/` directory as JSON
+- Save files are stored in the `saves/` directory as SQLite databases
 
 ---
 
 ## Tips for New Players
 
-1. **Follow the tutorial.** It walks you through look, scan, gps, travel, and talk in a natural order.
-2. **Scan at every new location.** Each scan discovers up to 3 nearby locations. Locations form a chain — scanning from newly discovered places reveals more of the map.
-3. **Watch your drone battery.** Plan trips so you can return to the Crash Site to recharge before it's empty.
-4. **Talk to everyone.** Each conversation gives +3 trust. Friendly creatures start at 25 — just 15 exchanges to reach high trust.
-5. **Give gifts to hostile creatures.** They won't talk to you below 15 trust, so gifts (+10) are the only way to break the ice.
-6. **Ask creatures for help in conversation.** At medium trust, try asking for water or food. At high trust, ask for materials or healing.
-7. **Escort creatures to the ship.** Builders and Healers are especially useful — they install materials and restore your vitals.
-8. **Use the Kitchen Bay.** Cook bio_gel for food and ice_crystal for water — don't let useful items sit in your inventory.
-9. **Stash items you don't need.** Ship storage frees up drone cargo space so you can carry more during exploration.
-10. **Read the drone's whispers.** Its coaching tips are context-aware — it tells you how to approach each creature type.
-11. **Upgrade the translator early.** Better translation quality means clearer creature dialogue, making conversations more productive.
-12. **Use `gps` to plan routes.** Shorter trips use less food, water, and battery.
-13. **Use `clear` if the screen gets cluttered.** The status bar above your prompt always shows your current state at a glance.
+1. **Follow the tutorial.** It walks you through look, scan, gps, travel, and talk, then points you to key mechanics.
+2. **Find a Healer early.** Healers help at very low trust — they can save your life when resources are tight.
+3. **Creatures are your main resource.** Repair materials come primarily from creatures, not the ground. Build trust.
+4. **Talk to the Enforcer.** They know everyone in the area and can tell you who to visit for ship repairs.
+5. **Trade with Merchants.** They never give for free, but a fair trade can get you critical repair materials.
+6. **Scan at every new location.** Each scan discovers up to 3 nearby locations. Locations form a chain.
+7. **Watch for hazards.** Travel damages your suit and drains resources. ARIA will advise you when damage occurs.
+8. **Don't stay too long.** Late-game weather gets worse — hazards increase and water drains faster.
+9. **Give gifts to hostile creatures.** They won't talk below 15 trust, so gifts (+10) break the ice.
+10. **Escort creatures to the ship.** Builders install materials, Healers restore your vitals.
+11. **Use "stash all" at the storage bay.** Quickly frees up drone cargo for exploration.
+12. **Check GPS for resource markers.** Food and water sources show up at locations you've visited.
+13. **Read the drone's whispers.** It gives specific, context-aware advice about what to ask each creature.
+14. **Upgrade the translator early.** Better translation = clearer creature dialogue = more productive conversations.
+15. **Use `gps` to plan routes.** Shorter trips use less food, water, and battery.
+
+---
+
+## Troubleshooting
+
+### AI model won't download
+
+If the automatic download fails (network issues, timeouts), you can manually download the GGUF model file and place it in the `models/` directory. The game looks for any `.gguf` file in that folder — no config changes needed.
+
+- **Qwen3.5 2B** — download the `.gguf` file (~1.3 GB) and place it in `~/.moonwalker/models/`
+- **Gemma 4 E2B** — download the `.gguf` file (~3.1 GB) and place it in `~/.moonwalker/models/`
+
+### GPU not detected
+
+The game auto-detects CUDA, Metal, and Vulkan GPUs. If detection fails, it falls back to CPU-only inference. You can also manually choose CPU mode at startup.
+
+- **CUDA (NVIDIA)** — ensure CUDA toolkit is installed and `llama-cpp-python` was built with CUDA support
+- **Metal (Apple Silicon)** — should work automatically on macOS 12+
+- **Vulkan** — requires Vulkan SDK and compatible GPU drivers
+
+If GPU loading crashes, the game automatically retries with CPU-only. Gameplay is unaffected — inference is just slower.
+
+### LLM model fails to load
+
+If the model can't load (corrupted download, incompatible format, insufficient RAM), the game continues normally using pre-written fallback dialogue. Creatures respond with personality-appropriate scripted lines instead of AI-generated text. The game is fully playable without the LLM.
+
+### Creature dialogue feels repetitive
+
+- Check if the LLM is loaded — run `dev` to enable dev mode, then check the log for `"model_loaded": true`
+- If the model isn't loaded, you're seeing fallback dialogue. Re-run the game and accept the model download prompt
+- Upgrade the **Translator Chip** — better translation quality gives the LLM richer context, producing more varied responses
+
+### Save files / changing save location
+
+All user data is stored in `~/.moonwalker/` by default:
+
+```
+~/.moonwalker/
+  config.json       # game configuration
+  saves/            # save files (SQLite)
+  models/           # downloaded AI models (.gguf)
+  dev/              # dev mode diagnostic logs
+```
+
+Use the `config` command to view or change the save path:
+
+```
+config                          # show current config
+config savedir /path/to/saves   # change save directory
+```
+
+The game auto-saves after every travel and conversation (slot: "autosave"). Use `save` for manual saves and `load` to list available slots.
+
+Models placed in the legacy `models/` directory (project root) are still detected for backward compatibility.
+
+### Game crashes or freezes during conversation
+
+- LLM inference can be slow on CPU, especially with the larger Gemma model — wait a few seconds for the response
+- If the game truly hangs, press `Ctrl+C` to exit the conversation safely
+- Your progress is auto-saved — run `load autosave` on restart
+
+---
+
+## Dev Mode — Diagnostics & Debugging
+
+Dev mode logs detailed game state to a JSON file for debugging, modding, or understanding the game's internals. It never affects gameplay — only writes log data.
+
+### Enabling dev mode
+
+```
+dev           # toggle dev mode on/off
+devmode       # same thing
+```
+
+When enabled, the game writes to `~/.moonwalker/dev/dev_diagnostics.jsonl` (one JSON object per line). Toggle it off to stop logging.
+
+### Full diagnostic snapshots
+
+Written every turn when dev mode is on. Each snapshot includes:
+
+| Section | What it contains |
+|---------|-----------------|
+| **system** | RAM usage (RSS/VMS), CPU%, system RAM total/used, model file size, model RAM estimate, whether model is loaded |
+| **game** | Mode, seed, location, food/water/suit/battery %, hours elapsed, inventory count, locations known/total, repair progress, tutorial step, LLM availability |
+| **locations** | All locations sorted by distance — name, type, coordinates, distance, discovered/visited, items, food/water sources, creature present |
+| **creatures** | All creatures — name, species, archetype, disposition, location, trust, following status, inventory, items given, available materials, trade wants, food/water knowledge, conversation count |
+| **scan_tree** | Scanner reachability from current position — which locations are in range, and what's reachable from each (depth-2 lookahead) |
+| **chat_history** | Full conversation history for every creature you've talked to — each message with role (user/assistant) and content |
+
+### Event-level logging
+
+Specific actions are logged as individual events:
+
+| Event | Logged data |
+|-------|-------------|
+| `scan` | Location, discovered count, battery remaining |
+| `travel_start` | Origin, destination, distance, food/water/suit/battery before |
+| `travel_arrive` | Destination, food/water/suit/battery after, hours elapsed |
+| `item_pickup` | Item name, location, inventory count |
+| `trust_change` | Creature, old/new trust, source (conversation/gift/trade), exchange count |
+| `llm_actions` | Creature, actions triggered (GIVE_WATER, HEAL, etc.), trust, archetype |
+| `trade` | Creature, items exchanged, trust level |
+| `repair_install` | Material installed, total progress |
+
+### Checking NPC chat history and memory
+
+There are two ways to inspect what creatures have said:
+
+**1. During a conversation** — use the `/history` command:
+
+```
+talk Zyx'ra
+You> /history
+```
+
+This shows the last 10 exchanges for the creature you're talking to. The game keeps up to 20 messages (10 exchanges) per creature in memory.
+
+**2. Via dev mode logs** — the `chat_history` section of each diagnostic snapshot contains the full conversation history for every creature, including creature name, current trust level, total message count, and every message with role and content.
+
+### Inspecting creature details
+
+The `creatures` section of the dev log shows internal state not visible in normal gameplay:
+
+- **Trust** — exact numeric value (0–100), not just the "low/medium/high" label
+- **Disposition** — friendly, neutral, or hostile (their starting attitude)
+- **Role inventory** — what items the creature has available to give
+- **Can give materials** — which repair materials this creature can provide
+- **Trade wants** — what a Merchant creature wants in exchange
+- **Given items** — what you've already received from them
+- **Food/water knowledge** — whether the creature knows about resource locations
+- **Following** — whether the creature is currently escorting you
+
+### Checking LLM and model status
+
+The dev log's `system` section shows:
+
+- `model_loaded` — `true` if the LLM model is active, `false` if using fallback dialogue
+- `model_file_size_mb` — size of the loaded GGUF file on disk
+- `model_ram_estimate_mb` — estimated RAM usage (~1.3x file size)
+- `ram_rss_mb` / `ram_vms_mb` — actual process memory usage
+
+The `game` section also includes `llm_available` (boolean).
+
+### Reading the log file
+
+The log is JSON Lines format — one JSON object per line:
+
+```bash
+# View the latest diagnostic snapshot
+tail -1 ~/.moonwalker/dev/dev_diagnostics.jsonl | python -m json.tool
+
+# Filter for trust changes
+grep '"trust_change"' ~/.moonwalker/dev/dev_diagnostics.jsonl | python -m json.tool
+
+# View all chat history from the latest snapshot
+tail -1 ~/.moonwalker/dev/dev_diagnostics.jsonl | python -c "
+import json, sys
+data = json.load(sys.stdin)
+for c in data.get('chat_history', []):
+    print(f\"\n=== {c['creature']} (trust: {c['trust']}) ===\")
+    for m in c['messages']:
+        prefix = 'You' if m['role'] == 'user' else c['creature']
+        print(f\"  {prefix}: {m['content']}\")"
+
+# Count events by type
+grep -o '"event":"[^"]*"' ~/.moonwalker/dev/dev_diagnostics.jsonl | sort | uniq -c | sort -rn
+```
+
+> **Note:** Dev mode never affects gameplay, save files, or performance. It only writes to the log file. Logging failures are silently ignored — the game never crashes due to dev mode.

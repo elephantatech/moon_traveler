@@ -1,6 +1,6 @@
 [project]
 name = "moon-traveler-cli"
-version = "0.2.0"
+version = "0.3.0"
 description = "A text-based survival game set on Saturn's moon Enceladus"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -8,10 +8,7 @@ dependencies = [
     "rich",
     "prompt_toolkit",
     "llama-cpp-python",
-    "jinja2>=3.1.6",
-    "markupsafe>=3.0.3",
-    "typing-extensions>=4.15.0",
-    "psutil>=7.2.2",
+    "psutil",
 ]
 
 [dependency-groups]

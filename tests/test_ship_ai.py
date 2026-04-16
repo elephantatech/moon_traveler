@@ -86,13 +86,20 @@ class TestStatusReport:
 class TestPostTravelSummary:
     def test_summary_contains_location_and_stats(self):
         ai = ShipAI()
-        player = FakePlayer(food=80, water=70, location_name="Crystal Ridge")
+        player = FakePlayer(food=80, water=70, suit_integrity=85, location_name="Crystal Ridge")
         drone = FakeDrone(battery=60)
-        result = ai.post_travel_summary(player, drone, 3, 15.5)
+        result = ai.post_travel_summary(
+            player, drone,
+            food_before=100.0, water_before=100.0,
+            suit_before=92.0, batt_before=100.0,
+        )
         assert "Crystal Ridge" in result
-        assert "80%" in result
-        assert "70%" in result
-        assert "60%" in result
+        assert "80%" in result  # food after
+        assert "70%" in result  # water after
+        assert "60%" in result  # battery after
+        assert "-20" in result  # food_lost = 100 - 80
+        assert "-30" in result  # water_lost = 100 - 70
+        assert "-40" in result  # batt_lost = 100 - 60
 
 
 class TestObjectiveReminder:

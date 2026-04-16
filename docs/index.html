@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moon Traveler Terminal — Survive Saturn's Moon</title>
+  <meta name="description" content="Crash-landed on Enceladus. No signal. No rescue. Talk your way off an alien moon with a local AI — or die on the ice.">
+  <meta property="og:title" content="Moon Traveler Terminal">
+  <meta property="og:description" content="A text-based survival game on Enceladus with LLM-powered alien conversations. 100% local. No cloud.">
+  <meta property="og:image" content="assets/og-image.svg">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #0a0d18;
+      --deep: #111525;
+      --surface: #181d30;
+      --surface-hover: #1e2440;
+      --surface-border: rgba(140, 164, 190, 0.08);
+      --text: #b4bcd4;
+      --text-bright: #dce0ee;
+      --text-muted: #7c84a4;
+      --amber: #c89450;
+      --amber-glow: rgba(200, 148, 80, 0.10);
+      --amber-dim: rgba(200, 148, 80, 0.06);
+      --ice: #8ca4be;
+      --red: #c85050;
+      --font-display: 'Chakra Petch', sans-serif;
+      --font-body: 'Hanken Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { font-size: 18px; scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--void);
+      color: var(--text);
+      line-height: 1.75;
+      overflow-x: hidden;
+    }
+
+    /* Layered atmosphere */
+    .atmosphere {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(ellipse 80% 60% at 15% 20%, rgba(14, 20, 50, 0.5) 0%, transparent 100%),
+        radial-gradient(ellipse 50% 70% at 85% 75%, rgba(8, 14, 38, 0.6) 0%, transparent 100%),
+        radial-gradient(circle at 70% 10%, rgba(200, 148, 80, 0.03) 0%, transparent 40%);
+    }
+
+    /* Noise overlay */
+    .atmosphere::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    /* Scanline effect */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.015) 2px,
+        rgba(0, 0, 0, 0.015) 4px
+      );
+    }
+
+    /* Skip to content */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 16px;
+      z-index: 200;
+      padding: 12px 20px;
+      background: var(--amber);
+      color: var(--void);
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 1px;
+    }
+    .skip-link:focus {
+      top: 16px;
+    }
+
+    a { color: var(--amber); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--text-bright); }
+
+    /* Focus styles */
+    :focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 28px; }
+
+    /* ====== HERO ====== */
+    .hero {
+      text-align: center;
+      padding: 100px 0 50px;
+      animation: fadeUp 1s ease-out;
+    }
+    .hero-banner {
+      width: 100%;
+      max-width: 760px;
+      margin-bottom: 36px;
+      filter: drop-shadow(0 0 40px rgba(200, 148, 80, 0.06));
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 700;
+      color: var(--text-bright);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .hero h1 span { color: var(--amber); }
+    .tagline {
+      font-family: var(--font-body);
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: var(--text);
+      max-width: 500px;
+      margin: 0 auto 30px;
+      line-height: 1.8;
+    }
+    .tagline strong { color: var(--text-bright); font-weight: 500; }
+
+    /* Badges */
+    .badges {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 34px;
+    }
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .b-amber { color: var(--amber); border: 1px solid rgba(200,148,80,0.35); background: var(--amber-dim); }
+    .b-ice { color: var(--ice); border: 1px solid rgba(140,164,190,0.3); background: rgba(140,164,190,0.06); }
+
+    /* CTAs */
+    .ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      font-family: var(--font-display);
+      display: inline-block;
+      padding: 14px 30px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: all 0.25s;
+      cursor: pointer;
+    }
+    .btn-solid {
+      background: var(--amber);
+      color: var(--void);
+      border: none;
+    }
+    .btn-solid:hover {
+      background: #d8a462;
+      color: var(--void);
+      transform: translateY(-1px);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--amber);
+      border: 1.5px solid rgba(200,148,80,0.5);
+    }
+    .btn-ghost:hover {
+      background: var(--amber-dim);
+      border-color: var(--amber);
+      color: var(--text-bright);
+    }
+
+    /* ====== PRIVACY STRIP ====== */
+    .privacy {
+      text-align: center;
+      padding: 20px 0 0;
+      animation: fadeUp 1s ease-out 0.2s both;
+    }
+    .privacy p {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--ice);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+    .privacy .sub {
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-transform: none;
+      letter-spacing: 0;
+      margin-top: 4px;
+    }
+
+    /* ====== SECTIONS ====== */
+    section { padding: 60px 0; }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    section h2 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      text-align: center;
+      letter-spacing: 2px;
+      margin-bottom: 28px;
+    }
+
+    /* ====== TRANSMISSION (story teaser) ====== */
+    .transmission {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 30px 32px;
+      background: var(--deep);
+      border: 1px solid var(--surface-border);
+      position: relative;
+    }
+    .transmission::before {
+      content: 'INCOMING TRANSMISSION';
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 3px;
+      color: var(--amber);
+      opacity: 0.6;
+      position: absolute;
+      top: -20px;
+      left: 0;
+    }
+    .transmission .hook {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+    .transmission .body {
+      font-size: 0.92rem;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+    .transmission .stakes {
+      font-size: 0.88rem;
+      color: var(--amber);
+      font-weight: 500;
+    }
+    .transmission .read-more {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 6px 0;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+    }
+    .transmission .read-more:hover { color: var(--amber); }
+
+    /* ====== STEPS ====== */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      max-width: 740px;
+      margin: 0 auto;
+    }
+    .step {
+      text-align: center;
+      padding: 28px 18px;
+      background: var(--deep);
+      border: 1px solid var(--surface-border);
+      position: relative;
+    }
+    .step::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20%;
+      width: 60%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--amber), transparent);
+      opacity: 0.15;
+    }
+    .step-n {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--amber);
+      line-height: 1;
+      margin-bottom: 8px;
+      opacity: 0.3;
+    }
+    .step h3 {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .step p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Inline TUI callout */
+    .tui-note {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 8px;
+    }
+    .tui-hint {
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+      letter-spacing: 1px;
+      opacity: 0.6;
+    }
+    .tui-hint kbd {
+      color: var(--amber);
+      border: 1px solid rgba(200,148,80,0.3);
+      padding: 1px 6px;
+      font-family: inherit;
+    }
+
+    /* ====== FEATURES ====== */
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .feat {
+      padding: 22px 24px;
+      background: var(--deep);
+      border: 1px solid var(--surface-border);
+    }
+    .feat h3 {
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--ice);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .feat p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .feat-lead {
+      grid-column: 1 / -1;
+      padding: 28px 28px;
+      background: var(--surface);
+    }
+    .feat-lead h3 {
+      font-size: 1rem;
+      color: var(--amber);
+      margin-bottom: 8px;
+    }
+    .feat-lead p {
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.7;
+      max-width: 60ch;
+    }
+    .feat-footer {
+      grid-column: 1 / -1;
+      text-align: center;
+      background: var(--void);
+      border: 1px solid var(--surface-border);
+      padding: 18px 24px;
+    }
+    .feat-footer h3 { color: var(--text-muted); }
+    .feat-footer p { max-width: 440px; margin: 0 auto; }
+
+    /* ====== GALLERY ====== */
+    .gallery {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .gallery-item {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+    .gallery-item:hover { border-color: rgba(200,148,80,0.2); }
+    .gallery-item img { width: 100%; display: block; }
+    .gallery-item figcaption {
+      padding: 10px 16px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+    .gallery-item figcaption strong { color: var(--text); font-weight: 500; }
+
+    /* ====== INSTALL ====== */
+    .install-panel {
+      background: var(--deep);
+      border: 1px solid var(--surface-border);
+      padding: 24px 28px;
+    }
+    .install-panel h3 {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      color: var(--text-bright);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .install-panel .note {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .install-panel pre {
+      margin: 0;
+    }
+    .install-panel code {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: rgba(0,0,0,0.35);
+      color: var(--ice);
+      padding: 14px 16px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    .release-link {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      padding: 8px 0;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* ====== FINAL CTA ====== */
+    .final-cta {
+      text-align: center;
+      padding: 60px 0 40px;
+    }
+    .final-cta h2 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 28px 0;
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .footer-meta {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    footer nav {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--amber); }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    /* Tablet */
+    @media (max-width: 800px) {
+      .steps { grid-template-columns: 1fr 1fr; }
+      .steps .step:last-child { grid-column: 1 / -1; }
+    }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+      .hero h1 { letter-spacing: 2px; }
+      .tagline { font-size: 1rem; }
+      .steps { grid-template-columns: 1fr; }
+      .steps .step:last-child { grid-column: auto; }
+      .features { grid-template-columns: 1fr; }
+      .feat-lead, .feat-footer { grid-column: auto; }
+      .ctas { flex-direction: column; align-items: center; }
+      .transmission { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+<div class="atmosphere"></div>
+<div class="scanlines"></div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <img src="assets/banner.svg" alt="Moon Traveler Terminal banner" class="hero-banner">
+    <h1>Moon <span>Traveler</span> Terminal</h1>
+    <p class="tagline">
+      <strong>Crash-landed. No signal. No rescue.</strong><br>
+      Talk your way off an alien moon &mdash; or die on the ice.
+    </p>
+    <div class="badges">
+      <span class="badge b-amber">100% Offline</span>
+      <span class="badge b-amber">Local LLM</span>
+      <span class="badge b-ice">Win / Mac / Linux</span>
+      <span class="badge b-ice">v0.3.0</span>
+    </div>
+    <div class="ctas">
+      <a href="https://github.com/elephantatech/moon_traveler" class="btn btn-solid">View on GitHub</a>
+      <a href="https://github.com/elephantatech/moon_traveler/releases" class="btn btn-ghost">Download</a>
+    </div>
+  </header>
+
+  <main id="main">
+
+  <!-- PRIVACY -->
+  <div class="privacy">
+    <p>No cloud &middot; No account &middot; No internet</p>
+    <p class="sub">Runs entirely on your machine with a local AI model.</p>
+  </div>
+
+  <!-- STORY TEASER -->
+  <section class="reveal">
+    <div class="transmission">
+      <p class="hook">A routine survey run. A micrometeorite cluster. A dead ship on an alien moon.</p>
+      <p class="body">
+        You crash-land on Enceladus at 340 km/h. Your ship is wrecked. Your supplies are counting down.
+        The ice is &minus;201&deg;C and it doesn't care about your problems. The only beings who can help
+        &mdash; alien creatures with families, grudges, and their own reasons to distrust you &mdash;
+        won't talk to a stranger.
+      </p>
+      <p class="stakes">
+        Earn their trust. Trade for materials. Survive the storms. Fix the ship &mdash; or let the icy winds take you.
+      </p>
+      <a href="story.html" class="read-more">Read full transmission &rarr;</a>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="reveal" aria-labelledby="gameplay-heading">
+    <div class="section-label">Gameplay</div>
+    <h2 id="gameplay-heading">Explore. Befriend. Escape.</h2>
+    <p class="tui-note">
+      A full TUI game built for the terminal. Not a wall of text &mdash; styled panels, live status bars, progress indicators, and
+      tab-autocomplete for every command, location, creature, and item.
+    </p>
+    <p class="tui-hint">
+      Hit <kbd>TAB</kbd> and the terminal does the rest
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-n">01</div>
+        <h3>Explore</h3>
+        <p>Scan the terrain. Discover locations. Travel the ice &mdash; dodging geysers, storms, and crevasses.</p>
+      </div>
+      <div class="step">
+        <div class="step-n">02</div>
+        <h3>Befriend</h3>
+        <p>Talk to alien creatures with a local AI. Earn trust. Trade with merchants. Each has a role and a story.</p>
+      </div>
+      <div class="step">
+        <div class="step-n">03</div>
+        <h3>Escape</h3>
+        <p>Collect repair materials. Install them bay by bay. Fire the thrusters. Rise from the ice.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="reveal" aria-labelledby="features-heading">
+    <div class="section-label">Systems</div>
+    <h2 id="features-heading">What Makes It Different</h2>
+    <div class="features">
+      <div class="feat feat-lead">
+        <h3>LLM Conversations</h3>
+        <p>Talk to 10 alien archetypes with a local AI. Healers, Merchants, Warriors, Hermits &mdash; each with a personality and agenda. Every conversation is different.</p>
+      </div>
+      <div class="feat">
+        <h3>Trade System</h3>
+        <p>Merchants barter item-for-item. They never give for free. Bring what they want, and they have what you need.</p>
+      </div>
+      <div class="feat">
+        <h3>Hostile Environment</h3>
+        <p>Geyser eruptions. Ice storms. Crevasse falls. The environment is your enemy &mdash; and late-game weather makes it worse.</p>
+      </div>
+      <div class="feat">
+        <h3>Escort &amp; Repair</h3>
+        <p>Befriend creatures and escort them to your ship. Builders install materials. Healers restore your vitals.</p>
+      </div>
+      <div class="feat">
+        <h3>Procedural Worlds</h3>
+        <p>Every game is different. Seeded RNG generates unique maps. Three modes from 30-minute sprints to 3-hour campaigns.</p>
+      </div>
+      <div class="feat feat-footer">
+        <h3>Works Offline</h3>
+        <p>Local LLM inference. No internet. No cloud. Falls back to pre-written dialogue if no model installed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOTS -->
+  <section class="reveal" aria-labelledby="screenshots-heading">
+    <div class="section-label">Terminal</div>
+    <h2 id="screenshots-heading">In Action</h2>
+    <div class="gallery">
+      <figure class="gallery-item">
+        <img src="assets/screenshot-crash-site--first-look.svg" alt="Crash site showing status bar, vitals, inventory, ship progress, and bay summary" loading="lazy">
+        <figcaption><strong>Crash Site</strong> &mdash; status bar, vitals, inventory, ship progress, bay summary</figcaption>
+      </figure>
+      <figure class="gallery-item">
+        <img src="assets/screenshot-creature-conversation.svg" alt="LLM-powered alien dialogue with private drone coaching" loading="lazy">
+        <figcaption><strong>Conversation</strong> &mdash; LLM-powered alien dialogue with private drone coaching</figcaption>
+      </figure>
+      <figure class="gallery-item">
+        <img src="assets/screenshot-traveling-to-a-location.svg" alt="Narrated journey with environmental hazards" loading="lazy">
+        <figcaption><strong>Travel</strong> &mdash; narrated journeys with environmental hazards</figcaption>
+      </figure>
+      <figure class="gallery-item">
+        <img src="assets/screenshot-victory.svg" alt="Victory screen after repairing ship and launching from Enceladus" loading="lazy">
+        <figcaption><strong>Victory</strong> &mdash; repair your ship and launch from Enceladus</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section class="reveal" aria-labelledby="install-heading">
+    <div class="section-label">Start</div>
+    <h2 id="install-heading">Quick Start</h2>
+    <div class="install-panel">
+      <h3>macOS / Linux</h3>
+      <p class="note">Downloads the latest release binary. No Python required.</p>
+      <pre><code>curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash</code></pre>
+    </div>
+    <div class="install-panel" style="margin-top: 2px;">
+      <h3>Windows (PowerShell)</h3>
+      <pre><code>irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex</code></pre>
+    </div>
+    <a href="https://github.com/elephantatech/moon_traveler/releases" class="release-link">
+      Or download a pre-built release directly &rarr;
+    </a>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta reveal" aria-labelledby="final-cta-heading">
+    <h2 id="final-cta-heading">Ready to Survive?</h2>
+    <div class="ctas">
+      <a href="https://github.com/elephantatech/moon_traveler" class="btn btn-solid">View on GitHub</a>
+      <a href="https://github.com/elephantatech/moon_traveler/releases" class="btn btn-ghost">Download</a>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <p class="footer-meta">Moon Traveler Terminal &middot; v0.3.0 &middot; Apache 2.0</p>
+    <nav aria-label="Footer">
+      <a href="https://github.com/elephantatech/moon_traveler">GitHub</a> &middot;
+      <a href="https://github.com/elephantatech/moon_traveler/releases">Releases</a> &middot;
+      <a href="story.html">Story</a> &middot;
+      <a href="how-to-play.html">How to Play</a>
+    </nav>
+  </footer>
+
+</div>
+
+<noscript>
+  <style>.reveal { opacity: 1 !important; transform: none !important; }</style>
+</noscript>
+
+<script>
+// Scroll reveal
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }});
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+
+</body>
+</html>

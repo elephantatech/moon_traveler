@@ -87,7 +87,8 @@ def main():
 
     cap = ScreenshotCapture()
     ctx = init_game("short", seed=42)
-    ctx.tutorial.step = ctx.tutorial.step.__class__["COMPLETED"]
+    from src.tutorial import TutorialStep
+    ctx.tutorial.step = TutorialStep.COMPLETED
 
     # 1. Title Screen
     def render_title(c):
@@ -126,12 +127,26 @@ def main():
         ui.show_drone_status(drone_dict, title="ARIA Scout Drone")
     cap.capture("Drone Status", render_drone)
 
-    # 6. Travel
+    # 6. Travel — find nearest discovered location with a creature
+    travel_dest = None
+    crash = ctx.current_location()
+    for loc in sorted(ctx.locations, key=lambda loc: crash.distance_to(loc.x, loc.y)):
+        if loc.loc_type != "crash_site" and loc.discovered and loc.creature_id:
+            travel_dest = loc
+            break
+    if not travel_dest:
+        # Fallback: just pick the nearest non-crash location
+        travel_dest = next(
+            loc for loc in ctx.locations if loc.loc_type != "crash_site" and loc.discovered
+        )
+
     def render_travel(c):
-        show_prompt(ctx, c, "travel Azure Warren")
+        show_prompt(ctx, c, f"travel {travel_dest.name}")
         cur = ctx.current_location()
-        dest = ctx.find_location("Azure Warren")
-        messages = execute_travel(ctx.player, ctx.drone, dest, cur, ctx.rng, ctx.ship_ai, ctx.locations)
+        messages = execute_travel(
+            ctx.player, ctx.drone, travel_dest, cur, ctx.rng,
+            ctx.ship_ai, ctx.locations, ctx.world_mode,
+        )
         for msg in messages:
             c.print(msg)
     cap.capture("Traveling to a Location", render_travel)
@@ -143,13 +158,14 @@ def main():
         cmd_look(ctx, "")
     cap.capture("Location with Creature and Items", render_location)
 
-    # 8. Taking Items
+    # 8. Taking Items — pick up whatever is at this location
+    loc_here = ctx.current_location()
+    take_items = list(loc_here.items)[:2]  # up to 2 items
     def render_take(c):
         show_status_bar(ctx, c)
-        show_prompt(ctx, c, "take ice_crystal")
-        cmd_take(ctx, "ice_crystal")
-        show_prompt(ctx, c, "take power_cell")
-        cmd_take(ctx, "power_cell")
+        for item in take_items:
+            show_prompt(ctx, c, f"take {item}")
+            cmd_take(ctx, item)
         c.print()
         show_prompt(ctx, c, "inventory")
         cmd_inventory(ctx, "")
@@ -162,15 +178,22 @@ def main():
         cmd_status(ctx, "")
     cap.capture("Player Status", render_status)
 
-    # 10. Giving Gifts
+    # 10. Giving Gifts — give the first item we have
     creature = ctx.creature_at_location(ctx.player.location_name)
+    give_item = next(iter(ctx.player.inventory.keys()), None) if ctx.player.inventory else None
     def render_give(c):
         show_status_bar(ctx, c)
-        show_prompt(ctx, c, f"give power_cell to {creature.name}")
-        cmd_give(ctx, f"power_cell to {creature.name}")
+        if give_item and creature:
+            show_prompt(ctx, c, f"give {give_item} to {creature.name}")
+            cmd_give(ctx, f"{give_item} to {creature.name}")
+        else:
+            show_prompt(ctx, c, "give ice_crystal to Kael")
+            c.print("[red]No items to give or no creature here.[/red]")
     cap.capture("Giving a Gift to Build Trust", render_give)
 
     # 11. Conversation
+    if not creature:
+        creature = next((cr for cr in ctx.creatures), None)
     def render_talk(c):
         show_status_bar(ctx, c)
         show_prompt(ctx, c, f"talk {creature.name}")
@@ -182,7 +205,7 @@ def main():
             f"[dim]Trust: {creature.trust}/100 ({creature.trust_level})"
             " — 'bye' or '/end' to disconnect | /? for help[/dim]\n"
         )
-        tip = ctx.drone.get_interaction_advice(creature, ctx.rng)
+        tip = ctx.drone.get_smart_advice(creature, ctx.player, ctx.repair_checklist, ctx.rng)
         if tip:
             c.print(tip)
         c.print()
@@ -305,11 +328,15 @@ def main():
         c.print("\n[bold]GAME OVER[/bold]\n")
     cap.capture("Game Over", render_gameover)
 
-    # 18. Dev Mode
+    # 18. Dev Mode — now logs to file, show the toggle message
     def render_dev(c):
-        ctx.dev_mode.enabled = True
-        ctx.dev_mode.render_panel(ctx)
-    cap.capture("Dev Mode Diagnostics", render_dev)
+        show_prompt(ctx, c, "dev")
+        c.print("[green]Dev mode ON — logging to logs/dev_diagnostics.jsonl[/green]")
+        c.print()
+        c.print("[dim]Diagnostics are written as JSON lines to the log file.[/dim]")
+        c.print("[dim]Each game action appends a snapshot of system, game state,[/dim]")
+        c.print("[dim]locations, creatures, scan tree, and chat history.[/dim]")
+    cap.capture("Dev Mode Logging", render_dev)
 
     # 19. Help
     def render_help(c):

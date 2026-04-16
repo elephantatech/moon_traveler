@@ -6,16 +6,22 @@ from pathlib import Path
 
 from src import ui
 
-# Config file lives next to the executable (frozen) or project root (dev)
-if getattr(sys, "frozen", False):
-    _CONFIG_DIR = Path(sys.executable).parent
-else:
-    _CONFIG_DIR = Path(__file__).parent.parent
 
-CONFIG_PATH = _CONFIG_DIR / "config.json"
+def get_data_dir() -> Path:
+    """Return the user data directory: ~/.moonwalker.
+
+    All persistent user data (saves, models, config, dev logs) lives here
+    by default. The directory is created on first access.
+    """
+    return Path.home() / ".moonwalker"
+
+
+# Config file lives in the user data directory
+_DATA_DIR = get_data_dir()
+CONFIG_PATH = _DATA_DIR / "config.json"
 
 # Defaults
-_DEFAULT_SAVE_DIR = _CONFIG_DIR / "saves"
+_DEFAULT_SAVE_DIR = _DATA_DIR / "saves"
 
 _config: dict | None = None
 
@@ -38,6 +44,7 @@ def _load() -> dict:
 def _save():
     if _config is None:
         return
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_PATH, "w") as f:
         json.dump(_config, f, indent=2)
 

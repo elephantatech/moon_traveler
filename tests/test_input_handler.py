@@ -28,9 +28,10 @@ class FakeDrone:
 
 
 class FakeCreature:
-    def __init__(self, name="Kael", location="Crash Site"):
+    def __init__(self, name="Kael", location="Crash Site", following=False):
         self.name = name
         self.location_name = location
+        self.following = following
 
 
 class FakeCtx:

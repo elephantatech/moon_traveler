@@ -74,6 +74,53 @@ FIND_EVENTS = [
     ("metal_shard", "A small metal shard glints in the ice. You pick it up."),
 ]
 
+# Late-game weather thresholds (hours elapsed before weather escalation)
+LATE_GAME_THRESHOLDS = {"short": 30, "medium": 40, "long": 60}
+
+# Late-game narration flavor
+LATE_GAME_WEATHER = [
+    "[bold yellow]The sky darkens. A massive ice storm is building on the horizon.[/bold yellow]",
+    "[bold yellow]The ground trembles with increasing frequency. The moon's core is restless.[/bold yellow]",
+    "[bold yellow]Temperature dropping fast. Your suit is working harder to compensate.[/bold yellow]",
+    "[bold yellow]Geysers are erupting more frequently. The landscape is becoming treacherous.[/bold yellow]",
+    "[bold yellow]Visibility is dropping. Fine ice particles fill the air like fog.[/bold yellow]",
+    "[bold yellow]Warning: surface instability detected across the region.[/bold yellow]",
+]
+
+# Hazard events with mechanical effects — these make the environment dangerous
+HAZARD_EVENTS = [
+    {
+        "message": "A geyser erupts beneath you! Scalding vapor blasts your suit.",
+        "effect": {"suit_integrity": -10},
+        "probability": 0.12,
+    },
+    {
+        "message": "You stumble into a crevasse. The fall damages your suit and spills some supplies.",
+        "effect": {"suit_integrity": -8, "food": -10},
+        "probability": 0.10,
+    },
+    {
+        "message": "An ice storm rolls in. You hunker down but it costs precious time and water.",
+        "effect": {"water": -15, "hours": 1},
+        "probability": 0.08,
+    },
+    {
+        "message": "The surface gives way under thin ice. You scramble out, drenched and freezing.",
+        "effect": {"suit_integrity": -15, "water": -10},
+        "probability": 0.06,
+    },
+    {
+        "message": "Toxic vapor seeps from a thermal vent. Your suit filters work overtime.",
+        "effect": {"suit_integrity": -5},
+        "probability": 0.10,
+    },
+    {
+        "message": "A thermal shock cracks your visor seal. You patch it but lose moisture.",
+        "effect": {"suit_integrity": -5, "water": -5},
+        "probability": 0.08,
+    },
+]
+
 
 def calculate_travel_time(distance: float, drone: Drone) -> float:
     """Returns travel time in hours."""
@@ -181,11 +228,18 @@ def execute_travel(
     rng: random.Random,
     ship_ai=None,
     locations: list[Location] | None = None,
+    game_mode: str = "medium",
 ) -> list[str]:
     """Move player to destination. Returns list of event messages."""
     distance = current.distance_to(destination.x, destination.y)
     hours = calculate_travel_time(distance, drone)
     hours_int = max(1, round(hours))
+
+    # Capture pre-trip vitals for accurate ARIA summary
+    food_before = player.food
+    water_before = player.water
+    suit_before = player.suit_integrity
+    batt_before = drone.battery
 
     # Battery cost
     battery_cost = drone.travel_battery_cost(distance)
@@ -194,6 +248,9 @@ def execute_travel(
     # Show travel progress (real-time duration scales with game hours, capped)
     real_duration = min(hours_int * 0.3, 3.0)
     ui.travel_progress(destination.name, real_duration)
+
+    # Capture pre-trip hours for late-game threshold calculation
+    hours_before_trip = player.hours_elapsed
 
     # Consume resources
     player.consume_resources(hours_int)
@@ -209,6 +266,55 @@ def execute_travel(
     # Travel narration — scales with trip length
     narration = _build_travel_narration(hours_int, rng, ship_ai, locations or [], destination, drone, current)
     messages.extend(narration)
+
+    # Late-game escalation — use pre-trip hours so drain isn't inflated by the trip itself
+    late_threshold = LATE_GAME_THRESHOLDS.get(game_mode, 40)
+    hours_past_threshold = max(0, hours_before_trip - late_threshold)
+    probability_bonus = 0.05 * (hours_past_threshold // 10)  # +5% per 10 hours past threshold
+
+    # Late-game weather narration
+    if hours_past_threshold > 0 and rng.random() < 0.4:
+        messages.append(rng.choice(LATE_GAME_WEATHER))
+
+    # Late-game extra water drain
+    if hours_past_threshold > 0:
+        extra_water_drain = hours_int * 0.5 * (hours_past_threshold // 10 + 1)
+        player.water = max(0, player.water - extra_water_drain)
+
+    # Hazard events — environment is the primary danger
+    num_hazard_rolls = min(3, max(1, hours_int // 2))
+    for _ in range(num_hazard_rolls):
+        for hazard in HAZARD_EVENTS:
+            effective_prob = hazard["probability"] + probability_bonus
+            if rng.random() < effective_prob:
+                messages.append(f"[bold red]{hazard['message']}[/bold red]")
+                for key, delta in hazard["effect"].items():
+                    if key == "suit_integrity":
+                        player.suit_integrity = max(0, player.suit_integrity + delta)
+                    elif key == "food":
+                        player.food = max(0, player.food + delta)
+                    elif key == "water":
+                        player.water = max(0, player.water + delta)
+                    elif key == "hours":
+                        player.hours_elapsed += abs(delta)
+                if ship_ai:
+                    # Actionable advice based on what was damaged
+                    effects = hazard["effect"]
+                    if "suit_integrity" in effects and player.suit_integrity < 50:
+                        messages.append(ship_ai.speak(
+                            "Suit damage critical. Return to the Crash Site for medical bay repairs, or find a Healer."
+                        ))
+                    elif "water" in effects and player.water < 30:
+                        messages.append(ship_ai.speak(
+                            "Water reserves dangerously low. Find a water source or ask a creature for help."
+                        ))
+                    elif "food" in effects and player.food < 30:
+                        messages.append(ship_ai.speak(
+                            "Food supplies running low. Find a food source or visit the ship kitchen."
+                        ))
+                    else:
+                        messages.append(ship_ai.speak("Damage sustained. Check your status, Commander."))
+                break  # max 1 hazard per roll
 
     # Small chance to find an item
     if rng.random() < 0.15 and player.total_items < drone.cargo_capacity:
@@ -244,7 +350,9 @@ def execute_travel(
 
     # ARIA post-travel summary
     if ship_ai:
-        messages.append(ship_ai.post_travel_summary(player, drone, hours_int, distance))
+        messages.append(ship_ai.post_travel_summary(
+            player, drone, food_before, water_before, suit_before, batt_before,
+        ))
 
     # Recharge drone at crash site
     if destination.loc_type == "crash_site":

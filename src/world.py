@@ -102,14 +102,14 @@ LOCATION_DESCRIPTIONS = {
 # Items that can be found at locations
 LOCATION_ITEMS = {
     "plains": ["ice_crystal", "metal_shard"],
-    "ridge": ["metal_shard", "antenna_array"],
-    "cave": ["bio_gel", "power_cell", "ice_crystal"],
-    "geyser_field": ["thermal_paste", "bio_gel"],
-    "ice_lake": ["ice_crystal", "circuit_board"],
-    "ruins": ["circuit_board", "power_cell", "hull_patch"],
+    "ridge": ["metal_shard"],
+    "cave": ["bio_gel", "ice_crystal"],
+    "geyser_field": ["bio_gel"],
+    "ice_lake": ["ice_crystal"],
+    "ruins": ["circuit_board"],
     "forest": ["bio_gel", "ice_crystal"],
-    "canyon": ["metal_shard", "hull_patch", "thermal_paste"],
-    "settlement": ["circuit_board", "antenna_array"],
+    "canyon": ["metal_shard"],
+    "settlement": [],
     "crash_site": [],
 }
 
@@ -221,7 +221,7 @@ def generate_world(mode: str, seed: int | None = None) -> dict:
 
         # Assign items
         possible_items = LOCATION_ITEMS.get(loc_type, [])
-        item_count = rng.randint(0, min(2, len(possible_items)))
+        item_count = rng.randint(0, min(1, len(possible_items)))
         items = rng.sample(possible_items, item_count) if possible_items else []
 
         # Possible drone upgrade

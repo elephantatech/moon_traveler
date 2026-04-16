@@ -2,6 +2,94 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.3.0] - 2026-04-16
+
+### Added
+
+**Creature-Centric Redesign**
+- Creatures are now the primary source of repair materials and survival resources
+- 10 archetypes (added Merchant and Enforcer) with role-based capabilities
+- `ROLE_CAPABILITIES` system: each archetype has specific trust thresholds for what they provide
+- Healers heal at trust 0, Builders share at 35, Guardians at 70, Hermits at 80
+- Guaranteed spawns: every game has at least 1 Merchant, 1 Builder, 1 Healer
+- Material coverage guarantee: every required repair material exists on at least one creature
+- Creature backstories generated from family, concern, and opinion pools
+- Natural conversation prompts: creatures feel like real people with lives and communities
+
+**Merchant & Trade System**
+- Merchant archetype: trades item-for-item, never gives free
+- `trade` command with interactive menu (pick item to receive + item to give)
+- `[TRADE:offered:wanted]` LLM action tag for in-conversation trades
+- Trust-gated: 20+ to trade, 50+ for repair materials, 70+ for bonus items
+- Fallback trade menu when LLM is unavailable
+
+**Enforcer Archetype**
+- Authority figure who advises which creatures can help with ship repairs
+- Knows everyone in the area, methodical and fair
+- Provides creature intel at trust 15, materials at trust 60
+
+**Hostile Environment**
+- 6 hazardous travel events: geyser eruptions, crevasse falls, ice storms, thin ice collapse, toxic vents, thermal shocks
+- Mechanical effects: suit damage, food/water loss, time delays
+- Hazard probability scales with trip length (1 roll per 2 hours, max 3)
+- Actionable ARIA feedback: suggests medical bay, Healers, or kitchen after damage
+
+**Late-Game Weather Escalation**
+- After threshold (30h short, 40h medium, 60h long), weather deteriorates
+- Hazard probabilities increase +5% per 10 hours past threshold
+- Extra water drain during travel in late game
+- Dramatic weather narration during travel
+
+**AI-Powered Drone Hints**
+- `get_smart_advice()` replaces static tip pools with context-aware suggestions
+- LLM secondary call for specific question recommendations
+- Smart template fallback: knows what each creature has, what player needs, trust gaps
+- Archetype-specific coaching: "This Healer can help even at low trust"
+
+**UI Improvements**
+- Skip tutorial option for returning players (with context before the prompt)
+- Tutorial completion now mentions give, trade, escort, and ship commands
+- GPS shows food/water resource markers (visit-gated) with Resources column
+- Inventory count in status bar (`Inv 7/10`)
+- Food and water bars always visible in exploring status bar (was hidden above 50%)
+- Stash all option in storage bay
+- Per-companion escort dismiss (choose which follower to release)
+- Trust tier label consistency ("max trust" everywhere)
+
+**Dev Mode**
+- Logs to JSON file (`logs/dev_diagnostics.jsonl`) instead of printing to screen
+- Debug logging across all key actions: commands, travel, trust changes, trades, scans, saves, repairs
+- Full RAM breakdown: RSS, VMS, system RAM, LLM model estimate
+- Never crashes the game (all logging wrapped in try/except)
+
+### Fixed
+- Followers now visible to `talk`, `give`, and `look` commands during escort
+- Autocomplete suggests follower names for `talk` and `give`
+- Material duplication: `can_give_materials` synced with `role_inventory` on all code paths
+- Double-remove ValueError when legacy `can_give_materials` was used as primary inventory
+- `save_game` wrapped in try/except: disk full no longer crashes the game
+- ARIA post-travel summary shows actual resource costs (not static estimates)
+- Travel danger estimate accounts for late-game extra water drain
+- Late-game water drain uses pre-trip hours (not post-consume_resources hours)
+- `HEAL` action resets food/water warning flags so ARIA re-warns after healing
+- ShipAI `from_dict` merges loaded warnings into defaults (prevents KeyError on old saves)
+- `_ensure_guaranteed_archetypes` handles edge case with fewer creatures than guaranteed slots
+- `_ensure_material_coverage` prevents duplicate materials in role_inventory
+- Dev mode log path resolved relative to project root (not CWD)
+- Removed dead code: `narrate()`, `drone_speak()`, `drone_whisper()` from ui.py
+
+### Changed
+- World item drops reduced: creatures are primary resource source, locations provide 0-1 survival items
+- `cmd_give` no longer auto-dumps materials at trust 70 (materials come through conversation)
+- `LOCATION_ITEMS` simplified: only survival items (ice_crystal, bio_gel, metal_shard) at most locations
+- Action tags are now role-aware: LLM only sees actions the archetype can perform
+- Creature prompts rewritten for natural, humane conversation
+- Hostile creatures are verbally aggressive but not violent — protecting their community
+- SAVE_VERSION bumped to 4
+
+**Testing**
+- 195 tests (up from 170): new tests for role-based trust, trade actions, guaranteed spawns, material coverage, hazard events, dev mode logging
+
 ## [0.2.0] - 2026-04-16
 
 ### Added
@@ -36,7 +124,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Resets tracking when returning to Crash Site
 
 **Model Selection**
-- Default model changed to Qwen3.5 2B (1.3 GB, ~2.6 GB RAM)
+- Default model changed to Qwen3.5 2B (1.3 GB, ~2.3 GB RAM)
 - Gemma 4 E2B remains as optional full-quality model (3.1 GB, ~4.4 GB RAM)
 - First-run model selection menu with system info (platform, RAM, GPU)
 - Low RAM detection recommends lite model

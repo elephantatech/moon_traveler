@@ -10,12 +10,13 @@ from pathlib import Path
 from src import ui
 from src.data.prompts import (
     BASE_CREATURE_PROMPT,
-    CREATURE_ACTION_INSTRUCTIONS,
     DISPOSITION_INSTRUCTIONS,
+    DRONE_HINT_PROMPT,
     FALLBACK_RESPONSES,
     PERSONALITY_DETAILS,
     TRANSLATION_QUALITY,
     TRUST_INSTRUCTIONS,
+    build_action_instructions,
 )
 
 # Try to import llama-cpp-python
@@ -87,25 +88,44 @@ DEFAULT_MODEL = AVAILABLE_MODELS[0]
 
 
 def _get_models_dir() -> Path:
-    """Get the models directory, handling both dev and frozen (PyInstaller) contexts."""
+    """Get the models directory: ~/.moonwalker/models by default.
+
+    Also checks the legacy project-local models/ directory for backward
+    compatibility, but new downloads go to the user data directory.
+    """
+    from src.config import get_data_dir
+
+    return get_data_dir() / "models"
+
+
+def _get_legacy_models_dir() -> Path:
+    """Legacy models directory (project root or next to executable)."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent / "models"
     return Path(__file__).parent.parent / "models"
 
 
 def find_model_path() -> str | None:
-    """Find a GGUF model file. Checks for any .gguf, then known model filenames."""
-    models_dir = _get_models_dir()
+    """Find a GGUF model file.
+
+    Searches ~/.moonwalker/models first, then the legacy project-local
+    models/ directory for backward compatibility.
+    """
+    search_dirs = [_get_models_dir(), _get_legacy_models_dir()]
     candidates = []
 
-    # Any .gguf in models/ takes priority (user-placed model)
-    if models_dir.exists():
-        for f in models_dir.glob("*.gguf"):
-            candidates.insert(0, f)
+    # Any .gguf in either models dir takes priority (user-placed model)
+    for d in search_dirs:
+        if d.exists():
+            for f in d.glob("*.gguf"):
+                candidates.append(f)
 
-    # Check known model filenames
-    for model in AVAILABLE_MODELS:
-        candidates.append(models_dir / model["filename"])
+    # Check known model filenames in both dirs
+    for d in search_dirs:
+        for model in AVAILABLE_MODELS:
+            p = d / model["filename"]
+            if p not in candidates:
+                candidates.append(p)
 
     for path in candidates:
         if path.exists():
@@ -292,20 +312,32 @@ def build_system_prompt(creature) -> str:
     if creature.knows_water_source:
         knowledge_text += f"\n- You know there is water at {creature.knows_water_source}"
 
+    # Build inventory description for the prompt
+    role_inv = getattr(creature, "role_inventory", []) or creature.can_give_materials
+    if role_inv:
+        inv_str = ", ".join(m.replace("_", " ") for m in role_inv)
+        inventory_description = f"What you have that might help them: {inv_str}"
+    else:
+        inventory_description = "You do not have physical materials to offer, but you can help in other ways."
+
+    # Use backstory if available
+    backstory = getattr(creature, "backstory", "") or ""
+
     base = BASE_CREATURE_PROMPT.format(
         name=creature.name,
         species=creature.species,
         archetype=creature.archetype,
         personality_detail=personality_detail,
+        backstory=backstory,
         disposition_instruction=disposition_instruction,
         knowledge=knowledge_text,
+        inventory_description=inventory_description,
         trust_instruction=trust_instruction,
         translation_instruction="",
     )
 
-    # Add action tag instructions so the LLM can give items to the player
-    materials_list = ", ".join(creature.can_give_materials) if creature.can_give_materials else "none"
-    action_instructions = CREATURE_ACTION_INSTRUCTIONS.format(available_materials=materials_list)
+    # Add role-aware action tag instructions
+    action_instructions = build_action_instructions(creature)
     return base + action_instructions
 
 
@@ -349,10 +381,12 @@ def generate_response(creature, player_message: str, translation_quality: str = 
 
 # --- Action tag parsing ---
 
-# Pattern matches [GIVE_WATER], [GIVE_FOOD], [REPAIR_SUIT], [HEAL], [GIVE_MATERIAL:item_name]
+# Pattern matches [GIVE_WATER], [GIVE_FOOD], [REPAIR_SUIT], [HEAL], [GIVE_MATERIAL:item_name],
+# [TRADE:offered_item:wanted_item]
 _ACTION_PATTERN = re.compile(
     r"\[(?P<action>GIVE_WATER|GIVE_FOOD|REPAIR_SUIT|HEAL)\]"
-    r"|\[(?P<mat_action>GIVE_MATERIAL):(?P<param>[a-zA-Z_]+)\]",
+    r"|\[(?P<mat_action>GIVE_MATERIAL):(?P<param>[a-zA-Z_]+)\]"
+    r"|\[(?P<trade_action>TRADE):(?P<trade_offered>[a-zA-Z_]+):(?P<trade_wanted>[a-zA-Z_]+)\]",
     re.IGNORECASE,
 )
 
@@ -378,6 +412,13 @@ def parse_actions(response: str) -> tuple[str, list[dict]]:
             if param:
                 entry["item"] = param
             actions.append(entry)
+            continue
+        # Trade action: TRADE:offered_item:wanted_item
+        trade_action = match.group("trade_action")
+        if trade_action:
+            offered = match.group("trade_offered").strip().lower()
+            wanted = match.group("trade_wanted").strip().lower()
+            actions.append({"action": "TRADE", "offered": offered, "wanted": wanted})
 
     # Strip action tags from displayed text and collapse double spaces
     cleaned = _ACTION_PATTERN.sub("", response).strip()
@@ -387,33 +428,49 @@ def parse_actions(response: str) -> tuple[str, list[dict]]:
 
 
 def apply_actions(actions: list[dict], player, drone, creature, repair_checklist: dict) -> list[str]:
-    """Apply parsed actions to game state. Returns list of UI messages."""
-    # Trust guard: ignore actions from creatures that shouldn't be giving things
-    if creature.trust_level == "low":
-        return []
+    """Apply parsed actions to game state. Returns list of UI messages.
+
+    Trust thresholds are now role-based via ROLE_CAPABILITIES.
+    """
+    from src.creatures import ROLE_CAPABILITIES
+
+    caps = ROLE_CAPABILITIES.get(creature.archetype, {})
+    thresholds = caps.get("trust_threshold", {})
 
     messages = []
     for act in actions:
         action = act["action"]
 
         if action == "GIVE_WATER":
+            required = thresholds.get("water", 35)
+            if creature.trust < required:
+                continue
             player.replenish_water()
             messages.append(f"[bold cyan]{creature.name} shared water with you! Water fully restored.[/bold cyan]")
 
         elif action == "GIVE_FOOD":
+            required = thresholds.get("food", 35)
+            if creature.trust < required:
+                continue
             player.replenish_food()
             messages.append(f"[bold cyan]{creature.name} shared food with you! Food fully restored.[/bold cyan]")
 
         elif action == "HEAL":
-            # Heal restores 30% food and 30% water
+            required = thresholds.get("heal", 35)
+            if creature.trust < required:
+                continue
             player.food = min(100.0, player.food + 30.0)
             player.water = min(100.0, player.water + 30.0)
+            player.food_warning_given = False
+            player.water_warning_given = False
             messages.append(
                 f"[bold cyan]{creature.name} healed you! Food +30%, Water +30%.[/bold cyan]"
             )
 
         elif action == "REPAIR_SUIT":
-            # Restores 25% suit integrity
+            required = thresholds.get("repair_suit", 35)
+            if creature.trust < required:
+                continue
             restore = min(25.0, 100.0 - player.suit_integrity)
             if restore > 0:
                 player.suit_integrity = min(100.0, player.suit_integrity + restore)
@@ -423,13 +480,43 @@ def apply_actions(actions: list[dict], player, drone, creature, repair_checklist
                 )
 
         elif action == "GIVE_MATERIAL":
+            required = thresholds.get("materials", 50)
+            if creature.trust < required:
+                continue
             item = act.get("item", "")
-            if item and item in creature.can_give_materials:
+            # Check both role_inventory (new) and can_give_materials (legacy)
+            inventory_list = creature.role_inventory if creature.role_inventory else creature.can_give_materials
+            if item and item in inventory_list:
                 player.add_item(item)
-                creature.can_give_materials.remove(item)
+                inventory_list.remove(item)
+                creature.given_items.append(item)
+                # Keep can_give_materials in sync (only if it's a different list)
+                if inventory_list is not creature.can_give_materials and item in creature.can_give_materials:
+                    creature.can_give_materials.remove(item)
                 display = item.replace("_", " ").title()
                 messages.append(
                     f"[bold cyan]{creature.name} gave you: {display}![/bold cyan]"
+                )
+
+        elif action == "TRADE":
+            required = thresholds.get("trade", 20)
+            if creature.trust < required:
+                continue
+            offered = act.get("offered", "")
+            wanted = act.get("wanted", "")
+            if offered and wanted and player.has_item(wanted):
+                player.remove_item(wanted)
+                player.add_item(offered)
+                # Remove from creature's inventory
+                if offered in creature.role_inventory:
+                    creature.role_inventory.remove(offered)
+                    creature.given_items.append(offered)
+                if offered in creature.can_give_materials:
+                    creature.can_give_materials.remove(offered)
+                off_display = offered.replace("_", " ").title()
+                want_display = wanted.replace("_", " ").title()
+                messages.append(
+                    f"[bold cyan]{creature.name} traded {off_display} for your {want_display}![/bold cyan]"
                 )
 
     return messages
@@ -447,3 +534,55 @@ def fallback_response(creature, rng: random.Random | None = None) -> str:
         ],
     )
     return rng.choice(responses)
+
+
+def generate_drone_hint(creature, player, repair_checklist: dict) -> str | None:
+    """Generate a context-aware drone hint using the LLM. Returns None if unavailable."""
+    if not _llm_available or _llm_model is None:
+        return None
+
+    from src.creatures import ROLE_CAPABILITIES
+
+    caps = ROLE_CAPABILITIES.get(creature.archetype, {})
+    provides = caps.get("provides", [])
+
+    # What the player needs
+    needed = [k.replace("material_", "") for k, v in repair_checklist.items() if not v]
+    role_inv = getattr(creature, "role_inventory", []) or creature.can_give_materials
+    creature_has = [m for m in role_inv if m in needed]
+
+    can_provide_str = ", ".join(provides) if provides else "nothing specific"
+    if creature_has:
+        can_provide_str += f" (has needed materials: {', '.join(creature_has)})"
+
+    needs_str = ", ".join(n.replace("_", " ") for n in needed[:5]) if needed else "nothing — all materials found"
+    knowledge_str = "; ".join(creature.knowledge[:2]) if creature.knowledge else "unknown"
+
+    # Last exchange summary
+    last_exchange = ""
+    if creature.conversation_history:
+        last = creature.conversation_history[-1]
+        last_exchange = f"{last['role']}: {last['content'][:80]}"
+
+    prompt = DRONE_HINT_PROMPT.format(
+        name=creature.name,
+        archetype=creature.archetype,
+        disposition=creature.disposition,
+        trust=creature.trust,
+        can_provide=can_provide_str,
+        knowledge_summary=knowledge_str,
+        player_needs=needs_str,
+        last_exchange=last_exchange or "none yet",
+    )
+
+    try:
+        result = _llm_model(
+            prompt,
+            max_tokens=60,
+            temperature=0.7,
+            stop=["Human:", "Player:", "\n\n"],
+        )
+        text = result["choices"][0]["text"].strip()
+        return text if text else None
+    except Exception:
+        return None

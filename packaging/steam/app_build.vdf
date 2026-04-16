@@ -1,0 +1,44 @@
+"AppBuild"
+{
+  // Steam App ID — replace with your actual App ID from Steamworks
+  "AppID" "0000000"
+  "Desc" "Moon Traveler CLI v0.3.0"
+  "BuildOutput" "../output/"
+  "ContentRoot" "../content/"
+  "SetLive" ""
+  "Preview" "0"
+
+  "Depots"
+  {
+    // Windows depot
+    "0000001"
+    {
+      "FileMapping"
+      {
+        "LocalPath" "windows/*"
+        "DepotPath" "."
+        "recursive" "1"
+      }
+    }
+    // macOS depot
+    "0000002"
+    {
+      "FileMapping"
+      {
+        "LocalPath" "macos/*"
+        "DepotPath" "."
+        "recursive" "1"
+      }
+    }
+    // Linux depot
+    "0000003"
+    {
+      "FileMapping"
+      {
+        "LocalPath" "linux/*"
+        "DepotPath" "."
+        "recursive" "1"
+      }
+    }
+  }
+}

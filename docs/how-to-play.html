@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moon Traveler — How to Play</title>
+  <meta name="description" content="Complete guide to Moon Traveler Terminal — commands, survival, creatures, ship repair, and tips.">
+  <meta property="og:title" content="Moon Traveler — How to Play">
+  <meta property="og:description" content="Complete guide — commands, survival mechanics, creature trust, ship repair, and tips for new players.">
+  <meta property="og:image" content="assets/og-image.svg">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #0a0d18;
+      --deep: #111525;
+      --surface: #181d30;
+      --surface-border: rgba(140, 164, 190, 0.08);
+      --text: #b4bcd4;
+      --text-bright: #dce0ee;
+      --text-muted: #7c84a4;
+      --amber: #c89450;
+      --amber-dim: rgba(200, 148, 80, 0.06);
+      --ice: #8ca4be;
+      --red: #c85050;
+      --font-display: 'Chakra Petch', sans-serif;
+      --font-body: 'Hanken Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { font-size: 18px; scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--void);
+      color: var(--text);
+      line-height: 1.75;
+      overflow-x: hidden;
+    }
+
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 16px;
+      z-index: 200;
+      padding: 12px 20px;
+      background: var(--amber);
+      color: var(--void);
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 16px; }
+
+    a { color: var(--amber); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--text-bright); }
+
+    :focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    .page-header {
+      padding: 60px 0 40px;
+      border-bottom: 1px solid var(--surface-border);
+      margin-bottom: 48px;
+    }
+    .page-header .back {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      display: inline-block;
+      margin-bottom: 20px;
+      padding: 4px 0;
+    }
+    .page-header .back:hover { color: var(--amber); }
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+      font-weight: 700;
+      color: var(--text-bright);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .page-header h1 span { color: var(--amber); }
+    .page-header .lead {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 55ch;
+    }
+
+    /* Table of contents */
+    .toc {
+      background: var(--deep);
+      border: 1px solid var(--surface-border);
+      padding: 20px 28px;
+      margin-bottom: 48px;
+    }
+    .toc-title {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .toc ol {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 32px;
+      counter-reset: toc;
+    }
+    .toc li {
+      counter-increment: toc;
+    }
+    .toc li::before {
+      content: counter(toc, decimal-leading-zero);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-right: 8px;
+      opacity: 0.6;
+    }
+    .toc a {
+      font-size: 0.82rem;
+      color: var(--text);
+    }
+    .toc a:hover { color: var(--amber); }
+
+    /* Sections */
+    .guide-section {
+      margin-bottom: 56px;
+      padding-bottom: 56px;
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .guide-section:last-of-type {
+      border-bottom: none;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text-bright);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    h3 {
+      font-family: var(--font-display);
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--ice);
+      letter-spacing: 1px;
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      max-width: 65ch;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 0.82rem;
+    }
+    thead th {
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--surface-border);
+    }
+    tbody td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(140, 164, 190, 0.04);
+      color: var(--text);
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    td code {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--amber);
+      background: rgba(200,148,80,0.06);
+      padding: 1px 6px;
+    }
+    td strong { color: var(--text-bright); font-weight: 600; }
+
+    /* Lists */
+    ul, ol {
+      margin: 8px 0 16px;
+      padding-left: 20px;
+    }
+    li {
+      font-size: 0.88rem;
+      margin-bottom: 6px;
+    }
+    li strong { color: var(--text-bright); font-weight: 500; }
+
+    /* Code blocks */
+    pre {
+      margin: 12px 0 20px;
+    }
+    pre code {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: rgba(0,0,0,0.35);
+      color: var(--ice);
+      padding: 14px 16px;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* Inline code */
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+    p code, li code {
+      color: var(--amber);
+      background: rgba(200,148,80,0.06);
+      padding: 1px 5px;
+    }
+
+    /* Callout / tip box */
+    .callout {
+      background: var(--deep);
+      border: 1px solid var(--surface-border);
+      padding: 16px 20px;
+      margin: 20px 0;
+      font-size: 0.85rem;
+    }
+    .callout-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--amber);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    /* Screenshot */
+    .screenshot {
+      margin: 24px 0;
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      overflow: hidden;
+    }
+    .screenshot img {
+      width: 100%;
+      display: block;
+    }
+    .screenshot figcaption {
+      padding: 8px 14px;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 28px 0;
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .footer-meta {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    footer nav {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--amber); }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .page-header h1 { letter-spacing: 2px; }
+      .toc ol { grid-template-columns: 1fr; }
+      table { font-size: 0.75rem; }
+      thead th, tbody td { padding: 6px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="wrap">
+
+  <header class="page-header">
+    <a href="index.html" class="back">&larr; Back to Moon Traveler</a>
+    <h1>How to <span>Play</span></h1>
+    <p class="lead">
+      Crash-landed on Enceladus. Your ship is wrecked, your supplies are limited, and alien creatures inhabit the ice. Here's how to survive.
+    </p>
+  </header>
+
+  <main id="main">
+
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#getting-started">Getting Started</a></li>
+      <li><a href="#controls">Controls</a></li>
+      <li><a href="#conversations">Conversations</a></li>
+      <li><a href="#survival">Survival</a></li>
+      <li><a href="#drone">The Drone</a></li>
+      <li><a href="#creatures">Creatures</a></li>
+      <li><a href="#travel">Travel</a></li>
+      <li><a href="#ship-repair">Ship Repair</a></li>
+      <li><a href="#game-modes">Game Modes</a></li>
+      <li><a href="#tips">Tips</a></li>
+    </ol>
+  </nav>
+
+  <!-- GETTING STARTED -->
+  <section class="guide-section" id="getting-started">
+    <h2>Getting Started</h2>
+    <p>Run the game:</p>
+    <pre><code>python play.py</code></pre>
+    <p>You'll be asked to choose:</p>
+    <ol>
+      <li><strong>Game length</strong> &mdash; Short, Medium, or Long</li>
+      <li><strong>Compute mode</strong> &mdash; CPU + GPU or CPU Only (if a GPU is detected)</li>
+    </ol>
+    <p>
+      If no AI model is found, the game offers to download one automatically. Choose between
+      <strong>Qwen3.5 2B</strong> (1.3 GB, recommended) or <strong>Gemma 4 E2B</strong> (3.1 GB, richer dialogue).
+      You can also skip &mdash; the game works without it using pre-written dialogue.
+    </p>
+    <p>
+      New players see ARIA (your ship's AI) run a boot diagnostic before being dropped at the Crash Site.
+      Follow the tutorial prompts &mdash; they walk you through the basics and point you toward key mechanics.
+      Returning players can skip the tutorial.
+    </p>
+  </section>
+
+  <!-- CONTROLS -->
+  <section class="guide-section" id="controls">
+    <h2>Controls</h2>
+    <p>
+      Type commands at the prompt and press Enter. <strong>Tab autocomplete</strong> works for commands, locations, items, and creature names.
+      A live status bar shows food, water, suit, battery, inventory, and ship progress before every prompt.
+    </p>
+
+    <h3>Exploration</h3>
+    <table>
+      <thead><tr><th>Command</th><th>Aliases</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>look</code></td><td><code>l</code></td><td>Describe your current location &mdash; items, creatures, resources</td></tr>
+        <tr><td><code>scan</code></td><td>&mdash;</td><td>Deploy drone to discover up to 3 nearby locations (costs 10% battery)</td></tr>
+        <tr><td><code>gps</code></td><td><code>map</code></td><td>Show all known locations with distances</td></tr>
+        <tr><td><code>travel &lt;location&gt;</code></td><td><code>go</code></td><td>Travel to a discovered location</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Items &amp; Inventory</h3>
+    <table>
+      <thead><tr><th>Command</th><th>Aliases</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>take &lt;item&gt;</code></td><td><code>get</code>, <code>pick</code></td><td>Pick up an item at your location</td></tr>
+        <tr><td><code>inventory</code></td><td><code>inv</code>, <code>i</code></td><td>Show everything you're carrying</td></tr>
+        <tr><td><code>upgrade &lt;component&gt;</code></td><td>&mdash;</td><td>Install a drone upgrade from your inventory</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Creatures &amp; Dialogue</h3>
+    <table>
+      <thead><tr><th>Command</th><th>Aliases</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>talk &lt;creature&gt;</code></td><td><code>speak</code></td><td>Start a conversation with a creature</td></tr>
+        <tr><td><code>give &lt;item&gt; to &lt;creature&gt;</code></td><td>&mdash;</td><td>Give an item to build trust</td></tr>
+        <tr><td><code>trade</code></td><td>&mdash;</td><td>Trade items with a Merchant creature</td></tr>
+        <tr><td><code>escort</code></td><td>&mdash;</td><td>Ask a creature (trust 50+) to travel with you</td></tr>
+        <tr><td><code>escort dismiss</code></td><td>&mdash;</td><td>Choose which follower to dismiss</td></tr>
+        <tr><td><code>rest</code></td><td>&mdash;</td><td>Rest 1 hour to recover food/water (+10%, +20% at Crash Site)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Ship &amp; Status</h3>
+    <table>
+      <thead><tr><th>Command</th><th>Aliases</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>status</code></td><td>&mdash;</td><td>Show food, water, suit, time elapsed, repair progress</td></tr>
+        <tr><td><code>ship</code></td><td><code>repair</code></td><td>Ship bays menu (or <code>ship &lt;bay&gt;</code> directly)</td></tr>
+        <tr><td><code>ship repair</code></td><td>&mdash;</td><td>Install repair materials into the ship</td></tr>
+        <tr><td><code>ship storage</code></td><td>&mdash;</td><td>Stash/retrieve items from ship storage</td></tr>
+        <tr><td><code>ship kitchen</code></td><td>&mdash;</td><td>Cook items into food or water</td></tr>
+        <tr><td><code>ship charging</code></td><td>&mdash;</td><td>Recharge drone battery or overcharge with Power Cell</td></tr>
+        <tr><td><code>ship medical</code></td><td>&mdash;</td><td>Repair suit or rest to recover</td></tr>
+        <tr><td><code>drone</code></td><td>&mdash;</td><td>Show drone stats, upgrades, battery</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Game Management</h3>
+    <table>
+      <thead><tr><th>Command</th><th>Aliases</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>save [slot]</code></td><td>&mdash;</td><td>Save your game (default: "manual")</td></tr>
+        <tr><td><code>load [slot]</code></td><td>&mdash;</td><td>Load a saved game</td></tr>
+        <tr><td><code>help</code></td><td>&mdash;</td><td>Show the command list</td></tr>
+        <tr><td><code>quit</code></td><td><code>exit</code></td><td>Exit the game</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- CONVERSATIONS -->
+  <section class="guide-section" id="conversations">
+    <h2>Conversations</h2>
+    <p>
+      When you <code>talk</code> to a creature, you enter the ARIA Communicator &mdash; a dialogue mode powered by a local AI model.
+      Type normally to speak through the drone translator.
+    </p>
+    <ul>
+      <li><code>bye</code>, <code>/end</code>, <code>/quit</code> &mdash; end the conversation</li>
+      <li><code>/?</code> or <code>/help</code> &mdash; conversation help</li>
+      <li><code>/&lt;command&gt;</code> &mdash; run a game command mid-conversation (e.g. <code>/status</code>, <code>/inventory</code>)</li>
+      <li><code>/give &lt;item&gt; to &lt;creature&gt;</code> &mdash; hand over an item without leaving</li>
+    </ul>
+
+    <div class="callout">
+      <div class="callout-label">During conversations</div>
+      <ul>
+        <li>Your <strong>drone whispers private coaching tips</strong> the creature can't hear, adapted to their personality and trust level</li>
+        <li>Each exchange increases trust by <strong>+3 points</strong></li>
+        <li><strong>Creatures can give you things</strong> &mdash; what they offer depends on archetype and trust</li>
+        <li><strong>Merchants trade</strong> &mdash; use <code>/trade</code> during conversation</li>
+      </ul>
+    </div>
+
+    <p>If no AI model is loaded, creatures use pre-written dialogue that still responds to their personality.</p>
+  </section>
+
+  <!-- SURVIVAL -->
+  <section class="guide-section" id="survival">
+    <h2>Survival</h2>
+    <p>Four meters track your condition. If food, water, or suit integrity reaches zero, you die.</p>
+
+    <h3>Food</h3>
+    <ul>
+      <li>Starts at <strong>100%</strong>, depletes <strong>2% per hour</strong> of travel</li>
+      <li>Replenished at locations with food sources</li>
+      <li>Cook <code>bio_gel</code> in the Kitchen Bay (+40%)</li>
+      <li>Rest in Medical Bay (+20%, costs 1 hour)</li>
+    </ul>
+
+    <h3>Water</h3>
+    <ul>
+      <li>Starts at <strong>100%</strong>, depletes <strong>3% per hour</strong> of travel</li>
+      <li>Replenished at locations with water sources</li>
+      <li>Process <code>ice_crystal</code> in the Kitchen Bay (+40%)</li>
+      <li>Rest in Medical Bay (+20%, costs 1 hour)</li>
+    </ul>
+
+    <h3>Suit Integrity</h3>
+    <ul>
+      <li>Starts at <strong>92%</strong> (damaged in crash), degrades <strong>0.5% per hour</strong></li>
+      <li>Repair in Medical Bay using drone battery (2% suit per 1% battery)</li>
+      <li>Healer creatures repair +25%, Healer companions +30% at Crash Site</li>
+    </ul>
+
+    <p>ARIA fires warnings at <strong>50%</strong>, <strong>30%</strong>, <strong>15%</strong>, and <strong>5%</strong> thresholds.</p>
+  </section>
+
+  <!-- DRONE -->
+  <section class="guide-section" id="drone">
+    <h2>The Drone</h2>
+    <p>Your ARIA Scout Drone is your primary tool for exploring and communicating.</p>
+
+    <table>
+      <thead><tr><th>Stat</th><th>Starting Value</th></tr></thead>
+      <tbody>
+        <tr><td>Scanner Range</td><td>10 km</td></tr>
+        <tr><td>Translation Quality</td><td>Low</td></tr>
+        <tr><td>Cargo Capacity</td><td>10 items</td></tr>
+        <tr><td>Speed Boost</td><td>0 km/h</td></tr>
+        <tr><td>Battery</td><td>100%</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Battery</h3>
+    <ul>
+      <li>Scanning costs <strong>10%</strong>, travel costs <strong>0.5% per km</strong></li>
+      <li>Recharges at the Crash Site (auto or via Charging Bay)</li>
+      <li>Use a <strong>Power Cell</strong> to permanently increase max capacity +10%</li>
+      <li>When depleted, the drone goes silent &mdash; no musings, advice, or translations</li>
+    </ul>
+
+    <h3>Upgrades</h3>
+    <p>Find components in the world, then use <code>upgrade &lt;name&gt;</code> to install:</p>
+    <table>
+      <thead><tr><th>Upgrade</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td>Range Module</td><td>+10 km scanner range</td></tr>
+        <tr><td>Translator Chip</td><td>Translation: low &rarr; medium &rarr; high</td></tr>
+        <tr><td>Cargo Rack</td><td>+5 cargo slots</td></tr>
+        <tr><td>Thruster Pack</td><td>+5 km/h travel speed</td></tr>
+        <tr><td>Battery Cell</td><td>+25% max battery</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- CREATURES -->
+  <section class="guide-section" id="creatures">
+    <h2>Creatures</h2>
+    <p>Enceladus is inhabited by alien creatures. Each has a unique name, species, personality, and attitude toward you.</p>
+
+    <h3>Archetypes</h3>
+    <p>Every creature has one of ten archetypes that determine personality and what they provide:</p>
+    <table>
+      <thead><tr><th>Archetype</th><th>What They Provide</th><th>Trust Needed</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Healer</strong></td><td>Healing, suit repair, food, water</td><td>0 (heal), 10 (food)</td></tr>
+        <tr><td><strong>Builder</strong></td><td>Repair materials</td><td>35</td></tr>
+        <tr><td><strong>Wise Elder</strong></td><td>Materials, creature intel</td><td>50 / 35</td></tr>
+        <tr><td><strong>Guardian</strong></td><td>Repair materials</td><td>70</td></tr>
+        <tr><td><strong>Hermit</strong></td><td>Rare repair materials</td><td>80</td></tr>
+        <tr><td><strong>Wanderer</strong></td><td>Food, water, location reveals</td><td>25</td></tr>
+        <tr><td><strong>Trickster</strong></td><td>Materials, food, water</td><td>35</td></tr>
+        <tr><td><strong>Warrior</strong></td><td>Repair materials</td><td>50</td></tr>
+        <tr><td><strong>Merchant</strong></td><td>Trades items (never free)</td><td>20</td></tr>
+        <tr><td><strong>Enforcer</strong></td><td>Intel, ship repair advice</td><td>15 / 60</td></tr>
+      </tbody>
+    </table>
+    <p>Every game guarantees at least one Merchant, one Builder, and one Healer.</p>
+
+    <h3>Dispositions</h3>
+    <ul>
+      <li><strong>Friendly</strong> (25 trust) &mdash; open and willing to talk</li>
+      <li><strong>Neutral</strong> (10 trust) &mdash; cautious but approachable</li>
+      <li><strong>Hostile</strong> (0 trust) &mdash; aggressive; may block you. Build trust through gifts first</li>
+    </ul>
+
+    <h3>Trust System</h3>
+    <p>Trust ranges from <strong>0 to 100</strong>:</p>
+    <ul>
+      <li><strong>Conversation:</strong> +3 per exchange</li>
+      <li><strong>Giving gifts:</strong> +15 (friendly/neutral) or +10 (hostile)</li>
+      <li><strong>Escorting to Crash Site:</strong> +10 bonus</li>
+    </ul>
+
+    <h3>Escorting Creatures</h3>
+    <p>
+      At trust <strong>50+</strong>, use the <code>escort</code> command. Companions travel with you and help at the Crash Site:
+      Healers restore vitals, Builders install materials, and any creature with materials donates them.
+      Use <code>escort dismiss</code> to release followers.
+    </p>
+  </section>
+
+  <!-- TRAVEL -->
+  <section class="guide-section" id="travel">
+    <h2>Travel</h2>
+    <p>Movement between locations takes time and consumes resources.</p>
+    <ul>
+      <li><strong>Base speed:</strong> 10 km/h (upgradeable with Thruster Pack)</li>
+      <li><strong>Cost per hour:</strong> 2% food, 3% water, 0.5% suit integrity</li>
+      <li><strong>Drone battery:</strong> 0.5% per km traveled</li>
+    </ul>
+
+    <h3>Hazards</h3>
+    <p>During travel you may encounter:</p>
+    <table>
+      <thead><tr><th>Hazard</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td>Geyser eruptions</td><td>Suit damage</td></tr>
+        <tr><td>Crevasse falls</td><td>Suit damage + food loss</td></tr>
+        <tr><td>Ice storms</td><td>Water loss + extra time</td></tr>
+        <tr><td>Thin ice collapse</td><td>Suit + water damage</td></tr>
+        <tr><td>Toxic vents</td><td>Suit damage</td></tr>
+        <tr><td>Thermal shocks</td><td>Suit + water damage</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Late-Game Weather</h3>
+    <p>
+      After 30&ndash;60 hours (depending on game mode), weather deteriorates &mdash; hazard probability increases and
+      water drains faster. This creates urgency to finish repairs.
+    </p>
+  </section>
+
+  <!-- SHIP REPAIR -->
+  <section class="guide-section" id="ship-repair">
+    <h2>Ship Repair &mdash; How to Win</h2>
+    <p>Collect all required repair materials and install them at the Crash Site.</p>
+
+    <h3>Materials by Game Mode</h3>
+    <table>
+      <thead><tr><th>Mode</th><th>Materials Required</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Short</strong></td><td>Ice Crystal, Metal Shard, Bio Gel</td></tr>
+        <tr><td><strong>Medium</strong></td><td>+ Circuit Board, Power Cell</td></tr>
+        <tr><td><strong>Long</strong></td><td>+ Thermal Paste, Hull Patch, Antenna Array</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Ship Bays</h3>
+    <p>At the Crash Site, the <code>ship</code> command opens the bay menu:</p>
+    <table>
+      <thead><tr><th>Bay</th><th>Command</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Repair</strong></td><td><code>ship repair</code></td><td>Install repair materials from inventory</td></tr>
+        <tr><td><strong>Storage</strong></td><td><code>ship storage</code></td><td>Stash/retrieve items (frees drone cargo)</td></tr>
+        <tr><td><strong>Kitchen</strong></td><td><code>ship kitchen</code></td><td>Cook bio_gel &rarr; food (+40%) or ice_crystal &rarr; water (+40%)</td></tr>
+        <tr><td><strong>Charging</strong></td><td><code>ship charging</code></td><td>Full battery recharge, or Power Cell for +10% permanent max</td></tr>
+        <tr><td><strong>Medical</strong></td><td><code>ship medical</code></td><td>Repair suit or rest (+20% food/water, costs 1 hour)</td></tr>
+      </tbody>
+    </table>
+    <p>Once all materials are installed via the Repair Bay, you win.</p>
+  </section>
+
+  <!-- GAME MODES -->
+  <section class="guide-section" id="game-modes">
+    <h2>Game Modes</h2>
+    <table>
+      <thead><tr><th></th><th>Short</th><th>Medium</th><th>Long</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Locations</strong></td><td>~8</td><td>~16</td><td>~30</td></tr>
+        <tr><td><strong>Creatures</strong></td><td>5</td><td>12</td><td>20</td></tr>
+        <tr><td><strong>World Radius</strong></td><td>~20 km</td><td>~40 km</td><td>~60 km</td></tr>
+        <tr><td><strong>Repair Materials</strong></td><td>3</td><td>5</td><td>8</td></tr>
+        <tr><td><strong>Estimated Time</strong></td><td>~30 min</td><td>~1&ndash;2 hours</td><td>~3+ hours</td></tr>
+      </tbody>
+    </table>
+    <p>Longer modes have more hostile creatures, greater distances, and require careful resource management.</p>
+  </section>
+
+  <!-- TIPS -->
+  <section class="guide-section" id="tips">
+    <h2>Tips for New Players</h2>
+    <ol>
+      <li><strong>Follow the tutorial.</strong> It walks you through the core mechanics.</li>
+      <li><strong>Find a Healer early.</strong> They help at very low trust &mdash; they can save your life.</li>
+      <li><strong>Creatures are your main resource.</strong> Repair materials come primarily from creatures, not the ground.</li>
+      <li><strong>Talk to the Enforcer.</strong> They know everyone and can tell you who to visit.</li>
+      <li><strong>Trade with Merchants.</strong> They never give for free, but fair trades get critical materials.</li>
+      <li><strong>Scan at every new location.</strong> Each scan discovers up to 3 nearby locations.</li>
+      <li><strong>Don't stay too long.</strong> Late-game weather gets worse.</li>
+      <li><strong>Give gifts to hostile creatures.</strong> They won't talk below 15 trust &mdash; gifts break the ice.</li>
+      <li><strong>Escort creatures to the ship.</strong> Builders install materials, Healers restore vitals.</li>
+      <li><strong>Use GPS to plan routes.</strong> Shorter trips use less food, water, and battery.</li>
+      <li><strong>Upgrade the translator early.</strong> Better translation means more productive conversations.</li>
+      <li><strong>Read the drone's whispers.</strong> It gives context-aware advice about each creature.</li>
+    </ol>
+  </section>
+
+  </main>
+
+  <footer>
+    <p class="footer-meta">Moon Traveler Terminal &middot; v0.3.0 &middot; Apache 2.0</p>
+    <nav aria-label="Footer">
+      <a href="index.html">Home</a> &middot;
+      <a href="story.html">Story</a> &middot;
+      <a href="https://github.com/elephantatech/moon_traveler">GitHub</a> &middot;
+      <a href="https://github.com/elephantatech/moon_traveler/releases">Releases</a>
+    </nav>
+  </footer>
+
+</div>
+
+</body>
+</html>

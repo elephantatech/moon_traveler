@@ -91,6 +91,66 @@ class Drone:
             return None
         return self.whisper(rng.choice(pool))
 
+    def get_smart_advice(self, creature, player, repair_checklist: dict, rng: random.Random) -> str | None:
+        """Context-aware drone hint: tries LLM first, then smart templates, then static pools.
+        Returns None if battery depleted."""
+        if self.battery <= 0:
+            return None
+
+        # Try LLM-powered hint first
+        from src import llm
+        if llm.is_available():
+            hint = llm.generate_drone_hint(creature, player, repair_checklist)
+            if hint:
+                return self.whisper(hint)
+
+        # Smart template fallback based on context
+        from src.creatures import ROLE_CAPABILITIES
+        caps = ROLE_CAPABILITIES.get(creature.archetype, {})
+        thresholds = caps.get("trust_threshold", {})
+
+        hints: list[str] = []
+
+        # What does this creature have that the player needs?
+        needed = [k.replace("material_", "") for k, v in repair_checklist.items() if not v]
+        role_inv = getattr(creature, "role_inventory", []) or creature.can_give_materials
+        available = [m for m in role_inv if m in needed]
+
+        if available:
+            mat_threshold = thresholds.get("materials", thresholds.get("trade", 50))
+            if creature.trust < mat_threshold:
+                hints.append(
+                    f"This {creature.archetype} has materials we need, "
+                    f"but trust must reach {mat_threshold}. Currently at {creature.trust}."
+                )
+            else:
+                mat_name = available[0].replace("_", " ").title()
+                hints.append(f"Trust is high enough. Try asking about {mat_name} — they should be willing to share.")
+
+        if creature.archetype == "Healer" and (player.food < 50 or player.water < 50 or player.suit_integrity < 80):
+            hints.append("This Healer can help with your vitals. Ask about healing — they help even at low trust.")
+
+        if creature.archetype == "Merchant":
+            trade_wants = getattr(creature, "trade_wants", [])
+            player_has = [w for w in trade_wants if player.has_item(w)]
+            if player_has:
+                item_name = player_has[0].replace("_", " ").title()
+                hints.append(f"This Merchant wants {item_name}. Try offering a trade.")
+            else:
+                hints.append("This Merchant trades items. Check what they want and bring it back.")
+
+        if creature.archetype == "Enforcer":
+            hints.append("This Enforcer knows everyone in the area. Ask who can help fix your ship.")
+
+        if creature.archetype == "Wanderer" and (player.food < 40 or player.water < 40):
+            hints.append("Wanderers share travel supplies. Ask about food or water for the road.")
+
+        if hints:
+            return self.whisper(rng.choice(hints))
+
+        # Fall back to static pools
+        return self.get_interaction_advice(creature, rng)
+
     def get_translation_frame(self, rng: random.Random) -> str | None:
         """Pick a translation quality flavor line."""
         if self.battery <= 0:

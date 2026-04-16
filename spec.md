@@ -1,6 +1,6 @@
 # Moon Traveler CLI - Technical Specification
 
-**Version:** 0.1.0
+**Version:** 0.3.0
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -44,12 +44,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 rich
 prompt_toolkit
 llama-cpp-python
-jinja2>=3.1.6
-diskcache>=5.6.3
-markupsafe>=3.0.3
-numpy>=2.4.4
-typing-extensions>=4.15.0
-psutil>=7.2.2
+psutil
 ```
 
 ---
@@ -111,14 +106,16 @@ class Location:
 |------|--------|---------------|-------------------|-------------|--------------|
 | crash_site | — | — | — | No | No |
 | plains | 3 | ice_crystal, metal_shard | — | No | No |
-| ridge | 2 | metal_shard, antenna_array | thruster_pack | No | No |
-| cave | 2 | bio_gel, power_cell, ice_crystal | battery_cell | 50% chance | No |
-| geyser_field | 2 | thermal_paste, bio_gel | — | No | 50% chance |
-| ice_lake | 1 | ice_crystal, circuit_board | — | No | 50% chance |
-| ruins | 2 | circuit_board, power_cell, hull_patch | range_module, translator_chip | No | No |
+| ridge | 2 | metal_shard | thruster_pack | No | No |
+| cave | 2 | bio_gel, ice_crystal | battery_cell | 50% chance | No |
+| geyser_field | 2 | bio_gel | — | No | 50% chance |
+| ice_lake | 1 | ice_crystal | — | No | 50% chance |
+| ruins | 2 | circuit_board | range_module, translator_chip | No | No |
 | forest | 2 | bio_gel, ice_crystal | — | 50% chance | No |
-| canyon | 2 | metal_shard, hull_patch, thermal_paste | range_module | No | No |
-| settlement | 1 | circuit_board, antenna_array | cargo_rack, translator_chip | No | No |
+| canyon | 2 | metal_shard | range_module | No | No |
+| settlement | 1 | — | cargo_rack, translator_chip | No | No |
+
+**Note:** World item drops are reduced. Creatures are the primary source of repair materials. Locations provide only survival items (ice_crystal, bio_gel for cooking) and rare finds. Each location gets 0-1 items.
 
 ### 4.3 Generation Algorithm
 
@@ -127,7 +124,7 @@ class Location:
 3. Minimum spacing: `radius * 0.15` between any two locations
 4. Maximum isolation: `radius * 0.6` from nearest existing location
 5. Up to 500 placement attempts before stopping
-6. Each location gets 0-2 items from its type pool
+6. Each location gets 0-1 items from its type pool (reduced — creatures are main resource source)
 7. 40% chance of a drone upgrade at eligible location types
 8. Descriptions chosen randomly from 2-3 per type
 
@@ -177,7 +174,7 @@ At the Crash Site, the `ship` command offers suit repair:
 
 ### 5.3 Lose Condition
 
-`food <= 0 AND water <= 0`
+`food <= 0 OR water <= 0 OR suit_integrity <= 0`
 
 ---
 
@@ -189,65 +186,105 @@ class Creature:
     id: str                         # "creature_0", "creature_1", ...
     name: str                       # From CREATURE_NAMES pool (30 names)
     species: str                    # From SPECIES_NAMES pool (20 species)
-    archetype: str                  # One of 8 archetypes
+    archetype: str                  # One of 10 archetypes
     disposition: str                # friendly, neutral, hostile
     location_name: str              # Where creature lives
     trust: int = 0                  # 0-100
     knowledge: list[str]            # 1-3 from KNOWLEDGE_POOL (15 entries)
     conversation_history: list[dict] # Last 20 messages (10 exchanges)
     has_helped_repair: bool = False
-    can_give_materials: list[str]   # 1-2 from MATERIALS_POOL
+    can_give_materials: list[str]   # Legacy field, kept for backwards compat
     knows_food_source: str|None     # Location name or None (40% chance)
     knows_water_source: str|None    # Location name or None (40% chance)
     color: str                      # Rich color from 20-color palette
+    following: bool = False         # Currently traveling with player
+    home_location: str|None = None  # Original location when following
+    helped_at_ship: bool = False    # Has helped at crash site
+    role_inventory: list[str]       # Materials from ROLE_CAPABILITIES pool
+    given_items: list[str]          # Items already given to player
+    backstory: str                  # Generated personality detail
+    trade_wants: list[str]          # Merchant only: items they want in trade
 ```
 
-### 6.1 Archetypes (8)
+### 6.1 Archetypes (10)
 
-| Archetype | Personality |
-|-----------|------------|
-| Wise Elder | Patient, speaks in metaphors, values respect |
-| Trickster | Loves riddles and wordplay, tests wits |
-| Guardian | Protective, suspicious, respects strength |
-| Healer | Gentle, empathetic, knows medicinal flora |
-| Builder | Practical, curious about technology |
-| Wanderer | Restless, knows terrain, speaks of distant places |
-| Hermit | Prefers solitude, rare but weighty speech |
-| Warrior | Fierce, direct, tests courage |
+Creatures are the **primary source** of repair materials and survival resources. Each archetype has specific capabilities and trust thresholds defined in `ROLE_CAPABILITIES`.
 
-### 6.2 Dispositions
+| Archetype | Provides | Trust Needed | Notes |
+|-----------|----------|-------------|-------|
+| Healer | heal, repair_suit, food, water | 0 (heal/suit), 10 (food/water) | Always heals — it's their calling |
+| Builder | repair materials | 35 | metal_shard, hull_patch, circuit_board, thermal_paste |
+| Wise Elder | materials, creature intel | 50 (materials), 35 (intel) | circuit_board, antenna_array, power_cell |
+| Guardian | repair materials | 70 | power_cell, hull_patch, metal_shard — high trust only |
+| Hermit | rare materials | 80 | antenna_array, bio_gel, thermal_paste — hardest to earn |
+| Wanderer | food, water, location reveals | 25 (food/water), 35 (locations) | Knows terrain, provides travel supplies |
+| Trickster | materials, food, water | 35 | Unpredictable — may give or trick |
+| Warrior | repair materials | 50 | metal_shard, power_cell, hull_patch — respects effort |
+| Merchant | trade (item-for-item) | 20 (trade) | Always trades, never gives free |
+| Enforcer | creature intel, escort verify | 15 (intel), 25 (escort), 60 (materials) | Authority figure — advises who to talk to |
+
+### 6.2 Guaranteed Spawns
+
+Every game guarantees at least one of each: **Merchant**, **Builder**, **Healer**. Guaranteed archetypes are never assigned hostile disposition.
+
+### 6.3 Dispositions
 
 | Disposition | Initial Trust | Behavior |
 |-------------|--------------|----------|
 | Friendly | 25 | Inclined to help, concerned about player |
 | Neutral | 10 | Must earn interest, won't volunteer info |
-| Hostile | 0 | Deeply suspicious, may chase away at trust <15 |
+| Hostile | 0 | Verbally aggressive but humane — protecting territory and people |
 
-### 6.3 Trust System
+Hostile creatures chase the player away with words, not violence. They are defensive, not evil. Underneath the aggression is a person protecting their community and family.
+
+### 6.4 Trust System
 
 | Level | Range | Behavior |
 |-------|-------|----------|
 | Low | 0-34 | Guarded, reveals nothing significant |
 | Medium | 35-69 | Warming up, shares some info |
-| High | 70-100 | Will share knowledge, give materials, reveal sources |
+| High | 70-100 | Full cooperation, shares materials and knowledge |
 
 **Trust gain:**
 - Conversation: +3 per message exchange
 - Gift: +15 (friendly/neutral), +10 (hostile)
 
-### 6.4 Species Names (20)
+**Role-based trust thresholds** (from `ROLE_CAPABILITIES`): Each archetype has different thresholds for different actions. A Healer heals at trust 0; a Hermit requires trust 80 for materials.
+
+### 6.5 Trade System (Merchant)
+
+Merchants trade item-for-item. They never give free. At creature gen, each Merchant gets 2-3 `trade_wants` from `TRADE_WANTS_POOL`.
+
+| Trust Level | Trade Behavior |
+|-------------|---------------|
+| < 20 | Refuses to trade |
+| 20-49 | Trades common items 1-for-1 |
+| 50+ | Trades repair materials |
+| 70+ | May throw in a bonus item |
+
+Players use `trade` command or `/trade <item>` during conversation.
+
+### 6.6 Backstory Generation
+
+Each creature gets a generated backstory combining family, concern, and opinion elements. This feeds into LLM prompts to make creatures feel like real people with lives, families, and community concerns.
+
+### 6.7 Material Coverage Guarantee
+
+After generation, the system verifies every required repair material exists in at least one creature's `role_inventory`. Missing materials are added to creatures whose archetype naturally provides them.
+
+### 6.8 Species Names (20)
 
 Crystallith, Vapormaw, Glacien, Thermovore, Silicarn, Cryoform, Lumivex, Echoshell, Driftspore, Plumecrest, Geotherm, Frostweaver, Tidecrawler, Shardwing, Nebulite, Coralith, Voltspine, Mirrorscale, Boilback, Icemantis
 
-### 6.5 Creature Names (30)
+### 6.9 Creature Names (30)
 
 Kael, Threnn, Mivari, Ossek, Yuleth, Drenn, Xochi, Pallax, Zirren, Quelth, Bivorn, Tessik, Aurren, Feyth, Gorran, Lissel, Nahren, Pyreth, Sarvik, Torvun, Vessen, Wyndle, Arlox, Crynn, Dakren, Elthis, Fikken, Halvex, Iyren, Jassik
 
-### 6.6 Knowledge Pool (15 entries)
+### 6.10 Knowledge Pool (15 entries)
 
 Rare metal deposits, geyser eruption patterns, safe ice paths, old settlement locations, power cell ruins, crystal growth patterns, safe caves, ice weather reading, migration patterns, builder construction, bio-gel pools, subsurface water currents, deep canyon paths, edible organisms, trade routes.
 
-### 6.7 Materials Pool (8)
+### 6.11 Materials Pool (8)
 
 ice_crystal, metal_shard, bio_gel, circuit_board, power_cell, thermal_paste, hull_patch, antenna_array
 
@@ -261,7 +298,6 @@ class Drone:
     scanner_range: int = 10         # km
     translation_quality: str = "low" # low → medium → high
     cargo_capacity: int = 10
-    cargo_used: int = 0
     speed_boost: int = 0            # km/h
     battery: float = 100.0          # percentage
     battery_max: float = 100.0
@@ -296,12 +332,23 @@ Two voice modes:
 
 Pool of 15 pre-written observations. Selected via `get_travel_musing(rng)`. Returns `None` if battery is 0.
 
-### 7.5 Interaction Coaching
+### 7.5 Interaction Coaching (AI-Powered)
 
-`get_interaction_advice(creature, rng)` selects from:
-- **DRONE_ARCHETYPE_TIPS:** 3 tips per archetype (24 total)
-- **DRONE_TRUST_TIPS:** 3 tips per trust level (9 total)
-- **DRONE_DISPOSITION_TIPS:** 1-2 tips per disposition (3 total)
+`get_smart_advice(creature, player, repair_checklist, rng)` provides context-aware hints:
+
+**When LLM available:** Short secondary LLM call (~50 token response) suggesting a specific question the player should ask, based on:
+- Creature's archetype and what they can provide
+- Items in creature's `role_inventory` that the player needs
+- Current trust level vs. required threshold
+- Recent conversation context
+
+**When LLM unavailable:** Smart template fallback:
+- If creature has needed materials but trust is below threshold: states the target trust
+- If trust is high enough: suggests asking about specific material
+- If Healer and player is hurt: reminds player Healers help even at low trust
+- If Merchant: suggests what items they want in trade
+- If Enforcer: reminds player they can advise who to talk to
+- Falls back to static pools (DRONE_ARCHETYPE_TIPS, DRONE_TRUST_TIPS, DRONE_DISPOSITION_TIPS)
 
 Returns `None` if battery is 0.
 
@@ -383,15 +430,36 @@ Events scale with trip length: `min(5, max(1, hours // 2))` events per trip.
 
 Max 2 events of the same type per trip. Events shuffled and interleaved with `...` separators.
 
-### 9.5 Item Discovery
+### 9.5 Hazard Events (Hostile Environment)
+
+The environment is the primary danger source (not creatures). During travel, hazards roll based on trip length: 1 roll per 2 hours (min 1, max 3). Each hazard has an individual probability (6-12%). Max 1 hazard triggers per roll.
+
+| Hazard | Probability | Effect |
+|--------|------------|--------|
+| Geyser eruption | 12% | -10% suit |
+| Crevasse fall | 10% | -8% suit, -10% food |
+| Ice storm | 8% | -15% water, +1 hour |
+| Thin ice collapse | 6% | -15% suit, -10% water |
+| Toxic vent | 10% | -5% suit |
+| Thermal shock | 8% | -5% suit, -5% water |
+
+### 9.6 Late-Game Weather Escalation
+
+After `hours_elapsed >= 40` (60 in long mode), weather deteriorates:
+- Hazard probabilities increase by +5% per 10 hours past threshold
+- Ice storms become more frequent
+- Water drain rate increases by 0.5%/hr
+- Dramatic weather narration appears during travel
+
+### 9.7 Item Discovery
 
 15% chance per trip to find ice_crystal or metal_shard.
 
-### 9.6 Route Suggestion
+### 9.8 Route Suggestion
 
 On trips >= 3 hours, drone suggests closer alternative locations within 15 km of destination.
 
-### 9.7 Screen Behavior
+### 9.9 Screen Behavior
 
 Screen clears before travel. On arrival, player is prompted to `look`.
 
@@ -426,8 +494,8 @@ If GPU loading fails, automatically retries with CPU.
 ### 10.3 Model Search Path
 
 1. Any `.gguf` in `models/` directory
-2. `models/gemma-4-E2B-it-Q4_K_M.gguf`
-3. `D:/projects/moon_traveler/models/gemma-4-E2B-it-Q4_K_M.gguf`
+2. `models/Qwen3.5-2B-Q4_K_M.gguf` (default)
+3. `models/gemma-4-E2B-it-Q4_K_M.gguf` (optional)
 
 ### 10.4 Response Generation
 
@@ -477,20 +545,25 @@ Rules: stay in character, 2-4 sentences, no AI breaking
 |---------|---------|-------------|
 | look | l | Describe current location |
 | scan | — | Use drone to discover nearby locations (costs 10% battery) |
-| gps | map | Show known locations with distances |
+| gps | map | Show known locations with distances and resource markers |
 | travel | go | Travel to a known location |
 | take | get, pick | Pick up an item |
 | inventory | inv, i | Show inventory |
 | talk | speak | Talk to creature at location (LLM chat) |
 | give | — | Give item to creature (trust +10/+15) |
+| trade | — | Trade with a Merchant creature |
+| escort | — | Ask creature to follow or dismiss followers |
+| rest | — | Rest to recover vitals (+10%, +20% at Crash Site) |
 | drone | — | Show drone status panel |
 | upgrade | — | Install drone upgrade from inventory |
 | status | — | Show food/water/suit/repair progress |
-| ship | repair | Interactive repair at Crash Site |
+| ship | repair | Interactive ship bays at Crash Site |
 | save | — | Save game to named slot (default: "manual") |
 | load | — | Load game from slot |
+| config | — | View/change save directory |
 | dev | devmode | Toggle developer diagnostics panel |
 | help | — | Show command list |
+| clear | cls | Clear terminal screen |
 | quit | exit | Quit game (with confirmation) |
 
 ### 11.2 Conversation System (cmd_talk)
@@ -536,7 +609,6 @@ Away from Crash Site:
 |----------|---------|
 | `show_title()` | ASCII art title banner (cyan) |
 | `show_crash()` | Crashed ship ASCII art (yellow) |
-| `narrate(text, style, delay)` | Character-by-character animation (default 0.02s/char) |
 | `narrate_lines(lines, style, pause)` | Line-by-line with pauses (default 0.5s) |
 | `info(text)` | Cyan text |
 | `warn(text)` | Yellow text |
@@ -546,13 +618,11 @@ Away from Crash Site:
 | `show_panel(title, content, style)` | Rich panel |
 | `show_location(...)` | Location info panel with items and creatures |
 | `show_inventory(items)` | Table of items with quantities |
-| `show_gps(locations, x, y)` | Location table with distances |
+| `show_gps(locations, x, y)` | Location table with distances + food/water resource markers |
 | `show_status(...)` | Status table: food, water, suit, time, repair progress |
 | `show_drone_status(drone_dict)` | Drone stats panel (magenta border) |
 | `show_ship_repair(checklist)` | Repair progress table |
 | `creature_speak(name, text, color)` | Creature dialogue line |
-| `drone_speak(text)` | Drone speech (bold magenta) |
-| `drone_whisper(text)` | Private drone message (dim magenta italic) |
 | `travel_progress(dest, duration)` | Progress bar with spinner |
 | `loading_spinner(msg, duration)` | Transient spinner |
 | `prompt_choice(text, choices)` | Numbered selection menu |
@@ -568,6 +638,20 @@ Away from Crash Site:
 | Food/Water | >50% | 20-50% | <20% |
 | Suit | >60% | 30-60% | <30% |
 | Battery | >50% | 20-50% | <20% |
+
+### 12.4 Status Bar Inventory Count
+
+Both crash-site and exploring status bars show `Inv {current}/{max}` using `player.total_items` and `drone.cargo_capacity`.
+
+### 12.5 GPS Resource Markers
+
+GPS table includes a "Resources" column showing food/water availability for **visited** locations only:
+- `🍎` for food source
+- `🚰` for water source
+
+### 12.6 Storage Bay — Stash All
+
+Storage bay menu includes a "Stash all items" option (option 3) that moves entire inventory to ship storage in one action.
 
 ---
 
@@ -595,7 +679,8 @@ Non-blocking: wrong commands don't nag.
 ### 13.3 Boot Sequence
 
 1. Title screen + crash art
-2. `ARIA SYSTEM v4.2.1 — INITIALIZING`
+2. **Skip tutorial prompt**: `Skip tutorial? (y/n)` — if yes, prints "Systems online. You know the drill, Commander." and jumps to gameplay
+3. `ARIA SYSTEM v4.2.1 — INITIALIZING`
 3. Ship Diagnostics: hull 23%, life support degraded, propulsion/nav/comms offline, power backup
 4. Environment Scan: temp -201C, gravity 0.0113g, atmosphere trace, radiation low
 5. Crew Vitals: food%, water%, suit%
@@ -611,35 +696,31 @@ Non-blocking: wrong commands don't nag.
 
 ### 14.1 Storage
 
-- Directory: `saves/`
-- Format: JSON files named `{slot}.json`
-- Save version: 2
+- Directory: `saves/` (configurable via `config` command)
+- Format: SQLite database (key-value pairs)
+- Save version: 4
 
-### 14.2 Saved State
+### 14.2 Database Schema
 
-```json
-{
-  "save_version": 2,
-  "player": { ... },
-  "drone": { ... },
-  "locations": [ ... ],
-  "creatures": [ ... ],
-  "world_seed": int,
-  "world_mode": "short|medium|long",
-  "repair_checklist": { ... },
-  "ship_ai": { ... },
-  "tutorial": { ... }
-}
-```
+- `saves` table: `(slot, key, value)` — game state as JSON key-value pairs
+- `save_meta` table: `(slot, save_version, updated_at)` — metadata
+- `chat_history` table: `(slot, creature_id, seq, role, content)` — persists conversations
+
+Keys stored: `world_seed`, `world_mode`, `player`, `drone`, `locations`, `creatures`, `repair_checklist`, `ship_ai`, `tutorial`
 
 ### 14.3 Auto-save
 
-Triggered after every travel and conversation end. Slot: `"autosave"`.
+Triggered after travel, conversation, give, and trade. Slot: `"autosave"`. Silent (no UI output).
 
-### 14.4 Backwards Compatibility
+### 14.4 Error Handling
 
-- v1 saves: missing `ship_ai` and `tutorial` → created with defaults
-- New Player fields: `suit_integrity` defaults to 92.0 for old saves
+`save_game` wrapped in try/except — disk full or permissions errors show an error message but never crash the game.
+
+### 14.5 Backwards Compatibility
+
+- v1/v2 JSON saves: loaded via legacy path
+- v3 SQLite saves: new creature fields (`role_inventory`, `given_items`, `backstory`, `trade_wants`) default to empty
+- `ShipAI.from_dict` merges loaded warnings into defaults (missing keys don't crash)
 
 ---
 
@@ -691,17 +772,32 @@ Session-only (not saved). Toggle with `dev` command.
 
 | Constant | Type | Entries |
 |----------|------|---------|
-| BASE_CREATURE_PROMPT | str template | 1 |
-| PERSONALITY_DETAILS | dict[archetype → str] | 8 |
-| DISPOSITION_INSTRUCTIONS | dict[disposition → str] | 3 |
+| BASE_CREATURE_PROMPT | str template | 1 (rewritten for natural conversation) |
+| PERSONALITY_DETAILS | dict[archetype → str] | 10 (includes Merchant, Enforcer) |
+| DISPOSITION_INSTRUCTIONS | dict[disposition → str] | 3 (hostile = defensive, not evil) |
 | TRUST_INSTRUCTIONS | dict[trust_level → str] | 3 |
 | TRANSLATION_QUALITY | dict[quality → str] | 3 |
-| FALLBACK_RESPONSES | dict[archetype → list[str]] | 8 archetypes x 5 responses |
+| CREATURE_ACTION_INSTRUCTIONS | str template | Role-aware, built dynamically per archetype |
+| FALLBACK_RESPONSES | dict[archetype → list[str]] | 10 archetypes x 5 responses (with action tags) |
+| DRONE_HINT_PROMPT | str template | For AI-powered contextual hints |
 | DRONE_TRAVEL_MUSINGS | list[str] | 15 |
-| DRONE_ARCHETYPE_TIPS | dict[archetype → list[str]] | 8 x 3 = 24 |
+| DRONE_ARCHETYPE_TIPS | dict[archetype → list[str]] | 10 x 3 = 30 |
 | DRONE_TRUST_TIPS | dict[trust_level → list[str]] | 3 x 3 = 9 |
 | DRONE_DISPOSITION_TIPS | dict[disposition → list[str]] | 3 total |
 | DRONE_TRANSLATION_FRAMES | dict[quality → list[str]] | 8 total |
+
+### 17.2 Conversation Design
+
+Creature prompts are written to make creatures feel like real people:
+- They have lives, families, concerns, opinions (from generated backstory)
+- They ask the player questions back, showing genuine curiosity
+- Hostile creatures are defensive, not evil — protecting territory and people
+- Responses are 2-4 sentences, conversational tone
+- Action tags are role-specific (Healers can only heal, Merchants only trade, etc.)
+
+### 17.3 Fallback Mode
+
+When LLM is unavailable, `FALLBACK_RESPONSES` include action tags so creatures can still give materials through canned responses. Additionally, a game-mechanical fallback in `cmd_talk` offers materials when trust crosses the archetype's threshold.
 
 ---
 
@@ -751,7 +847,7 @@ All entries in `repair_checklist` are `True` (all materials installed at Crash S
 
 ### 19.2 Lose
 
-`player.food <= 0 AND player.water <= 0`
+`player.food <= 0 OR player.water <= 0 OR player.suit_integrity <= 0`
 
 **Lose sequence:** Narrative about exhaustion and collapse. Shows survival time. "GAME OVER".
 
@@ -797,4 +893,4 @@ tests/
   test_input_handler.py     Autocomplete for all command types (11 tests)
 ```
 
-**Total test count:** 45
+**Total test count:** 195
