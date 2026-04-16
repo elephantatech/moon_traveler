@@ -62,6 +62,8 @@ On startup you'll choose:
 
 ## How to Play
 
+For a comprehensive guide covering survival mechanics, creature interactions, drone upgrades, and strategy tips, see **[HOW_TO_PLAY.md](HOW_TO_PLAY.md)**.
+
 ### Commands
 
 | Command | Description |
