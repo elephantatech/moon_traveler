@@ -2,6 +2,27 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.3.1] - 2026-04-16
+
+### Fixed
+- Fixed crash when talking to NPCs caused by prompt_toolkit session conflict
+- Fixed GPU Metal segfault on macOS — auto-detects compute mode from config, no startup prompt
+- Sound effects no longer write to stdout (was corrupting Rich console terminal state)
+
+### Added
+- **Sound effects** — beep patterns for game events, spoken voice announcements via Voice Module drone upgrade
+- **Drone upgrades**: Voice Module (spoken announcements) and Autopilot Chip (auto-look/scan on arrival)
+- **`sound` command** — toggle sound effects on/off
+- **`config gpu auto|gpu|cpu`** — configure compute mode without restart prompt
+- **`tutorial` command** — replay the ARIA boot sequence and tutorial at any time
+- Tutorial auto-skips on subsequent launches (persisted in `~/.moonwalker/config.json`)
+- GPU smoke test during model load — catches inference failures before gameplay starts
+
+### Changed
+- Removed GPU/CPU selection prompt at startup — auto-detects or reads from config
+- Removed "Skip tutorial?" prompt — tutorial runs once automatically, then skips
+- All user data defaults to `~/.moonwalker/` (saves, models, config, dev logs)
+
 ## [0.3.0] - 2026-04-16
 
 ### Added

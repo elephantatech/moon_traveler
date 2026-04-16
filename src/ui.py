@@ -84,11 +84,22 @@ CREATURE_COLORS = [
 ]
 
 
+def _safe_sound(event: str):
+    """Play a sound, never crash the game."""
+    try:
+        from src import sound
+        sound.play(event)
+    except Exception:
+        pass
+
+
 def show_title():
+    _safe_sound("boot")
     console.print(TITLE_ART)
 
 
 def show_crash():
+    _safe_sound("damage")
     console.print(CRASH_ART)
 
 
@@ -105,14 +116,17 @@ def info(text: str):
 
 
 def warn(text: str):
+    _safe_sound("warning")
     console.print(f"[yellow]{text}[/yellow]")
 
 
 def error(text: str):
+    _safe_sound("error")
     console.print(f"[red]{text}[/red]")
 
 
 def success(text: str):
+    _safe_sound("success")
     console.print(f"[green]{text}[/green]")
 
 
@@ -255,6 +269,11 @@ def show_drone_status(drone: dict, title: str = "ARIA Scout Drone"):
     table.add_row("Speed Boost", f"+{drone['speed_boost']} km/h")
     battery_color = "green" if drone["battery"] > 50 else "yellow" if drone["battery"] > 20 else "red"
     table.add_row("Battery", f"[{battery_color}]{drone['battery']:.0f}%[/{battery_color}]")
+
+    if drone.get("voice_enabled"):
+        table.add_row("Voice", "[green]Enabled[/green]")
+    if drone.get("autopilot_enabled"):
+        table.add_row("Autopilot", "[green]Enabled[/green]")
 
     upgrades = drone.get("upgrades_installed", [])
     if upgrades:

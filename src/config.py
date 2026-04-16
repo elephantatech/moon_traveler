@@ -65,6 +65,39 @@ def set_save_dir(path: Path):
     _save()
 
 
+def is_tutorial_completed() -> bool:
+    """True if the tutorial has been completed at least once."""
+    cfg = _load()
+    return cfg.get("tutorial_completed", False)
+
+
+def set_tutorial_completed():
+    """Mark the tutorial as completed (persisted across sessions)."""
+    cfg = _load()
+    cfg["tutorial_completed"] = True
+    _save()
+
+
+def reset_tutorial():
+    """Reset tutorial so it runs on next new game."""
+    cfg = _load()
+    cfg["tutorial_completed"] = False
+    _save()
+
+
+def get_gpu_mode() -> str:
+    """Get the configured GPU mode: 'gpu', 'cpu', or 'auto' (default)."""
+    cfg = _load()
+    return cfg.get("gpu_mode", "auto")
+
+
+def set_gpu_mode(mode: str):
+    """Set and persist GPU mode ('gpu', 'cpu', or 'auto')."""
+    cfg = _load()
+    cfg["gpu_mode"] = mode
+    _save()
+
+
 def is_first_run() -> bool:
     """True if no config file exists yet (first launch)."""
     return not CONFIG_PATH.exists()

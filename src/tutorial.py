@@ -53,34 +53,34 @@ class TutorialManager:
     def completed(self) -> bool:
         return self.step >= TutorialStep.COMPLETED
 
-    def run_boot_sequence(self, ship_ai, player, drone, locations, repair_checklist, mode: str):
+    def run_boot_sequence(self, ship_ai, player, drone, locations, repair_checklist, mode: str,
+                          replay: bool = False):
         """Print the ARIA boot diagnostics and begin the tutorial.
 
-        Replaces show_intro(). Imports ui locally to avoid circular deps.
+        Runs the full boot sequence on first play. On subsequent launches,
+        shows a short welcome and skips straight to gameplay.
+        Set replay=True when called from the 'tutorial' command mid-game.
         """
         from src import ui
+        from src.config import is_tutorial_completed, set_tutorial_completed
 
-        ui.show_title()
-        ui.console.print()
+        if not replay:
+            ui.show_title()
+            ui.console.print()
+
+            # Returning player — short welcome, skip boot sequence
+            if is_tutorial_completed():
+                ui.console.print(drone.speak("Systems online. Welcome back, Commander."))
+                ui.console.print()
+                self.step = TutorialStep.COMPLETED
+                ship_ai.boot_complete = True
+                return
+
         ui.show_crash()
         ui.console.print()
         ui.console.print("[dim]You've crash-landed on Enceladus, Saturn's icy moon.[/dim]")
         ui.console.print("[dim]Your ship is damaged. You'll need to find materials and allies to repair it.[/dim]")
         ui.console.print()
-
-        # Offer skip for returning players
-        try:
-            skip = ui.console.input("[dim]Skip tutorial? (y/n) > [/dim]").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            skip = "n"
-
-        if skip in ("y", "yes"):
-            ui.console.print()
-            ui.console.print(drone.speak("Systems online. You know the drill, Commander."))
-            ui.console.print()
-            self.step = TutorialStep.COMPLETED
-            ship_ai.boot_complete = True
-            return
 
         # --- System boot ---
         ui.console.print("[bold bright_white]ARIA SYSTEM v4.2.1 — INITIALIZING[/bold bright_white]")
@@ -170,6 +170,8 @@ class TutorialManager:
             self.step = next_step
             if next_step >= TutorialStep.COMPLETED:
                 self.step = TutorialStep.COMPLETED
+                from src.config import set_tutorial_completed
+                set_tutorial_completed()
             return hint
         return None
 
