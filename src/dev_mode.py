@@ -97,7 +97,7 @@ class DevMode:
         loc_table.add_column("Creature", style="green")
 
         cur = ctx.current_location()
-        sorted_locs = sorted(ctx.locations, key=lambda l: cur.distance_to(l.x, l.y))
+        sorted_locs = sorted(ctx.locations, key=lambda loc: cur.distance_to(loc.x, loc.y))
         for i, loc in enumerate(sorted_locs, 1):
             d = cur.distance_to(loc.x, loc.y)
             dist_str = f"{d:.1f} km" if d > 0.01 else "HERE"
@@ -123,7 +123,10 @@ class DevMode:
             if markers:
                 type_str += f" [green]{''.join(markers)}[/green]"
 
-            loc_table.add_row(str(i), loc.name, type_str, f"({loc.x:.0f},{loc.y:.0f})", dist_str, status, items_str, creature_str)
+            loc_table.add_row(
+                str(i), loc.name, type_str, f"({loc.x:.0f},{loc.y:.0f})",
+                dist_str, status, items_str, creature_str,
+            )
 
         ui.console.print(loc_table)
 

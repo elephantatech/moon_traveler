@@ -82,7 +82,10 @@ def calculate_travel_time(distance: float, drone: Drone) -> float:
     return distance / speed
 
 
-def _build_travel_narration(hours_int: int, rng: random.Random, ship_ai, locations, destination, drone=None, current=None) -> list[str]:
+def _build_travel_narration(
+    hours_int: int, rng: random.Random, ship_ai, locations,
+    destination, drone=None, current=None,
+) -> list[str]:
     """Build flavor messages for the journey. Longer trips get more events."""
     narration = []
 
@@ -143,14 +146,18 @@ def _build_travel_narration(hours_int: int, rng: random.Random, ship_ai, locatio
         if closer:
             narration.append("[dim]...[/dim]")
             if drone:
-                narration.append(drone.speak(f"For future reference, {closer} may offer a shorter route to this region."))
+                msg = f"For future reference, {closer} may offer a shorter route."
+                narration.append(drone.speak(msg))
             elif ship_ai:
-                narration.append(ship_ai.speak(f"For future reference, {closer} may offer a shorter route to this region."))
+                msg = f"For future reference, {closer} may offer a shorter route."
+                narration.append(ship_ai.speak(msg))
 
     return narration
 
 
-def _find_closer_alternative(locations: list[Location], destination: Location, current: Location | None = None) -> str | None:
+def _find_closer_alternative(
+    locations: list[Location], destination: Location, current: Location | None = None,
+) -> str | None:
     """Find a known location that's close to the destination (potential waypoint)."""
     best_name = None
     best_dist = float("inf")

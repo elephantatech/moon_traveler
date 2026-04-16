@@ -42,7 +42,7 @@ def check_win(ctx: GameContext) -> bool:
 
 
 def check_lose(ctx: GameContext) -> bool:
-    return ctx.player.food <= 0 or ctx.player.water <= 0
+    return ctx.player.food <= 0 or ctx.player.water <= 0 or ctx.player.suit_integrity <= 0
 
 
 def show_win_sequence(ctx: GameContext):
@@ -76,6 +76,21 @@ def show_win_sequence(ctx: GameContext):
         "You made it home.",
     ]
     ui.narrate_lines(launch_lines, pause=0.5)
+
+    # Personalized creature recognition
+    allies = [c for c in ctx.creatures if c.trust >= 50]
+    if allies:
+        ui.console.print("[bold]Those who helped you:[/bold]")
+        for c in allies:
+            role = c.archetype
+            if c.helped_at_ship:
+                ui.console.print(f"  [{c.color}]{c.name}[/{c.color}] [dim]the {role} — came to the ship[/dim]")
+            elif c.trust >= 70:
+                ui.console.print(f"  [{c.color}]{c.name}[/{c.color}] [dim]the {role} — a true ally[/dim]")
+            else:
+                ui.console.print(f"  [{c.color}]{c.name}[/{c.color}] [dim]the {role} — a friend[/dim]")
+        ui.console.print()
+
     ui.console.print("[bold green]" + "=" * 60 + "[/bold green]")
     ui.console.print("\n[bold]MISSION COMPLETE[/bold]\n")
 

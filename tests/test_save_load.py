@@ -2,13 +2,12 @@
 
 import json
 import sqlite3
-from pathlib import Path
 from unittest.mock import patch
 
 from src.creatures import Creature
 from src.drone import Drone
 from src.player import Player
-from src.save_load import SAVE_VERSION, load_game, save_game, list_saves, delete_save
+from src.save_load import SAVE_VERSION, delete_save, list_saves, load_game, save_game
 from src.ship_ai import ShipAI
 from src.tutorial import TutorialManager
 from src.world import Location
@@ -109,7 +108,10 @@ class TestSaveLoad:
 
         p1, p2 = _patch_paths(tmp_path)
         with p1, p2:
-            save_game("test", player, drone, locations, creatures, 42, "short", checklist, ship_ai, tutorial, quiet=True)
+            save_game(
+                "test", player, drone, locations, creatures,
+                42, "short", checklist, ship_ai, tutorial, quiet=True,
+            )
 
         captured = capsys.readouterr()
         assert "Game saved" not in captured.out

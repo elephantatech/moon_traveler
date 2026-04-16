@@ -2,22 +2,28 @@
 """Scripted walkthrough that exports each game screen as an SVG file using Rich."""
 
 import sys
+
 sys.path.insert(0, ".")
 
 from pathlib import Path
-from io import StringIO
+
 from rich.console import Console
 
 from src import ui
 from src.commands import (
-    GameContext, cmd_look, cmd_scan, cmd_gps, cmd_take,
-    cmd_drone, cmd_status, cmd_inventory, cmd_give,
-    _show_bay_menu, HELP_TEXT,
+    HELP_TEXT,
+    _show_bay_menu,
+    cmd_give,
+    cmd_gps,
+    cmd_inventory,
+    cmd_look,
+    cmd_scan,
+    cmd_status,
+    cmd_take,
 )
-from src.game import init_game, REPAIR_MATERIALS
+from src.game import init_game
 from src.llm import fallback_response
 from src.travel import execute_travel
-
 
 ASSETS_DIR = Path("assets")
 TERM_WIDTH = 100
@@ -61,7 +67,7 @@ def show_status_bar(ctx, console):
     creature_here = ctx.creature_at_location(loc.name)
     followers = [c for c in ctx.creatures if c.following]
     # Render directly to the given console
-    from src.ui import render_status_bar, _bar
+    from src.ui import render_status_bar
     original = ui.console
     ui.console = console
     render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers)
@@ -199,7 +205,10 @@ def main():
         creature.trust = 55
         show_status_bar(ctx, c)
         show_prompt(ctx, c, "escort")
-        c.print(f"\n[bold]Ask [{creature.color}]{creature.name}[/{creature.color}] to travel with you to the Crash Site for help?[/bold]")
+        c.print(
+            f"\n[bold]Ask [{creature.color}]{creature.name}[/{creature.color}]"
+            " to travel with you?[/bold]"
+        )
         c.print("[bold](y/n) > [/bold]y")
         creature.following = True
         creature.home_location = creature.location_name

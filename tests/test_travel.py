@@ -1,8 +1,7 @@
 """Tests for travel mechanics: time calculation, resource costs, and route suggestions."""
 
 from src.drone import Drone
-from src.player import Player
-from src.travel import calculate_travel_time, _find_closer_alternative
+from src.travel import _find_closer_alternative, calculate_travel_time
 from src.world import Location
 
 

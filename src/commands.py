@@ -250,14 +250,23 @@ def cmd_travel(ctx: GameContext, args: str):
 
     cur = ctx.current_location()
 
-    # Confirm long trips
+    # Estimate travel cost and warn if dangerous
     from src.travel import calculate_travel_time
     distance = cur.distance_to(dest.x, dest.y)
     hours = calculate_travel_time(distance, ctx.drone)
     hours_int = max(1, round(hours))
-    if hours_int >= 3:
-        food_cost = hours_int * 2.0
-        water_cost = hours_int * 3.0
+    food_cost = hours_int * 2.0
+    water_cost = hours_int * 3.0
+    food_after = ctx.player.food - food_cost
+    water_after = ctx.player.water - water_cost
+
+    needs_confirm = hours_int >= 3
+    if food_after <= 10 or water_after <= 10:
+        needs_confirm = True
+        ui.error(
+            f"Dangerous trip! After travel: food ~{max(0, food_after):.0f}%, water ~{max(0, water_after):.0f}%"
+        )
+    if needs_confirm:
         ui.warn(
             f"Travel to {dest.name} will take ~{hours_int}h "
             f"(~{food_cost:.0f}% food, ~{water_cost:.0f}% water, ~{distance * 0.5:.0f}% battery)"
@@ -312,7 +321,7 @@ def cmd_take(ctx: GameContext, args: str):
     # Check for hostile creature blocking
     creature = ctx.creature_at_location(loc.name)
     if creature and creature.disposition == "hostile" and creature.trust < 20:
-        ui.error(f"{creature.name} won't let you take anything here.")
+        ui.error(f"{creature.name} won't let you take anything here. Try offering a gift to build trust.")
         return
 
     if item_name in loc.items:
@@ -324,6 +333,10 @@ def cmd_take(ctx: GameContext, args: str):
         ctx.player.add_item(item_name)
         display = item_name.replace("_", " ").title()
         ui.success(f"Picked up: {display}")
+        # Hint if this is a needed repair material
+        key = f"material_{item_name}"
+        if key in ctx.repair_checklist and not ctx.repair_checklist[key]:
+            ui.dim("  This is needed for ship repair!")
     else:
         ui.error(f"No '{args}' here. Use 'look' to see available items.")
 
@@ -459,7 +472,8 @@ def cmd_talk(ctx: GameContext, args: str):
         # Trust gain from conversation
         creature.add_trust(3)
         next_tier = 70 if creature.trust < 70 else 100
-        ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — {next_tier} for {'full cooperation' if next_tier == 70 else 'max'})[/dim]")
+        tier_label = "full cooperation" if next_tier == 70 else "max"
+        ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — {next_tier} for {tier_label})[/dim]")
         exchange_count += 1
 
         # Drone private advice (NOT added to creature conversation history)
@@ -593,7 +607,11 @@ def cmd_escort(ctx: GameContext, args: str):
         return
 
     # Ask creature
-    ui.console.print(f"\n[bold]Ask [{creature.color}]{creature.name}[/{creature.color}] to travel with you to the Crash Site for help?[/bold]")
+    ui.console.print(
+        f"\n[bold]Ask [{creature.color}]{creature.name}[/{creature.color}]"
+        " to travel with you?[/bold]"
+    )
+    ui.dim("  Companions help with repairs at the Crash Site.")
     try:
         confirm = ui.console.input("[bold](y/n) > [/bold]").strip().lower()
     except (EOFError, KeyboardInterrupt):
@@ -666,7 +684,7 @@ def _companions_help_at_ship(ctx: GameContext, companions: list):
         if not helped:
             ui.dim(f"  {creature.name} observes the ship with fascination. (+10 trust)")
         else:
-            ui.dim(f"  (+10 trust)")
+            ui.dim("  (+10 trust)")
 
     # Mark all companions as having helped (prevents repeat exploit)
     for creature in companions:
@@ -689,6 +707,13 @@ def _companions_help_at_ship(ctx: GameContext, companions: list):
                 ui.dim(f"  {creature.name} returns to {creature.location_name}.")
             else:
                 ui.dim(f"  {creature.name} stays at the Crash Site.")
+
+    # Check if companions completed the final repair
+    from src.game import check_win, show_win_sequence
+
+    if check_win(ctx):
+        show_win_sequence(ctx)
+        ctx.should_quit = True
 
 
 def cmd_drone(ctx: GameContext, args: str):
@@ -779,7 +804,11 @@ def _show_bay_menu(ctx: GameContext):
         for mat in REPAIR_MATERIALS[ctx.world_mode]
         if not ctx.repair_checklist.get(f"material_{mat}", False) and ctx.player.has_item(mat)
     )
-    repair_status = f"[yellow]{installable} materials ready[/yellow]" if installable else "[dim]No materials to install[/dim]"
+    repair_status = (
+        f"[yellow]{installable} materials ready[/yellow]"
+        if installable
+        else "[dim]No materials to install[/dim]"
+    )
     table.add_row("ship repair", "Install repair materials", repair_status)
 
     # Storage bay status
@@ -956,7 +985,6 @@ def _bay_kitchen(ctx: GameContext):
             display = item.replace("_", " ").title()
 
             # Warn if this item is needed for repair
-            from src.game import REPAIR_MATERIALS
             key = f"material_{item}"
             if key in ctx.repair_checklist and not ctx.repair_checklist[key]:
                 ui.warn(f"{display} is needed for ship repair!")
@@ -1103,6 +1131,11 @@ def cmd_rest(ctx: GameContext, args: str):
         ui.info("You're already at full food and water. No need to rest.")
         return
 
+    # 1 hour passes — consume resources first, then apply rest bonus
+    ctx.player.food = max(0, ctx.player.food - 2.0)
+    ctx.player.water = max(0, ctx.player.water - 3.0)
+    ctx.player.suit_integrity = max(0, ctx.player.suit_integrity - 0.5)
+
     ctx.player.food = min(100.0, ctx.player.food + food_gain)
     ctx.player.water = min(100.0, ctx.player.water + water_gain)
     ctx.player.food_warning_given = False
@@ -1173,7 +1206,8 @@ def cmd_clear(ctx: GameContext, args: str):
 def cmd_config(ctx: GameContext, args: str):
     """Show or change game configuration."""
     from pathlib import Path
-    from src.config import get_save_dir, set_save_dir, CONFIG_PATH
+
+    from src.config import CONFIG_PATH, get_save_dir, set_save_dir
 
     sub = args.strip().lower()
 
