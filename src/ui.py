@@ -153,11 +153,33 @@ def show_inventory(items: dict[str, int]):
     if not items:
         info("Your inventory is empty.")
         return
+
+    from src.drone import UPGRADE_EFFECTS
+    from src.game import REPAIR_MATERIALS
+
+    # Categorize items
+    all_repair = set()
+    for mats in REPAIR_MATERIALS.values():
+        all_repair.update(mats)
+    upgrades = set(UPGRADE_EFFECTS.keys())
+    cookable = {"bio_gel", "ice_crystal"}
+
     table = Table(title="Inventory", border_style="cyan")
     table.add_column("Item", style="yellow")
     table.add_column("Qty", justify="right", style="white")
+    table.add_column("Type", style="dim")
+
     for item, qty in sorted(items.items()):
-        table.add_row(item.replace("_", " ").title(), str(qty))
+        display = item.replace("_", " ").title()
+        tags = []
+        if item in all_repair:
+            tags.append("[yellow]repair[/yellow]")
+        if item in upgrades:
+            tags.append("[magenta]upgrade[/magenta]")
+        if item in cookable:
+            tags.append("[cyan]cookable[/cyan]")
+        tag_str = ", ".join(tags) if tags else "[dim]-[/dim]"
+        table.add_row(display, str(qty), tag_str)
     console.print(table)
 
 
@@ -416,14 +438,16 @@ def render_status_bar(
             bays.append("[green]Repair:Done[/green]")
         console.print(f" [dim]🔧 Ship Bays:[/dim] {' │ '.join(bays)}")
     else:
-        # Minimal bar when exploring — suit, battery, and time
-        line = (
-            f" {env_icon} "
-            f"[dim]Suit[/dim] {suit_bar} [dim]{player.suit_integrity:.0f}%[/dim]  "
-            f"[dim]Batt[/dim] {batt_bar} [dim]{drone.battery:.0f}%[/dim]  "
-            f"[dim]⏱ {time_str}[/dim]"
-        )
-        console.print(line)
+        # Exploring bar — always show suit/battery, show food/water when low
+        parts = [f" {env_icon} "]
+        if player.food <= 50:
+            parts.append(f"[dim]Food[/dim] {food_bar} [dim]{player.food:.0f}%[/dim]  ")
+        if player.water <= 50:
+            parts.append(f"[dim]Water[/dim] {water_bar} [dim]{player.water:.0f}%[/dim]  ")
+        parts.append(f"[dim]Suit[/dim] {suit_bar} [dim]{player.suit_integrity:.0f}%[/dim]  ")
+        parts.append(f"[dim]Batt[/dim] {batt_bar} [dim]{drone.battery:.0f}%[/dim]  ")
+        parts.append(f"[dim]⏱ {time_str}[/dim]")
+        console.print("".join(parts))
 
     # Creature at location
     if creature and not creature.following:

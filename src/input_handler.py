@@ -30,6 +30,7 @@ BASE_COMMANDS = [
     "status",
     "ship",
     "repair",
+    "rest",
     "save",
     "load",
     "help",

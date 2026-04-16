@@ -11,7 +11,10 @@ from src.travel import execute_travel
 from src.world import Location
 
 HELP_TEXT = """
-[bold]Available Commands:[/bold]
+[bold yellow]Goal:[/bold yellow] Collect repair materials and install them at the Crash Site to fix your ship.
+[bold yellow]Survive:[/bold yellow] Keep food and water above 0% or you die. Use [cyan]status[/cyan] to check.
+
+[bold]Commands:[/bold]
 
   [cyan]look[/cyan]                 — Describe current location
   [cyan]scan[/cyan]                 — Use drone to discover nearby locations
@@ -26,6 +29,7 @@ HELP_TEXT = """
   [cyan]upgrade[/cyan] <component>  — Install a drone upgrade from inventory
   [cyan]status[/cyan]               — Show player status (food, water, time)
   [cyan]ship[/cyan]                 — Ship bays menu (storage, kitchen, charging, medical, repair)
+  [cyan]rest[/cyan]                 — Rest for 1 hour to recover food/water
   [cyan]save[/cyan] [slot]          — Save game (default slot: 'manual')
   [cyan]load[/cyan] [slot]          — Load a saved game
   [cyan]clear[/cyan] / [cyan]cls[/cyan]          — Clear the screen
@@ -41,6 +45,7 @@ CHAT_HELP_TEXT = """
 
   [cyan]/end[/cyan], [cyan]/bye[/cyan], [cyan]/quit[/cyan], [cyan]bye[/cyan]   — Disconnect from conversation
   [cyan]/?[/cyan], [cyan]/help[/cyan]               — Show this help
+  [cyan]/history[/cyan]              — Show recent conversation history
   [cyan]/<command>[/cyan]              — Run a game command (e.g. /status, /inventory, /look)
   [cyan]/give[/cyan] <item> to <name> — Give an item to this creature
   [dim]Anything without a / prefix is sent as dialogue through the ARIA translator.[/dim]
@@ -245,6 +250,25 @@ def cmd_travel(ctx: GameContext, args: str):
 
     cur = ctx.current_location()
 
+    # Confirm long trips
+    from src.travel import calculate_travel_time
+    distance = cur.distance_to(dest.x, dest.y)
+    hours = calculate_travel_time(distance, ctx.drone)
+    hours_int = max(1, round(hours))
+    if hours_int >= 3:
+        food_cost = hours_int * 2.0
+        water_cost = hours_int * 3.0
+        ui.warn(
+            f"Travel to {dest.name} will take ~{hours_int}h "
+            f"(~{food_cost:.0f}% food, ~{water_cost:.0f}% water, ~{distance * 0.5:.0f}% battery)"
+        )
+        try:
+            confirm = ui.console.input("[bold]Continue? (y/n) > [/bold]").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            return
+        if confirm not in ("y", "yes"):
+            return
+
     # Clear screen before travel
     ui.console.clear()
 
@@ -373,6 +397,19 @@ def cmd_talk(ctx: GameContext, args: str):
             ui.console.print(CHAT_HELP_TEXT)
             continue
 
+        if player_input.lower() == "/history":
+            if creature.conversation_history:
+                ui.console.print(f"\n[bold]Conversation history with {creature.name}:[/bold]")
+                for msg in creature.conversation_history[-10:]:
+                    if msg["role"] == "user":
+                        ui.console.print(f"  [bold]You>[/bold] {msg['content']}")
+                    else:
+                        ui.creature_speak(creature.name, msg["content"], creature.color)
+                ui.console.print()
+            else:
+                ui.dim("No previous conversation history.")
+            continue
+
         # Allow game commands during conversation — only via "/" prefix
         # e.g. "/status", "/inventory", "/look", "/travel Frost Ridge"
         if player_input.startswith("/"):
@@ -421,6 +458,8 @@ def cmd_talk(ctx: GameContext, args: str):
 
         # Trust gain from conversation
         creature.add_trust(3)
+        next_tier = 70 if creature.trust < 70 else 100
+        ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — {next_tier} for {'full cooperation' if next_tier == 70 else 'max'})[/dim]")
         exchange_count += 1
 
         # Drone private advice (NOT added to creature conversation history)
@@ -493,7 +532,13 @@ def cmd_give(ctx: GameContext, args: str):
     if creature.disposition == "hostile":
         trust_gain = 10
     creature.add_trust(trust_gain)
-    ui.info(f"{creature.name}'s trust: {creature.trust}/100 ({creature.trust_level})")
+    next_tier = 70 if creature.trust < 70 else 100
+    tier_label = "full cooperation" if next_tier == 70 else "max"
+    remaining = next_tier - creature.trust
+    if remaining > 0:
+        ui.info(f"{creature.name}'s trust: {creature.trust}/100 ({creature.trust_level}) — {remaining} to {tier_label}")
+    else:
+        ui.info(f"{creature.name}'s trust: {creature.trust}/100 ({creature.trust_level})")
 
     # At high trust, creature shares materials and info
     if creature.trust >= 70 and not creature.has_helped_repair:
@@ -694,7 +739,7 @@ def cmd_ship(ctx: GameContext, args: str):
 
     if not at_crash:
         ui.show_ship_repair(ctx.repair_checklist)
-        ui.dim("Travel to the Crash Site to access ship bays and install materials.")
+        ui.warn("Travel to the Crash Site to access ship bays and install materials.")
         return
 
     # --- At Crash Site: show ship bay menu ---
@@ -908,8 +953,18 @@ def _bay_kitchen(ctx: GameContext):
         idx = int(pick) - 1
         if 0 <= idx < len(available):
             item, recipe, qty = available[idx]
-            ctx.player.remove_item(item)
             display = item.replace("_", " ").title()
+
+            # Warn if this item is needed for repair
+            from src.game import REPAIR_MATERIALS
+            key = f"material_{item}"
+            if key in ctx.repair_checklist and not ctx.repair_checklist[key]:
+                ui.warn(f"{display} is needed for ship repair!")
+                confirm = ui.console.input("[bold]Cook anyway? (y/n) > [/bold]").strip().lower()
+                if confirm not in ("y", "yes"):
+                    return
+
+            ctx.player.remove_item(item)
             if recipe["effect"] == "food":
                 ctx.player.food = min(100.0, ctx.player.food + recipe["amount"])
                 ctx.player.food_warning_given = False
@@ -1038,6 +1093,32 @@ def _bay_medical(ctx: GameContext):
         return
 
 
+def cmd_rest(ctx: GameContext, args: str):
+    """Rest to recover food and water. Better recovery at the Crash Site."""
+    at_crash = ctx.player.location_name == "Crash Site"
+    food_gain = 20.0 if at_crash else 10.0
+    water_gain = 20.0 if at_crash else 10.0
+
+    if ctx.player.food >= 100 and ctx.player.water >= 100:
+        ui.info("You're already at full food and water. No need to rest.")
+        return
+
+    ctx.player.food = min(100.0, ctx.player.food + food_gain)
+    ctx.player.water = min(100.0, ctx.player.water + water_gain)
+    ctx.player.food_warning_given = False
+    ctx.player.water_warning_given = False
+    ctx.player.hours_elapsed += 1
+    if ctx.ship_ai:
+        ctx.ship_ai.reset_warnings("food")
+        ctx.ship_ai.reset_warnings("water")
+
+    if at_crash:
+        ui.success(f"Rested for 1 hour in the ship. Food: {ctx.player.food:.0f}%, Water: {ctx.player.water:.0f}%")
+    else:
+        ui.success(f"Rested for 1 hour on the ice. Food: {ctx.player.food:.0f}%, Water: {ctx.player.water:.0f}%")
+        ui.dim("(Rest at the Crash Site for better recovery)")
+
+
 def cmd_save(ctx: GameContext, args: str):
     slot = args.strip() if args.strip() else "manual"
     save_game(
@@ -1150,6 +1231,7 @@ COMMANDS = {
     "status": cmd_status,
     "ship": cmd_ship,
     "repair": cmd_ship,
+    "rest": cmd_rest,
     "save": cmd_save,
     "load": cmd_load,
     "config": cmd_config,
