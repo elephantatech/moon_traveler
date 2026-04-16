@@ -86,10 +86,16 @@ class ShipAI:
     # --- Post-travel summary ---
 
     def post_travel_summary(self, player, drone, hours: int, distance: float) -> str:
+        food_cost = hours * 2.0
+        water_cost = hours * 3.0
+        suit_cost = hours * 0.5
+        batt_cost = distance * 0.5
         return self.speak(
             f"Arrived at {player.location_name}. "
-            f"Food: {player.food:.0f}% | Water: {player.water:.0f}% | "
-            f"Suit: {player.suit_integrity:.0f}% | Battery: {drone.battery:.0f}%"
+            f"Food: {player.food:.0f}% (-{food_cost:.0f}) | "
+            f"Water: {player.water:.0f}% (-{water_cost:.0f}) | "
+            f"Suit: {player.suit_integrity:.0f}% (-{suit_cost:.0f}) | "
+            f"Battery: {drone.battery:.0f}% (-{batt_cost:.0f})"
         )
 
     # --- Objective reminder (periodic) ---
