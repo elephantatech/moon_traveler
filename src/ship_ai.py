@@ -76,6 +76,11 @@ class ShipAI:
         for threshold in THRESHOLDS:
             if value <= threshold and threshold not in self.warnings_given[key]:
                 self.warnings_given[key].add(threshold)
+                try:
+                    from src import sound
+                    sound.play("aria_warning")
+                except Exception:
+                    pass
                 return self.speak(warnings[threshold])
         return None
 

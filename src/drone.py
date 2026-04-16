@@ -17,6 +17,8 @@ UPGRADE_EFFECTS = {
     "cargo_rack": {"cargo_capacity": 5},
     "thruster_pack": {"speed_boost": 5},
     "battery_cell": {"battery_max": 25},
+    "voice_module": {"voice_enabled": True},
+    "autopilot_chip": {"autopilot_enabled": True},
 }
 
 UPGRADE_DESCRIPTIONS = {
@@ -25,6 +27,8 @@ UPGRADE_DESCRIPTIONS = {
     "cargo_rack": "Adds 5 cargo slots",
     "thruster_pack": "Adds +5 km/h travel speed",
     "battery_cell": "Adds 25% battery capacity",
+    "voice_module": "Enables voice announcements for game events",
+    "autopilot_chip": "Auto-scans and observes when arriving at new locations",
 }
 
 TRANSLATION_LEVELS = ["low", "medium", "high"]
@@ -38,6 +42,8 @@ class Drone:
     speed_boost: int = 0
     battery: float = 100.0
     battery_max: float = 100.0
+    voice_enabled: bool = False
+    autopilot_enabled: bool = False
     upgrades_installed: list[str] = field(default_factory=list)
 
     def scan_cost(self) -> float:
@@ -254,6 +260,14 @@ class Drone:
             self.battery = min(self.battery + effects["battery_max"], self.battery_max)
             result_parts.append(f"Battery max: {self.battery_max:.0f}%")
 
+        if "voice_enabled" in effects:
+            self.voice_enabled = True
+            result_parts.append("Voice announcements enabled")
+
+        if "autopilot_enabled" in effects:
+            self.autopilot_enabled = True
+            result_parts.append("Auto-scan and auto-look on arrival enabled")
+
         self.upgrades_installed.append(upgrade)
         return ", ".join(result_parts)
 
@@ -265,6 +279,8 @@ class Drone:
             "speed_boost": self.speed_boost,
             "battery": self.battery,
             "battery_max": self.battery_max,
+            "voice_enabled": self.voice_enabled,
+            "autopilot_enabled": self.autopilot_enabled,
             "upgrades_installed": list(self.upgrades_installed),
         }
         if self._last_reported is not None:

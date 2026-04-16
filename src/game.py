@@ -46,6 +46,11 @@ def check_lose(ctx: GameContext) -> bool:
 
 def show_win_sequence(ctx: GameContext):
     """Show the victory sequence."""
+    try:
+        from src import sound
+        sound.play("victory")
+    except Exception:
+        pass
     ui.console.print()
     ui.console.print("[bold green]" + "=" * 60 + "[/bold green]")
     win_lines = [
@@ -96,6 +101,11 @@ def show_win_sequence(ctx: GameContext):
 
 def show_lose_sequence(ctx: GameContext):
     """Show the game over sequence."""
+    try:
+        from src import sound
+        sound.play("game_over")
+    except Exception:
+        pass
     ui.console.print()
     ui.console.print("[bold red]" + "=" * 60 + "[/bold red]")
     lose_lines = [
@@ -242,6 +252,9 @@ def game_loop(ctx: GameContext):
             ctx.loaded_state = None
             # Rebuild autocomplete session with new state
             session = input_handler.create_prompt_session(ctx)
+            # Sync sound voice state with drone
+            from src import sound
+            sound.set_voice(ctx.drone.voice_enabled)
             cmd_look(ctx, "")
 
         if ctx.should_quit:
@@ -281,18 +294,14 @@ def main():
 
         state = load_game(slot)
         if state:
-            # GPU/CPU mode selection for loaded games too
-            gpu_info = llm.detect_gpu()
-            load_gpu_mode = "cpu"
-            if gpu_info["available"]:
-                gpu_choice = ui.prompt_choice(
-                    f"GPU detected ({gpu_info['backend']}). Choose compute mode:",
-                    ["CPU + GPU (Recommended)", "CPU Only"],
-                )
-                if "GPU" in gpu_choice and "Only" not in gpu_choice:
-                    load_gpu_mode = "gpu"
+            # GPU/CPU mode — auto-detect from config
+            from src.config import get_gpu_mode
+            gpu_setting = get_gpu_mode()
+            if gpu_setting == "auto":
+                gpu_info = llm.detect_gpu()
+                load_gpu_mode = "gpu" if gpu_info["available"] else "cpu"
             else:
-                ui.dim("No GPU acceleration detected. Using CPU only.")
+                load_gpu_mode = gpu_setting
 
             llm.maybe_download_model()
             llm.load_model(gpu_mode=load_gpu_mode)
@@ -319,6 +328,12 @@ def main():
                 tutorial=tutorial,
                 dev_mode=DevMode(),
             )
+            # Sync sound voice state with loaded drone
+            try:
+                from src import sound
+                sound.set_voice(ctx.drone.voice_enabled)
+            except Exception:
+                pass
             game_loop(ctx)
             return
         else:
@@ -331,18 +346,15 @@ def main():
     )
     mode_key = mode.split()[0].lower()
 
-    # GPU/CPU mode selection
-    gpu_info = llm.detect_gpu()
-    gpu_mode = "cpu"
-    if gpu_info["available"]:
-        gpu_choice = ui.prompt_choice(
-            f"GPU detected ({gpu_info['backend']}). Choose compute mode:",
-            ["CPU + GPU (Recommended)", "CPU Only"],
-        )
-        if "GPU" in gpu_choice and "Only" not in gpu_choice:
-            gpu_mode = "gpu"
+    # GPU/CPU mode — auto-detect from config, no prompt
+    from src.config import get_gpu_mode
+    gpu_setting = get_gpu_mode()
+    if gpu_setting == "auto":
+        gpu_info = llm.detect_gpu()
+        gpu_mode = "gpu" if gpu_info["available"] else "cpu"
     else:
-        ui.dim("No GPU acceleration detected. Using CPU only.")
+        gpu_mode = gpu_setting
+    ui.dim(f"Compute mode: {'CPU + GPU' if gpu_mode == 'gpu' else 'CPU only'} (change with 'config gpu cpu' or 'config gpu auto')")
 
     # Download model if needed, then load LLM
     llm.maybe_download_model()

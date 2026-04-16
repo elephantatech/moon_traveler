@@ -3,6 +3,39 @@
 import random
 
 from src import input_handler, llm, ui
+
+try:
+    from src import sound as _sound_mod
+except Exception:
+    _sound_mod = None
+
+
+class _SafeSound:
+    """Proxy that never crashes the game."""
+    @staticmethod
+    def play(event):
+        if _sound_mod:
+            try:
+                _sound_mod.play(event)
+            except Exception:
+                pass
+    @staticmethod
+    def is_enabled():
+        return _sound_mod.is_enabled() if _sound_mod else False
+    @staticmethod
+    def set_voice(v):
+        if _sound_mod:
+            _sound_mod.set_voice(v)
+    @staticmethod
+    def enable():
+        if _sound_mod:
+            _sound_mod.enable()
+    @staticmethod
+    def disable():
+        if _sound_mod:
+            _sound_mod.disable()
+
+sound = _SafeSound()
 from src.creatures import Creature
 from src.drone import UPGRADE_EFFECTS, Drone
 from src.player import Player
@@ -33,6 +66,7 @@ HELP_TEXT = """
   [cyan]rest[/cyan]                 — Rest for 1 hour to recover food/water
   [cyan]save[/cyan] [slot]          — Save game (default slot: 'manual')
   [cyan]load[/cyan] [slot]          — Load a saved game
+  [cyan]sound[/cyan]                — Toggle sound effects on/off
   [cyan]clear[/cyan] / [cyan]cls[/cyan]          — Clear the screen
   [cyan]config[/cyan]               — Show/change game settings (e.g. save path)
   [cyan]dev[/cyan]                  — Toggle developer diagnostics panel
@@ -226,6 +260,7 @@ def cmd_scan(ctx: GameContext, args: str):
             discovered=len(discovered), battery_after=round(drone.battery, 1))
 
     if discovered:
+        sound.play("scan")
         ui.success(f"Discovered {len(discovered)} new location(s):")
         for name, loc_type, dist in discovered:
             type_str = loc_type.replace("_", " ")
@@ -346,8 +381,14 @@ def cmd_travel(ctx: GameContext, args: str):
 
     ui.console.print()
 
-    # Prompt to look around on arrival
-    ui.console.print("[dim]Type [cyan]look[/cyan] to observe your surroundings, or enter any command.[/dim]")
+    # Autopilot: auto-look and auto-scan on arrival if drone has the upgrade
+    if ctx.drone.autopilot_enabled and ctx.drone.battery > 0:
+        cmd_look(ctx, "")
+        if ctx.drone.can_scan():
+            ui.dim("Drone autopilot: scanning area...")
+            cmd_scan(ctx, "")
+    else:
+        ui.console.print("[dim]Type [cyan]look[/cyan] to observe your surroundings, or enter any command.[/dim]")
 
     # Move any following creatures to the destination
     for c in ctx.creatures:
@@ -455,12 +496,12 @@ def cmd_talk(ctx: GameContext, args: str):
         ui.console.print(initial_tip)
         ui.console.print()
 
-    chat_session = input_handler.create_chat_session(ctx, creature)
     exchange_count = 0
 
     while True:
-        player_input = input_handler.get_chat_input(chat_session)
-        if player_input is None:
+        try:
+            player_input = ui.console.input("[bold]You>[/bold] ").strip()
+        except (EOFError, KeyboardInterrupt):
             break
 
         if not player_input:
@@ -738,6 +779,7 @@ def cmd_trade(ctx: GameContext, args: str):
 
     get_display = get_item.replace("_", " ").title()
     give_display = give_item.replace("_", " ").title()
+    sound.play("trade")
     ui.success(f"Traded! You gave {give_display} and received {get_display}.")
 
     if ctx.dev_mode:
@@ -829,6 +871,7 @@ def cmd_escort(ctx: GameContext, args: str):
 
     creature.following = True
     creature.home_location = creature.location_name
+    sound.play("escort")
     ui.success(f"{creature.name} agrees to travel with you!")
     if ctx.ship_ai:
         ui.console.print(ctx.ship_ai.speak(
@@ -955,6 +998,9 @@ def cmd_upgrade(ctx: GameContext, args: str):
     ctx.player.remove_item(upgrade_name)
     result = ctx.drone.apply_upgrade(upgrade_name)
     display = upgrade_name.replace("_", " ").title()
+    if upgrade_name == "voice_module":
+        sound.set_voice(True)
+    sound.play("upgrade")
     ui.success(f"Installed {display}!")
     if result:
         ui.info(f"Effect: {result}")
@@ -1083,6 +1129,7 @@ def _bay_repair(ctx: GameContext):
             ctx.player.remove_item(mat)
             ctx.repair_checklist[key] = True
             display = mat.replace("_", " ").title()
+            sound.play("repair")
             ui.success(f"Installed {display} into ship repairs!")
             if ctx.dev_mode:
                 done = sum(1 for v in ctx.repair_checklist.values() if v)
@@ -1454,12 +1501,55 @@ def cmd_config(ctx: GameContext, args: str):
             ui.error(f"Cannot use path: {e}")
         return
 
+    if sub.startswith("gpu "):
+        from src.config import set_gpu_mode
+        value = args.split(maxsplit=1)[1].strip().lower()
+        if value in ("auto", "gpu", "cpu"):
+            set_gpu_mode(value)
+            ui.success(f"GPU mode set to: {value}")
+            ui.dim("Takes effect on next game launch.")
+        else:
+            ui.error("Invalid GPU mode. Use: config gpu auto | gpu | cpu")
+        return
+
     # Show current config
+    from src.config import get_gpu_mode
     ui.console.print("\n[bold]Game Configuration[/bold]")
     ui.console.print(f"  [cyan]Save directory:[/cyan] {get_save_dir()}")
+    ui.console.print(f"  [cyan]GPU mode:[/cyan]       {get_gpu_mode()}")
+    ui.console.print(f"  [cyan]Sound effects:[/cyan] {'ON' if sound.is_enabled() else 'OFF'}")
     ui.console.print(f"  [cyan]Config file:[/cyan]   {CONFIG_PATH}")
     ui.console.print()
-    ui.dim("Change save location: config savedir /path/to/saves")
+    ui.dim("config savedir /path/to/saves   — change save location")
+    ui.dim("config gpu auto|gpu|cpu         — change compute mode")
+    ui.dim("sound                           — toggle sound effects")
+
+
+def cmd_tutorial(ctx: GameContext, args: str):
+    """Replay the ARIA boot sequence and tutorial."""
+    from src.config import reset_tutorial
+    from src.tutorial import TutorialManager, TutorialStep
+    reset_tutorial()
+    ctx.tutorial = TutorialManager()
+    ctx.tutorial.run_boot_sequence(
+        ctx.ship_ai, ctx.player, ctx.drone,
+        ctx.locations, ctx.repair_checklist, ctx.world_mode,
+        replay=True,
+    )
+    if ctx.tutorial.step < TutorialStep.COMPLETED:
+        ui.dim("Tutorial restarted. Follow the prompts.")
+    cmd_look(ctx, "")
+
+
+def cmd_sound(ctx: GameContext, args: str):
+    """Toggle system sound effects on/off."""
+    if sound.is_enabled():
+        sound.disable()
+        ui.info("Sound effects: OFF")
+    else:
+        sound.enable()
+        sound.play("success")
+        ui.info("Sound effects: ON")
 
 
 def cmd_quit(ctx: GameContext, args: str):
@@ -1504,6 +1594,8 @@ COMMANDS = {
     "config": cmd_config,
     "dev": cmd_dev,
     "devmode": cmd_dev,
+    "tutorial": cmd_tutorial,
+    "sound": cmd_sound,
     "clear": cmd_clear,
     "cls": cmd_clear,
     "quit": cmd_quit,

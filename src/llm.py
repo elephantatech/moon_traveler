@@ -269,6 +269,18 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
             n_gpu_layers=n_gpu_layers,
             verbose=False,
         )
+        # Smoke test: run a tiny inference to catch GPU segfaults early
+        # (before the player starts a game they could lose)
+        if gpu_mode == "gpu":
+            ui.dim("Testing GPU inference...")
+            try:
+                _llm_model.create_chat_completion(
+                    messages=[{"role": "user", "content": "hi"}],
+                    max_tokens=1,
+                )
+            except Exception as e:
+                ui.warn(f"GPU inference test failed: {e}")
+                raise  # Trigger the CPU fallback below
         _llm_available = True
         ui.success(f"LLM model loaded successfully! ({mode_label})")
     except Exception as e:

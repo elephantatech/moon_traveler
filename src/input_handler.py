@@ -36,6 +36,8 @@ BASE_COMMANDS = [
     "load",
     "help",
     "config",
+    "tutorial",
+    "sound",
     "clear",
     "cls",
     "quit",
@@ -145,7 +147,7 @@ class GameCompleter(Completer):
 
 
 # Slash commands available in the conversation (chat) prompt.
-# These are the /‑prefixed game commands plus chat-specific shortcuts.
+# Reserved for future use when prompt_toolkit chat sessions are re-enabled.
 CHAT_SLASH_COMMANDS = [
     "/end",
     "/bye",
@@ -176,6 +178,7 @@ CHAT_SLASH_COMMANDS = [
     "/save",
     "/load",
     "/upgrade",
+    "/sound",
     "/clear",
     "/cls",
 ]
@@ -198,6 +201,12 @@ class ChatCompleter(Completer):
         self.creature = creature
 
     def get_completions(self, document, complete_event):
+        try:
+            yield from self._completions(document)
+        except Exception:
+            return  # Never crash the game due to autocomplete failure
+
+    def _completions(self, document):
         text = document.text_before_cursor
         if not text:
             return
@@ -308,15 +317,6 @@ def create_prompt_session(ctx) -> PromptSession:
     )
 
 
-def create_chat_session(ctx, creature) -> PromptSession:
-    """Create a prompt_toolkit session for the conversation (chat) prompt."""
-    return PromptSession(
-        completer=ChatCompleter(ctx, creature),
-        style=_PROMPT_STYLE,
-        complete_while_typing=False,
-    )
-
-
 def get_input(session: PromptSession, location_name: str) -> str | None:
     """Get user input with autocomplete. Returns stripped string or None on EOF/interrupt."""
     try:
@@ -329,10 +329,3 @@ def get_input(session: PromptSession, location_name: str) -> str | None:
         return None
 
 
-def get_chat_input(session: PromptSession) -> str | None:
-    """Get user input during a conversation, with slash-command autocomplete."""
-    try:
-        prompt_text = [("class:chat-label", "You> ")]
-        return session.prompt(prompt_text).strip()
-    except (EOFError, KeyboardInterrupt):
-        return None

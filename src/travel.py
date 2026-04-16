@@ -287,6 +287,16 @@ def execute_travel(
         for hazard in HAZARD_EVENTS:
             effective_prob = hazard["probability"] + probability_bonus
             if rng.random() < effective_prob:
+                try:
+                    from src import sound
+                    if "storm" in hazard["message"].lower():
+                        sound.play("hazard_storm")
+                    elif "geyser" in hazard["message"].lower():
+                        sound.play("hazard_geyser")
+                    else:
+                        sound.play("hazard_ice")
+                except Exception:
+                    pass
                 messages.append(f"[bold red]{hazard['message']}[/bold red]")
                 for key, delta in hazard["effect"].items():
                     if key == "suit_integrity":

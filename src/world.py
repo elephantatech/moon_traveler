@@ -115,11 +115,11 @@ LOCATION_ITEMS = {
 
 # Drone upgrade components found at specific location types
 DRONE_UPGRADES = {
-    "ruins": ["range_module", "translator_chip"],
-    "settlement": ["cargo_rack", "translator_chip"],
-    "cave": ["battery_cell"],
+    "ruins": ["range_module", "translator_chip", "voice_module"],
+    "settlement": ["cargo_rack", "translator_chip", "autopilot_chip"],
+    "cave": ["battery_cell", "voice_module"],
     "ridge": ["thruster_pack"],
-    "canyon": ["range_module"],
+    "canyon": ["range_module", "autopilot_chip"],
 }
 
 MODE_CONFIG = {

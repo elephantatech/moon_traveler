@@ -102,6 +102,7 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 | `quit` | `exit` | Exit the game (prompts for confirmation) |
 | `dev` | `devmode` | Toggle developer logging to `~/.moonwalker/dev/dev_diagnostics.jsonl` |
 | `config` | — | View/change game settings (e.g. save path) |
+| `sound` | — | Toggle sound effects on/off |
 
 ### Scanning and Navigation
 
@@ -208,8 +209,10 @@ Find these components in the world, then use `upgrade <name>` to install them:
 | Cargo Rack | +5 cargo slots |
 | Thruster Pack | +5 km/h travel speed |
 | Battery Cell | +25% max battery capacity |
+| Voice Module | Enables spoken voice announcements for game events |
+| Autopilot Chip | Auto-scans and auto-looks when arriving at new locations |
 
-Better translation quality means creatures speak more clearly and with fewer garbled words.
+Better translation quality means creatures speak more clearly and with fewer garbled words. The Voice Module replaces beep sounds with spoken announcements. The Autopilot Chip saves you from manually typing `look` and `scan` at every new location.
 
 <p align="center">
   <img src="assets/screenshot-drone-status.svg" alt="Drone Status" width="700"/>
