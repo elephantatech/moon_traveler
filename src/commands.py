@@ -1527,9 +1527,7 @@ def cmd_config(ctx: GameContext, args: str):
 
 def cmd_tutorial(ctx: GameContext, args: str):
     """Replay the ARIA boot sequence and tutorial."""
-    from src.config import reset_tutorial
     from src.tutorial import TutorialManager, TutorialStep
-    reset_tutorial()
     ctx.tutorial = TutorialManager()
     ctx.tutorial.run_boot_sequence(
         ctx.ship_ai, ctx.player, ctx.drone,
