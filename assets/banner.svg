@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a2e"/>
+      <stop offset="60%" stop-color="#1a1a4e"/>
+      <stop offset="100%" stop-color="#2a3a6e"/>
+    </linearGradient>
+    <linearGradient id="ice" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a8ab5"/>
+      <stop offset="100%" stop-color="#2a4a6a"/>
+    </linearGradient>
+    <radialGradient id="saturn" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#c4a35a"/>
+      <stop offset="100%" stop-color="#8a6a2a"/>
+    </radialGradient>
+  </defs>
+  <!-- Sky -->
+  <rect width="1280" height="640" fill="url(#sky)"/>
+  <!-- Stars -->
+  <circle cx="100" cy="80" r="1.5" fill="#fff" opacity="0.8"/>
+  <circle cx="250" cy="120" r="1" fill="#fff" opacity="0.6"/>
+  <circle cx="400" cy="60" r="2" fill="#fff" opacity="0.9"/>
+  <circle cx="550" cy="150" r="1" fill="#fff" opacity="0.5"/>
+  <circle cx="700" cy="90" r="1.5" fill="#fff" opacity="0.7"/>
+  <circle cx="850" cy="40" r="1" fill="#fff" opacity="0.8"/>
+  <circle cx="1000" cy="130" r="2" fill="#fff" opacity="0.6"/>
+  <circle cx="1150" cy="70" r="1" fill="#fff" opacity="0.9"/>
+  <circle cx="180" cy="200" r="1" fill="#fff" opacity="0.4"/>
+  <circle cx="960" cy="180" r="1.5" fill="#fff" opacity="0.5"/>
+  <!-- Saturn -->
+  <ellipse cx="950" cy="180" rx="60" ry="55" fill="url(#saturn)" opacity="0.7"/>
+  <ellipse cx="950" cy="180" rx="100" ry="15" fill="none" stroke="#c4a35a" stroke-width="3" opacity="0.5" transform="rotate(-15 950 180)"/>
+  <!-- Ice terrain -->
+  <path d="M0 450 Q200 420 400 440 Q600 460 800 430 Q1000 410 1280 450 L1280 640 L0 640 Z" fill="url(#ice)" opacity="0.8"/>
+  <!-- Ice ridges -->
+  <path d="M200 450 L230 400 L260 445" fill="#5a9ac5" opacity="0.6"/>
+  <path d="M800 435 L840 380 L870 390 L900 430" fill="#5a9ac5" opacity="0.5"/>
+  <!-- Geyser -->
+  <path d="M600 440 Q605 380 610 340 Q615 380 620 440" fill="#8abfdf" opacity="0.3"/>
+  <!-- Crashed ship -->
+  <rect x="380" y="455" width="80" height="30" rx="5" fill="#555" stroke="#777" stroke-width="2" transform="rotate(-8 420 470)"/>
+  <rect x="395" y="448" width="50" height="15" rx="3" fill="#666" transform="rotate(-8 420 455)"/>
+  <!-- Drone -->
+  <rect x="500" y="410" width="12" height="6" rx="2" fill="#d55fde"/>
+  <line x1="506" y1="416" x2="506" y2="425" stroke="#d55fde" stroke-width="1" stroke-dasharray="2,3" opacity="0.5"/>
+  <!-- Title -->
+  <text x="640" y="300" text-anchor="middle" font-family="monospace, Courier" font-size="64" font-weight="bold" fill="#4af0f0" letter-spacing="4">MOON TRAVELER</text>
+  <text x="640" y="340" text-anchor="middle" font-family="monospace, Courier" font-size="20" fill="#8abfdf" letter-spacing="8">A survival game on Saturn's moon Enceladus</text>
+  <!-- CLI badge -->
+  <rect x="575" y="355" width="130" height="28" rx="4" fill="none" stroke="#4af0f0" stroke-width="1.5" opacity="0.6"/>
+  <text x="640" y="375" text-anchor="middle" font-family="monospace" font-size="14" fill="#4af0f0" opacity="0.8">CLI ADVENTURE</text>
+</svg>

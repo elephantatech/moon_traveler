@@ -37,10 +37,30 @@ DISPOSITION_INSTRUCTIONS = {
 }
 
 TRUST_INSTRUCTIONS = {
-    "low": "You do not trust the human yet. Be guarded. Do not reveal important information or agree to help with anything significant.",
-    "medium": "You are warming up to the human. You can share some useful information but won't commit to major help yet.",
-    "high": "You trust the human. You are willing to share important knowledge, give materials, or agree to help with ship repairs if asked.",
+    "low": "You do not trust the human yet. Be guarded. Do not reveal important information or agree to help with anything significant. NEVER use action tags.",
+    "medium": "You are warming up to the human. You can share some useful information but won't commit to major help yet. You may offer water or food if asked nicely. Use action tags when giving something.",
+    "high": "You trust the human. You are willing to share important knowledge, give materials, or agree to help with ship repairs if asked. Use action tags when giving something.",
 }
+
+# Instructions appended to the system prompt telling the LLM about action tags.
+# These let the game engine detect when a creature gives the player something.
+CREATURE_ACTION_INSTRUCTIONS = """
+
+Actions you can perform (append the tag at the END of your response when you decide to give something):
+- [GIVE_WATER] — Share water with the human (refills their water supply). Only if you know a water source or your species is aquatic.
+- [GIVE_FOOD] — Share food with the human (refills their food supply). Only if you know a food source or have food to offer.
+- [GIVE_MATERIAL:item_name] — Give a specific repair material (e.g. [GIVE_MATERIAL:ice_crystal]). Only from materials you can give: {available_materials}
+- [REPAIR_SUIT] — Help repair the human's suit (restores suit integrity). Only if you are a Healer or Builder archetype.
+- [HEAL] — Heal the human (restores some food and water). Only if you are a Healer archetype.
+
+Rules for actions:
+- Only use an action tag if you are ACTUALLY giving something in your dialogue. Do not use tags casually.
+- Place the tag at the very end of your response, after your spoken dialogue.
+- You can use at most one action tag per response.
+- At low trust, NEVER give anything or use action tags.
+- At medium trust, you may share water or food if the human asks and you are willing.
+- At high trust, you may freely share materials, food, water, repair help, or healing.
+"""
 
 TRANSLATION_QUALITY = {
     "low": "\n- IMPORTANT: The translation drone is low quality. Occasionally replace 1-2 words per sentence with garbled nonsense like 'zrrk', 'vvmm', 'kktch', or 'bzzl'. The meaning should still be mostly clear.",
@@ -193,6 +213,9 @@ DRONE_DISPOSITION_TIPS = {
     "hostile": [
         "Hostile disposition. Tread very carefully — gifts may help more than words right now.",
         "This creature is suspicious of us. Short, respectful interactions are safest.",
+    ],
+    "neutral": [
+        "Neutral disposition. They're not hostile, but we'll need to earn their interest.",
     ],
     "friendly": [
         "Friendly disposition — this should be a productive conversation.",

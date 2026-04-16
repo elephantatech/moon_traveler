@@ -1,6 +1,9 @@
 """Developer diagnostics overlay — session-only, not saved."""
 
+import math
+
 from rich.table import Table
+from rich.tree import Tree
 
 from src import ui
 
@@ -77,6 +80,135 @@ class DevMode:
         table.add_row("LLM", "loaded" if llm._llm_available else "unavailable")
 
         ui.console.print(table)
+
+        # --- Location details table ---
+        loc_table = Table(
+            title="DEV — Locations",
+            border_style="bright_black",
+            padding=(0, 1),
+        )
+        loc_table.add_column("#", style="dim", justify="right")
+        loc_table.add_column("Name", style="cyan")
+        loc_table.add_column("Type", style="dim")
+        loc_table.add_column("Coords", style="dim")
+        loc_table.add_column("Dist", justify="right")
+        loc_table.add_column("Status")
+        loc_table.add_column("Items", style="yellow")
+        loc_table.add_column("Creature", style="green")
+
+        cur = ctx.current_location()
+        sorted_locs = sorted(ctx.locations, key=lambda l: cur.distance_to(l.x, l.y))
+        for i, loc in enumerate(sorted_locs, 1):
+            d = cur.distance_to(loc.x, loc.y)
+            dist_str = f"{d:.1f} km" if d > 0.01 else "HERE"
+
+            if loc.visited:
+                status = "[green]visited[/green]"
+            elif loc.discovered:
+                status = "[yellow]known[/yellow]"
+            else:
+                status = "[red]hidden[/red]"
+
+            items_str = ", ".join(loc.items) if loc.items else "[dim]-[/dim]"
+            creature = ctx.creature_at_location(loc.name)
+            creature_str = f"{creature.name} ({creature.disposition[0].upper()})" if creature else "[dim]-[/dim]"
+
+            # Add food/water source markers
+            markers = []
+            if loc.food_source:
+                markers.append("F")
+            if loc.water_source:
+                markers.append("W")
+            type_str = loc.loc_type.replace("_", " ")
+            if markers:
+                type_str += f" [green]{''.join(markers)}[/green]"
+
+            loc_table.add_row(str(i), loc.name, type_str, f"({loc.x:.0f},{loc.y:.0f})", dist_str, status, items_str, creature_str)
+
+        ui.console.print(loc_table)
+
+        # --- Scan reachability tree ---
+        self._render_scan_tree(ctx)
+
+        # --- Chat history ---
+        self._render_chat_history(ctx)
+
+    def _render_scan_tree(self, ctx):
+        """Render a tree showing scan reachability from the current location."""
+        cur = ctx.current_location()
+        scanner_range = ctx.drone.scanner_range
+
+        tree = Tree(f"[bold cyan]{cur.name}[/bold cyan] [dim](scan range: {scanner_range} km)[/dim]")
+
+        # Find locations scannable from current position
+        scannable = []
+        for loc in ctx.locations:
+            if loc.name == cur.name:
+                continue
+            d = cur.distance_to(loc.x, loc.y)
+            if d <= scanner_range:
+                scannable.append((loc, d))
+
+        scannable.sort(key=lambda x: x[1])
+
+        for loc, d in scannable:
+            known = loc.name in ctx.player.known_locations
+            if known:
+                label = f"[green]{loc.name}[/green] [dim]({d:.1f} km · known)[/dim]"
+            else:
+                label = f"[yellow]{loc.name}[/yellow] [dim]({d:.1f} km · undiscovered)[/dim]"
+
+            branch = tree.add(label)
+
+            # Show what's scannable from THAT location (depth 2)
+            for loc2 in ctx.locations:
+                if loc2.name in (cur.name, loc.name):
+                    continue
+                d2 = math.sqrt((loc.x - loc2.x) ** 2 + (loc.y - loc2.y) ** 2)
+                if d2 <= scanner_range:
+                    k2 = loc2.name in ctx.player.known_locations
+                    style = "green" if k2 else "red"
+                    branch.add(f"[{style}]{loc2.name}[/{style}] [dim]({d2:.1f} km)[/dim]")
+
+        if not scannable:
+            tree.add("[dim]No locations in scan range[/dim]")
+
+        ui.console.print(tree)
+
+    def _render_chat_history(self, ctx):
+        """Show conversation history for all creatures that have been spoken to."""
+        creatures_with_history = [c for c in ctx.creatures if c.conversation_history]
+        if not creatures_with_history:
+            return
+
+        from rich.panel import Panel
+
+        ui.console.print()
+        for creature in creatures_with_history:
+            lines = []
+            for msg in creature.conversation_history:
+                role = msg["role"]
+                content = msg["content"]
+                if len(content) > 80:
+                    content = content[:77] + "..."
+                if role == "user":
+                    lines.append(f"[bold]You>[/bold] {content}")
+                else:
+                    lines.append(f"[{creature.color}]{creature.name}>[/{creature.color}] {content}")
+
+            trust_color = "green" if creature.trust >= 70 else "yellow" if creature.trust >= 35 else "red"
+            title = (
+                f"[{creature.color}]{creature.name}[/{creature.color}] "
+                f"[dim]({creature.species} · {creature.archetype})[/dim] "
+                f"[{trust_color}]Trust: {creature.trust}/100[/{trust_color}] "
+                f"[dim]({len(creature.conversation_history)} msgs)[/dim]"
+            )
+            ui.console.print(Panel(
+                "\n".join(lines),
+                title=title,
+                border_style="bright_black",
+                padding=(0, 1),
+            ))
 
 
 def _system_metrics() -> tuple[str, str]:

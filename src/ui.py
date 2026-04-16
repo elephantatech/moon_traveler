@@ -21,6 +21,30 @@ TITLE_ART = r"""
 [dim]            A survival game on Saturn's moon Enceladus[/dim]
 """
 
+LAUNCH_ART = r"""[bold green]
+                        *    .  *       .             *
+                   *  .    *    .   *  .    *    .
+
+                              /\
+                             /  \
+                            / [] \
+                           /______\
+                           |      |
+                           |  ()  |
+                           |______|
+                          /| /--\ |\
+                         / |/    \| \
+                        /  ||    ||  \
+                       /___|_\  /_|___\
+                        [yellow]//// \\\\ ////[/yellow]
+                       [yellow]///  \\\\///[/yellow]
+                      [red]{{{{[/red][yellow]  [/yellow][red]}}}}[/red][yellow]  [/yellow][red]{{{{[/red]
+                     [red]{{{{[/red][yellow]    [/yellow][red]}}}}[/red][yellow]   [/yellow][red]{{{{[/red]
+                    [red]{{{{[/red][yellow]      [/yellow][red]}}}}[/red][yellow]    [/yellow][red]{{{{[/red]
+
+[dim]~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[/dim]
+[/bold green]"""
+
 CRASH_ART = r"""[yellow]
         *    .  *       .             *
    *  .    *    .   *  .    *    .
@@ -71,13 +95,14 @@ def show_crash():
 
 def narrate(text: str, style: str = "italic", delay: float = 0.02):
     """Print text character-by-character for narrative effect."""
-    styled = Text(style=style)
-    for char in text:
-        styled.append(char)
-        console.print(styled, end="\r")
+    import sys as _sys
+
+    for i in range(len(text)):
+        _sys.stdout.write(f"\r  {text[:i+1]}")
+        _sys.stdout.flush()
         time.sleep(delay)
-    console.print(styled)
-    console.print()
+    _sys.stdout.write("\n")
+    _sys.stdout.flush()
 
 
 def narrate_lines(lines: list[str], style: str = "italic", pause: float = 0.5):
@@ -210,7 +235,7 @@ def show_drone_status(drone: dict, title: str = "ARIA Scout Drone"):
     table.add_column("Value")
     table.add_row("Scanner Range", f"{drone['scanner_range']} km")
     table.add_row("Translation", drone["translation_quality"].title())
-    table.add_row("Cargo Capacity", f"{drone['cargo_used']}/{drone['cargo_capacity']}")
+    table.add_row("Cargo Capacity", f"{drone.get('cargo_used', 0)}/{drone['cargo_capacity']}")
     table.add_row("Speed Boost", f"+{drone['speed_boost']} km/h")
     battery_color = "green" if drone["battery"] > 50 else "yellow" if drone["battery"] > 20 else "red"
     table.add_row("Battery", f"[{battery_color}]{drone['battery']:.0f}%[/{battery_color}]")
@@ -230,7 +255,8 @@ def show_ship_repair(checklist: dict):
 
     for req, done in checklist.items():
         status = "[green]DONE[/green]" if done else "[red]NEEDED[/red]"
-        table.add_row(req.replace("_", " ").title(), status)
+        display = req.removeprefix("material_").replace("_", " ").title()
+        table.add_row(display, status)
 
     done_count = sum(1 for v in checklist.values() if v)
     total = len(checklist)
@@ -296,6 +322,9 @@ def prompt_choice(prompt_text: str, choices: list[str]) -> str:
             idx = int(raw) - 1
             if 0 <= idx < len(choices):
                 return choices[idx]
+        except KeyboardInterrupt:
+            console.print()
+            raise SystemExit(0)
         except (ValueError, EOFError):
             pass
         error(f"Please enter a number 1-{len(choices)}.")
@@ -303,3 +332,113 @@ def prompt_choice(prompt_text: str, choices: list[str]) -> str:
 
 def get_creature_color(index: int) -> str:
     return CREATURE_COLORS[index % len(CREATURE_COLORS)]
+
+
+def _bar(value: float, width: int = 10) -> str:
+    """Build a colored text bar like ████░░░░░░ for a 0-100 percentage."""
+    filled = round(value / 100 * width)
+    empty = width - filled
+    if value > 50:
+        color = "green"
+    elif value > 20:
+        color = "yellow"
+    else:
+        color = "red"
+    return f"[{color}]{'█' * filled}[/{color}][dim]{'░' * empty}[/dim]"
+
+
+def render_status_bar(
+    player,
+    drone,
+    repair_checklist: dict,
+    location_type: str = "",
+    creature=None,
+    followers=None,
+):
+    """Render a compact status bar above the prompt."""
+    food_bar = _bar(player.food, 5)
+    water_bar = _bar(player.water, 5)
+    suit_bar = _bar(player.suit_integrity, 5)
+    batt_bar = _bar(drone.battery, 5)
+
+    # Repair progress
+    done = sum(1 for v in repair_checklist.values() if v)
+    total = len(repair_checklist)
+    repair_color = "green" if done == total else "yellow" if done > 0 else "dim"
+
+    # Location icon
+    env_icon = {
+        "crash_site": "🛸",
+        "plains": "🌊",
+        "ridge": "⛰️",
+        "cave": "🕳️",
+        "geyser_field": "♨️",
+        "ice_lake": "❄️",
+        "ruins": "🏛️",
+        "forest": "🌿",
+        "canyon": "🏜️",
+        "settlement": "🏘️",
+    }.get(location_type, "·")
+
+    # Time display
+    hours = player.hours_elapsed
+    if hours < 24:
+        time_str = f"{hours}h"
+    else:
+        days = hours // 24
+        rem = hours % 24
+        time_str = f"{days}d{rem}h"
+
+    if location_type == "crash_site":
+        # Full vitals at Crash Site
+        line = (
+            f" {env_icon} "
+            f"[dim]Food[/dim] {food_bar} [dim]{player.food:.0f}%[/dim]  "
+            f"[dim]Water[/dim] {water_bar} [dim]{player.water:.0f}%[/dim]  "
+            f"[dim]Suit[/dim] {suit_bar} [dim]{player.suit_integrity:.0f}%[/dim]  "
+            f"[dim]Batt[/dim] {batt_bar} [dim]{drone.battery:.0f}%[/dim]  "
+            f"[{repair_color}]Ship {done}/{total}[/{repair_color}]  "
+            f"[dim]⏱ {time_str}[/dim]"
+        )
+        console.print(line)
+
+        # Ship bay summary
+        stored = sum(player.ship_storage.values()) if player.ship_storage else 0
+        bays = []
+        bays.append(f"Storage:{stored}")
+        bays.append("Kitchen")
+        bays.append("Charging")
+        bays.append("Medical")
+        remaining = sum(1 for v in repair_checklist.values() if not v)
+        if remaining:
+            bays.append(f"[yellow]Repair:{remaining} remaining[/yellow]")
+        else:
+            bays.append("[green]Repair:Done[/green]")
+        console.print(f" [dim]🔧 Ship Bays:[/dim] {' │ '.join(bays)}")
+    else:
+        # Minimal bar when exploring — suit, battery, and time
+        line = (
+            f" {env_icon} "
+            f"[dim]Suit[/dim] {suit_bar} [dim]{player.suit_integrity:.0f}%[/dim]  "
+            f"[dim]Batt[/dim] {batt_bar} [dim]{drone.battery:.0f}%[/dim]  "
+            f"[dim]⏱ {time_str}[/dim]"
+        )
+        console.print(line)
+
+    # Creature at location
+    if creature and not creature.following:
+        trust = creature.trust
+        trust_bar = _bar(trust, 5)
+        disp = creature.disposition
+        disp_color = {"friendly": "green", "neutral": "yellow", "hostile": "red"}.get(disp, "dim")
+        console.print(
+            f" [dim]👾[/dim] [{creature.color}]{creature.name}[/{creature.color}] "
+            f"[dim]{creature.species} · {creature.archetype}[/dim]  "
+            f"[{disp_color}]{disp}[/{disp_color}]  "
+            f"[dim]Trust[/dim] {trust_bar} [dim]{trust}/100[/dim]"
+        )
+
+    # Followers
+    if followers:
+        names = [f"[{c.color}]{c.name}[/{c.color}]" for c in followers]
+        console.print(f" [dim]🤝 Following:[/dim] {', '.join(names)}")

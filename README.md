@@ -1,23 +1,61 @@
 # Moon Traveler CLI
 
+<p align="center">
+  <img src="assets/banner.svg" alt="Moon Traveler CLI" width="800"/>
+</p>
+
 A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-landed and must explore procedurally generated locations, befriend alien creatures through LLM-powered conversations, and gather materials to repair your ship.
+
+<p align="center">
+  <img src="assets/screenshot-location-with-creature-and-items.svg" alt="Gameplay" width="700"/>
+</p>
 
 ## Features
 
-- **Procedural world generation** with seeded RNG for replayable maps
-- **LLM-powered creature dialogue** using a local Gemma 4 E2B model (no internet required)
+- **Procedural world generation** with seeded RNG and chain-connected locations for replayable maps
+- **LLM-powered creature dialogue** using a local Gemma 4 E2B model (auto-downloads on first run, no internet needed after)
+- **Creature actions in conversation** — NPCs can give you food, water, materials, healing, and suit repair based on trust
+- **Escort system** — befriend creatures and bring them to your ship for hands-on repair help
 - **AI drone companion** that translates alien speech, gives tactical advice, and comments during travel
 - **Trust-based relationships** with 8 creature archetypes and 3 dispositions
-- **Survival mechanics** tracking food, water, and suit integrity
+- **Ship bays** — Storage, Kitchen (cook items into food/water), Charging, Medical, and Repair
+- **Survival mechanics** tracking food, water, suit integrity, and drone battery
+- **Live status bar** showing vitals, ship progress, creature info, and followers
 - **GPU acceleration** with automatic detection and user-selectable CPU/GPU mode
 - **Rich terminal UI** with styled text, progress bars, and ASCII art
-- **Save/load system** with auto-save and manual slots
+- **Save/load system** with silent auto-save and manual slots
+- **CI/CD pipeline** with GitHub Actions for cross-platform builds
 
-## Requirements
+## System Requirements
 
-- Python 3.11+
-- ~3.1 GB disk space for the LLM model
-- (Optional) CUDA/Metal/Vulkan-capable GPU for faster LLM inference
+### Minimum (fallback dialogue, no AI model)
+
+| Resource | Requirement |
+|----------|-------------|
+| **CPU** | Any modern CPU (x86_64 or ARM64) |
+| **RAM** | 256 MB |
+| **Disk** | 50 MB (game only) |
+| **OS** | Windows 10+, macOS 12+, Linux (glibc 2.31+) |
+| **Python** | 3.11+ (not needed for pre-built releases) |
+
+### Recommended (with AI-powered dialogue)
+
+| Resource | Requirement |
+|----------|-------------|
+| **CPU** | 4+ cores (inference uses 4 threads) |
+| **RAM** | 6 GB (game ~50 MB + model ~4.4 GB in memory) |
+| **Disk** | 3.5 GB (game 50 MB + model 2.9 GB) |
+| **GPU** | Optional — CUDA/Metal/Vulkan for faster inference |
+
+### With GPU Acceleration
+
+| Resource | Requirement |
+|----------|-------------|
+| **VRAM** | 4 GB+ (full model offload to GPU) |
+| **RAM** | 2 GB (game only, model in VRAM) |
+| **GPU** | NVIDIA (CUDA), Apple Silicon (Metal), or AMD/Intel (Vulkan) |
+
+> The game runs without the AI model using pre-written dialogue — no performance impact. The AI model (~2.9 GB) downloads automatically on first launch if you choose to enable it.
 
 ## Installation
 
@@ -41,9 +79,9 @@ pip install -r requirements.txt
 pip install rich prompt_toolkit psutil
 ```
 
-### 3. Download the LLM model
+### 3. LLM Model (optional)
 
-Place a GGUF model file in the `models/` directory. The game looks for:
+On first launch, the game will offer to **download the AI model automatically** (~2.9 GB from Hugging Face). You can also place a GGUF model file manually in the `models/` directory:
 ```
 models/gemma-4-E2B-it-Q4_K_M.gguf
 ```
@@ -76,15 +114,21 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 | `inventory` / `inv` | Show your inventory |
 | `talk <creature>` | Talk to a creature (LLM dialogue) |
 | `give <item> to <creature>` | Give an item to build trust |
+| `escort` | Ask a creature (trust 50+) to travel with you |
 | `drone` | Show drone status |
 | `upgrade <component>` | Install a drone upgrade |
 | `status` | Show food, water, suit, and repair progress |
-| `ship` | Show ship repair checklist |
+| `ship` | Ship bays menu (repair, storage, kitchen, charging, medical) |
 | `save` / `load` | Save or load game |
+| `clear` / `cls` | Clear the screen |
 | `help` | Show all commands |
 | `quit` | Exit game |
 
 ### During Conversations
+
+<p align="center">
+  <img src="assets/screenshot-creature-conversation.svg" alt="Creature Conversation" width="700"/>
+</p>
 
 - Type normally to speak through the drone translator
 - Type `/end` or `bye` to leave the conversation
@@ -94,15 +138,21 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 
 ### Winning
 
-Collect all required repair materials, deliver them to the Crash Site, and befriend enough creatures to help with repairs. The requirements scale with game length.
+Collect all required repair materials, bring them to the Crash Site, and install them via `ship repair`. Escort friendly creatures to the ship — Builders and Healers actively help with repairs.
+
+<p align="center">
+  <img src="assets/screenshot-ship-bays-menu.svg" alt="Ship Bays" width="700"/>
+</p>
 
 ### Survival Tips
 
 - Watch your food and water — they deplete during travel
-- Your suit degrades slowly; longer games require careful resource management
+- Cook bio_gel (food) and ice_crystal (water) at the ship's Kitchen Bay
+- Ask creatures for food/water during conversation — they'll share at medium+ trust
+- Escort Healers to the ship for free suit repair and vital restoration
 - The drone's battery drains during scanning and travel; recharge at the Crash Site
 - Build trust by having conversations (+3 per exchange) and giving gifts (+10-15)
-- The drone's coaching tips tell you how to approach each creature type
+- Use Ship Storage to stash items and free up drone cargo for exploration
 
 ## Game Modes
 

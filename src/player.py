@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 class Player:
     location_name: str = "Crash Site"
     inventory: dict[str, int] = field(default_factory=dict)
+    ship_storage: dict[str, int] = field(default_factory=dict)
     food: float = 100.0
     water: float = 100.0
     suit_integrity: float = 92.0  # starts slightly damaged from crash
@@ -53,10 +54,29 @@ class Player:
     def total_items(self) -> int:
         return sum(self.inventory.values())
 
+    def stash_item(self, item: str, qty: int = 1) -> bool:
+        """Move item from inventory to ship storage."""
+        if self.inventory.get(item, 0) >= qty:
+            self.remove_item(item, qty)
+            self.ship_storage[item] = self.ship_storage.get(item, 0) + qty
+            return True
+        return False
+
+    def retrieve_item(self, item: str, qty: int = 1) -> bool:
+        """Move item from ship storage to inventory."""
+        if self.ship_storage.get(item, 0) >= qty:
+            self.ship_storage[item] -= qty
+            if self.ship_storage[item] <= 0:
+                del self.ship_storage[item]
+            self.add_item(item, qty)
+            return True
+        return False
+
     def to_dict(self) -> dict:
         return {
             "location_name": self.location_name,
             "inventory": dict(self.inventory),
+            "ship_storage": dict(self.ship_storage),
             "food": self.food,
             "water": self.water,
             "suit_integrity": self.suit_integrity,
@@ -69,7 +89,11 @@ class Player:
     @classmethod
     def from_dict(cls, d: dict) -> "Player":
         d["known_locations"] = set(d["known_locations"])
-        # Backwards compat: old saves may not have suit_integrity
         if "suit_integrity" not in d:
             d["suit_integrity"] = 92.0
+        if "ship_storage" not in d:
+            d["ship_storage"] = {}
+        # Strip unknown keys for forward compatibility with old saves
+        valid_fields = {f.name for f in __import__("dataclasses").fields(cls)}
+        d = {k: v for k, v in d.items() if k in valid_fields}
         return cls(**d)

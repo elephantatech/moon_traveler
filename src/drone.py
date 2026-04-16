@@ -35,7 +35,6 @@ class Drone:
     scanner_range: int = 10
     translation_quality: str = "low"
     cargo_capacity: int = 10
-    cargo_used: int = 0
     speed_boost: int = 0
     battery: float = 100.0
     battery_max: float = 100.0
@@ -101,6 +100,65 @@ class Drone:
             return None
         return self.speak(f"[dim]{rng.choice(frames)}[/dim]")
 
+    # --- Periodic status whispers (every 10% interval) ---
+
+    def __post_init__(self):
+        self._last_reported: dict | None = None
+
+    def _init_tracking(self):
+        if self._last_reported is None:
+            self._last_reported = {
+                "food": None,
+                "water": None,
+                "suit": None,
+                "battery": None,
+            }
+
+    def check_vitals(self, player) -> str | None:
+        """Check if any resource crossed a 10% boundary. Returns a whisper or None.
+
+        Fires once per 10% bracket (90, 80, 70...) per resource.
+        Only reports when away from crash site (caller should gate this).
+        """
+        if self.battery <= 0:
+            return None
+        self._init_tracking()
+
+        resources = {
+            "food": player.food,
+            "water": player.water,
+            "suit": player.suit_integrity,
+            "battery": self.battery,
+        }
+        alerts = []
+        for key, value in resources.items():
+            bracket = int(value // 10) * 10  # 73% -> 70, 45% -> 40
+            last = self._last_reported[key]
+            if last is None:
+                self._last_reported[key] = bracket
+                continue
+            if bracket < last:
+                # Crossed downward into a new bracket
+                self._last_reported[key] = bracket
+                label = key.replace("_", " ").title()
+                if value <= 10:
+                    alerts.append(f"[red]{label}: {value:.0f}% — critical![/red]")
+                elif value <= 30:
+                    alerts.append(f"[yellow]{label}: {value:.0f}%[/yellow]")
+                else:
+                    alerts.append(f"{label}: {value:.0f}%")
+            elif bracket > last:
+                # Resource was replenished, update silently
+                self._last_reported[key] = bracket
+
+        if alerts:
+            return self.whisper("Status update — " + ", ".join(alerts))
+        return None
+
+    def reset_vital_tracking(self):
+        """Reset tracking after full replenish (e.g. arriving at crash site)."""
+        self._last_reported = None
+
     # --- Upgrades ---
 
     def apply_upgrade(self, upgrade: str) -> str | None:
@@ -140,17 +198,25 @@ class Drone:
         return ", ".join(result_parts)
 
     def to_dict(self) -> dict:
-        return {
+        result = {
             "scanner_range": self.scanner_range,
             "translation_quality": self.translation_quality,
             "cargo_capacity": self.cargo_capacity,
-            "cargo_used": self.cargo_used,
             "speed_boost": self.speed_boost,
             "battery": self.battery,
             "battery_max": self.battery_max,
             "upgrades_installed": list(self.upgrades_installed),
         }
+        if self._last_reported is not None:
+            result["_last_reported"] = self._last_reported
+        return result
 
     @classmethod
     def from_dict(cls, d: dict) -> "Drone":
-        return cls(**d)
+        last_reported = d.pop("_last_reported", None)
+        # Strip unknown keys for forward compatibility
+        valid_fields = {f.name for f in __import__("dataclasses").fields(cls)}
+        d = {k: v for k, v in d.items() if k in valid_fields}
+        drone = cls(**d)
+        drone._last_reported = last_reported
+        return drone

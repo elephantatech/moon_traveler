@@ -82,7 +82,7 @@ def calculate_travel_time(distance: float, drone: Drone) -> float:
     return distance / speed
 
 
-def _build_travel_narration(hours_int: int, rng: random.Random, ship_ai, locations, destination, drone=None) -> list[str]:
+def _build_travel_narration(hours_int: int, rng: random.Random, ship_ai, locations, destination, drone=None, current=None) -> list[str]:
     """Build flavor messages for the journey. Longer trips get more events."""
     narration = []
 
@@ -139,7 +139,7 @@ def _build_travel_narration(hours_int: int, rng: random.Random, ship_ai, locatio
 
     # Route suggestion on longer trips — drone gives this advice now
     if hours_int >= 3 and locations:
-        closer = _find_closer_alternative(locations, destination)
+        closer = _find_closer_alternative(locations, destination, current)
         if closer:
             narration.append("[dim]...[/dim]")
             if drone:
@@ -150,12 +150,14 @@ def _build_travel_narration(hours_int: int, rng: random.Random, ship_ai, locatio
     return narration
 
 
-def _find_closer_alternative(locations: list[Location], destination: Location) -> str | None:
+def _find_closer_alternative(locations: list[Location], destination: Location, current: Location | None = None) -> str | None:
     """Find a known location that's close to the destination (potential waypoint)."""
     best_name = None
     best_dist = float("inf")
     for loc in locations:
         if loc.name == destination.name or not loc.discovered:
+            continue
+        if current and loc.name == current.name:
             continue
         d = destination.distance_to(loc.x, loc.y)
         if 2.0 < d < best_dist and d < 15.0:
@@ -198,11 +200,11 @@ def execute_travel(
     messages.append(f"Arrived at [cyan]{destination.name}[/cyan] after {hours_int}h of travel ({distance:.1f} km).")
 
     # Travel narration — scales with trip length
-    narration = _build_travel_narration(hours_int, rng, ship_ai, locations or [], destination, drone)
+    narration = _build_travel_narration(hours_int, rng, ship_ai, locations or [], destination, drone, current)
     messages.extend(narration)
 
     # Small chance to find an item
-    if rng.random() < 0.15:
+    if rng.random() < 0.15 and player.total_items < drone.cargo_capacity:
         item, msg = rng.choice(FIND_EVENTS)
         player.add_item(item)
         messages.append(f"[yellow]{msg}[/yellow]")

@@ -22,7 +22,9 @@ class Creature:
     knows_food_source: str | None = None
     knows_water_source: str | None = None
     color: str = "green"
-    chased_away: bool = False  # if hostile creature just chased player
+    following: bool = False  # currently traveling with the player
+    home_location: str | None = None  # original location, set when they start following
+    helped_at_ship: bool = False  # has already helped at crash site (prevents repeat)
 
     @property
     def trust_level(self) -> str:
@@ -57,11 +59,24 @@ class Creature:
             "knows_food_source": self.knows_food_source,
             "knows_water_source": self.knows_water_source,
             "color": self.color,
+            "following": self.following,
+            "home_location": self.home_location,
+            "helped_at_ship": self.helped_at_ship,
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "Creature":
         d.pop("chased_away", None)
+        d.pop("_helped_at_ship", None)
+        if "following" not in d:
+            d["following"] = False
+        if "home_location" not in d:
+            d["home_location"] = None
+        if "helped_at_ship" not in d:
+            d["helped_at_ship"] = False
+        # Strip unknown keys for forward compatibility
+        valid_fields = {f.name for f in __import__("dataclasses").fields(cls)}
+        d = {k: v for k, v in d.items() if k in valid_fields}
         return cls(**d)
 
 

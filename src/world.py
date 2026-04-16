@@ -41,6 +41,9 @@ class Location:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Location":
+        # Strip unknown keys for forward compatibility
+        valid_fields = {f.name for f in __import__("dataclasses").fields(cls)}
+        d = {k: v for k, v in d.items() if k in valid_fields}
         return cls(**d)
 
 
@@ -172,14 +175,29 @@ def generate_world(mode: str, seed: int | None = None) -> dict:
 
     type_pool = _weighted_type_pool()
 
-    # Generate remaining locations with minimum spacing
-    min_spacing = radius * 0.15
+    # Generate remaining locations as a connected chain.
+    # Each new location must be within scanner reach of at least one existing
+    # location, ensuring the player can discover everything by exploring.
+    scanner_range = 10  # default drone scanner range
+    min_spacing = max(3.0, scanner_range * 0.3)  # min gap between any two locations
+    max_link_dist = scanner_range * 0.9  # max distance to nearest existing (must be scannable)
     attempts = 0
-    while len(locations) < num_locations and attempts < 500:
+    while len(locations) < num_locations and attempts < 2000:
         attempts += 1
+
+        # Pick a random existing location as the "anchor" to grow from.
+        # Bias toward recently added locations to spread outward like a web.
+        anchor = rng.choice(locations)
+        angle = rng.uniform(0, 2 * math.pi)
+        dist_from_anchor = rng.uniform(min_spacing, max_link_dist)
+        x = anchor.x + dist_from_anchor * math.cos(angle)
+        y = anchor.y + dist_from_anchor * math.sin(angle)
+
+        # Stay within world radius
+        if math.sqrt(x * x + y * y) > radius:
+            continue
+
         loc_type = rng.choice(type_pool)
-        x = rng.uniform(-radius, radius)
-        y = rng.uniform(-radius, radius)
 
         # Ensure minimum distance from all existing locations
         too_close = False
@@ -190,9 +208,10 @@ def generate_world(mode: str, seed: int | None = None) -> dict:
         if too_close:
             continue
 
-        # Ensure not too far from at least one existing location
-        nearest = min(loc.distance_to(x, y) for loc in locations)
-        if nearest > radius * 0.6:
+        # Limit clustering: the new location should not be scannable from
+        # more than 3 existing locations (keeps scan results to 1-3 per spot)
+        neighbors_of_new = sum(1 for loc in locations if loc.distance_to(x, y) <= scanner_range)
+        if neighbors_of_new > 3:
             continue
 
         name = generate_location_name(loc_type, rng)
@@ -227,6 +246,10 @@ def generate_world(mode: str, seed: int | None = None) -> dict:
             water_source=water_source,
         )
         locations.append(loc)
+
+    if len(locations) < num_locations:
+        from src import ui
+        ui.warn(f"World generation: placed {len(locations)}/{num_locations} locations (seed={seed}).")
 
     return {
         "seed": seed,

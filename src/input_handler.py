@@ -9,16 +9,22 @@ from src.drone import UPGRADE_EFFECTS
 # Base commands (always available)
 BASE_COMMANDS = [
     "look",
+    "l",
     "scan",
     "gps",
     "map",
     "travel",
+    "go",
     "take",
+    "get",
+    "pick",
     "inventory",
     "inv",
+    "i",
     "talk",
     "speak",
     "give",
+    "escort",
     "drone",
     "upgrade",
     "status",
@@ -27,9 +33,13 @@ BASE_COMMANDS = [
     "save",
     "load",
     "help",
+    "config",
+    "clear",
+    "cls",
     "quit",
     "exit",
     "dev",
+    "devmode",
 ]
 
 
@@ -61,8 +71,15 @@ class GameCompleter(Completer):
         partial = "" if at_space else (words[-1] if len(words) > 1 else "")
         partial_lower = partial.lower()
 
+        # ship → bay sub-commands
+        if cmd in ("ship", "repair"):
+            bays = ["repair", "storage", "kitchen", "charging", "medical"]
+            for bay in bays:
+                if bay.startswith(partial_lower):
+                    yield Completion(bay, start_position=-len(partial))
+
         # travel / go → known location names
-        if cmd in ("travel", "go"):
+        elif cmd in ("travel", "go"):
             for name in sorted(self.ctx.player.known_locations):
                 if name.lower().startswith(partial_lower):
                     yield Completion(name, start_position=-len(partial))

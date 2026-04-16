@@ -36,24 +36,13 @@ def build_repair_checklist(mode: str, creatures: list | None = None) -> dict:
     return checklist
 
 
-def check_repair_materials(ctx: GameContext):
-    """Check if player has delivered required materials to ship."""
-    for mat in REPAIR_MATERIALS[ctx.world_mode]:
-        key = f"material_{mat}"
-        if key in ctx.repair_checklist and not ctx.repair_checklist[key]:
-            if ctx.player.has_item(mat) and ctx.player.location_name == "Crash Site":
-                ctx.player.remove_item(mat)
-                ctx.repair_checklist[key] = True
-                display = mat.replace("_", " ").title()
-                ui.success(f"Applied {display} to ship repairs!")
-
 
 def check_win(ctx: GameContext) -> bool:
     return all(ctx.repair_checklist.values())
 
 
 def check_lose(ctx: GameContext) -> bool:
-    return ctx.player.food <= 0 and ctx.player.water <= 0
+    return ctx.player.food <= 0 or ctx.player.water <= 0
 
 
 def show_win_sequence(ctx: GameContext):
@@ -69,7 +58,13 @@ def show_win_sequence(ctx: GameContext):
         "",
         "You take one last look at the frozen landscape of Enceladus.",
         "The creatures who helped you watch from a distance.",
-        "",
+    ]
+    ui.narrate_lines(win_lines, pause=0.5)
+
+    # Ship launch art
+    ui.console.print(ui.LAUNCH_ART)
+
+    launch_lines = [
         "The thrusters ignite. The ice beneath you melts and steams.",
         "You rise — slowly at first, then faster, breaking free",
         "of the moon's gentle gravity.",
@@ -80,7 +75,7 @@ def show_win_sequence(ctx: GameContext):
         "",
         "You made it home.",
     ]
-    ui.narrate_lines(win_lines, pause=0.5)
+    ui.narrate_lines(launch_lines, pause=0.5)
     ui.console.print("[bold green]" + "=" * 60 + "[/bold green]")
     ui.console.print("\n[bold]MISSION COMPLETE[/bold]\n")
 
@@ -151,8 +146,13 @@ def game_loop(ctx: GameContext):
             show_lose_sequence(ctx)
             break
 
-        # Check if materials can be applied at crash site
-        check_repair_materials(ctx)
+        # Status bar
+        loc = ctx.current_location()
+        creature_here = ctx.creature_at_location(loc.name)
+        followers = [c for c in ctx.creatures if c.following]
+        ui.render_status_bar(
+            ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers
+        )
 
         # Prompt with autocomplete
         location = ctx.player.location_name
@@ -174,7 +174,7 @@ def game_loop(ctx: GameContext):
             if hint:
                 ui.console.print(ctx.ship_ai.speak(hint))
 
-        # Proactive status warnings
+        # Proactive status warnings (ARIA — critical thresholds)
         if ctx.ship_ai:
             warning = ctx.ship_ai.status_report(ctx.player, ctx.drone)
             if warning:
@@ -184,6 +184,16 @@ def game_loop(ctx: GameContext):
             reminder = ctx.ship_ai.objective_reminder(ctx.repair_checklist)
             if reminder:
                 ui.console.print(reminder)
+
+        # Drone vitals whisper (every 10% drop, only when exploring)
+        cur_loc = ctx.current_location()
+        if cur_loc.loc_type != "crash_site":
+            vital_msg = ctx.drone.check_vitals(ctx.player)
+            if vital_msg:
+                ui.console.print(vital_msg)
+        else:
+            # Reset tracking at crash site so it re-arms for next outing
+            ctx.drone.reset_vital_tracking()
 
         # Dev mode overlay
         if ctx.dev_mode and ctx.dev_mode.enabled:
@@ -199,6 +209,8 @@ def game_loop(ctx: GameContext):
             ctx.world_seed = state["world_seed"]
             ctx.world_mode = state["world_mode"]
             ctx.repair_checklist = state["repair_checklist"]
+            import time as _time
+            ctx.rng = random.Random(state["world_seed"] ^ int(_time.time()))
             if "ship_ai" in state:
                 ctx.ship_ai = state["ship_ai"]
             if "tutorial" in state:
@@ -218,6 +230,12 @@ def main():
     """Entry point."""
     ui.show_title()
     ui.console.print()
+
+    # First-run: prompt for save location
+    from src.config import is_first_run, prompt_save_location
+
+    if is_first_run():
+        prompt_save_location()
 
     # Check for existing saves
     from src.save_load import list_saves, load_game
@@ -253,6 +271,7 @@ def main():
             else:
                 ui.dim("No GPU acceleration detected. Using CPU only.")
 
+            llm.maybe_download_model()
             llm.load_model(gpu_mode=load_gpu_mode)
 
             ship_ai = state.get("ship_ai", ShipAI())
@@ -272,7 +291,7 @@ def main():
                 world_seed=state["world_seed"],
                 world_mode=state["world_mode"],
                 repair_checklist=state["repair_checklist"],
-                rng=random.Random(state["world_seed"]),
+                rng=random.Random(state["world_seed"] ^ int(__import__("time").time())),
                 ship_ai=ship_ai,
                 tutorial=tutorial,
                 dev_mode=DevMode(),
@@ -302,7 +321,8 @@ def main():
     else:
         ui.dim("No GPU acceleration detected. Using CPU only.")
 
-    # Load LLM
+    # Download model if needed, then load LLM
+    llm.maybe_download_model()
     llm.load_model(gpu_mode=gpu_mode)
 
     ctx = init_game(mode_key)

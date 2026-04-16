@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="ogsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#060618"/>
+      <stop offset="50%" stop-color="#0e1a3a"/>
+      <stop offset="100%" stop-color="#1a2a5e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.7" r="0.5">
+      <stop offset="0%" stop-color="#4af0f0" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#4af0f0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#ogsky)"/>
+  <!-- Glow effect -->
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <!-- Stars -->
+  <circle cx="80" cy="60" r="1.5" fill="#fff" opacity="0.7"/>
+  <circle cx="200" cy="100" r="1" fill="#fff" opacity="0.5"/>
+  <circle cx="350" cy="45" r="2" fill="#fff" opacity="0.8"/>
+  <circle cx="500" cy="120" r="1" fill="#fff" opacity="0.4"/>
+  <circle cx="650" cy="70" r="1.5" fill="#fff" opacity="0.6"/>
+  <circle cx="800" cy="35" r="1" fill="#fff" opacity="0.7"/>
+  <circle cx="950" cy="95" r="2" fill="#fff" opacity="0.5"/>
+  <circle cx="1100" cy="55" r="1" fill="#fff" opacity="0.8"/>
+  <circle cx="150" cy="180" r="1" fill="#fff" opacity="0.3"/>
+  <circle cx="1050" cy="150" r="1.5" fill="#fff" opacity="0.4"/>
+  <!-- Saturn -->
+  <ellipse cx="980" cy="160" rx="50" ry="45" fill="#c4a35a" opacity="0.5"/>
+  <ellipse cx="980" cy="160" rx="85" ry="12" fill="none" stroke="#c4a35a" stroke-width="2.5" opacity="0.35" transform="rotate(-18 980 160)"/>
+  <!-- Ice terrain -->
+  <path d="M0 450 Q300 420 600 440 Q900 460 1200 435 L1200 630 L0 630 Z" fill="#2a4a6a" opacity="0.7"/>
+  <path d="M0 470 Q200 460 500 475 Q800 490 1200 460 L1200 630 L0 630 Z" fill="#1a3a5a" opacity="0.5"/>
+  <!-- Title -->
+  <text x="600" y="270" text-anchor="middle" font-family="monospace, Courier" font-size="72" font-weight="bold" fill="#4af0f0" letter-spacing="3">MOON TRAVELER</text>
+  <text x="600" y="320" text-anchor="middle" font-family="monospace, Courier" font-size="22" fill="#8abfdf" letter-spacing="6">SURVIVE &#x2022; EXPLORE &#x2022; BEFRIEND &#x2022; ESCAPE</text>
+  <!-- Tagline -->
+  <text x="600" y="370" text-anchor="middle" font-family="monospace" font-size="16" fill="#666">A CLI survival adventure on Saturn's moon Enceladus</text>
+  <!-- Feature badges -->
+  <rect x="260" y="400" width="140" height="26" rx="4" fill="none" stroke="#4af0f0" stroke-width="1" opacity="0.5"/>
+  <text x="330" y="418" text-anchor="middle" font-family="monospace" font-size="12" fill="#4af0f0" opacity="0.7">AI Dialogue</text>
+  <rect x="420" y="400" width="160" height="26" rx="4" fill="none" stroke="#d55fde" stroke-width="1" opacity="0.5"/>
+  <text x="500" y="418" text-anchor="middle" font-family="monospace" font-size="12" fill="#d55fde" opacity="0.7">Drone Companion</text>
+  <rect x="600" y="400" width="140" height="26" rx="4" fill="none" stroke="#4a4" stroke-width="1" opacity="0.5"/>
+  <text x="670" y="418" text-anchor="middle" font-family="monospace" font-size="12" fill="#4a4" opacity="0.7">8 Archetypes</text>
+  <rect x="760" y="400" width="160" height="26" rx="4" fill="none" stroke="#cc4" stroke-width="1" opacity="0.5"/>
+  <text x="840" y="418" text-anchor="middle" font-family="monospace" font-size="12" fill="#cc4" opacity="0.7">Procedural World</text>
+</svg>
