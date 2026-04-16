@@ -19,52 +19,52 @@
         font-weight: 700;
     }
 
-    .terminal-41318739-matrix {
+    .terminal-2615979395-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-    .terminal-41318739-title {
+    .terminal-2615979395-title {
         font-size: 18px;
         font-weight: bold;
         font-family: arial;
     }
 
-    .terminal-41318739-r1 { fill: #c5c8c6 }
-.terminal-41318739-r2 { fill: #868887 }
-.terminal-41318739-r3 { fill: #98a84b }
-.terminal-41318739-r4 { fill: #4e707b;font-weight: bold }
-.terminal-41318739-r5 { fill: #68a0b3;font-weight: bold }
-.terminal-41318739-r6 { fill: #c5c8c6;font-weight: bold }
+    .terminal-2615979395-r1 { fill: #c5c8c6 }
+.terminal-2615979395-r2 { fill: #868887 }
+.terminal-2615979395-r3 { fill: #98a84b }
+.terminal-2615979395-r4 { fill: #4e707b;font-weight: bold }
+.terminal-2615979395-r5 { fill: #68a0b3;font-weight: bold }
+.terminal-2615979395-r6 { fill: #c5c8c6;font-weight: bold }
     </style>
 
     <defs>
-    <clipPath id="terminal-41318739-clip-terminal">
+    <clipPath id="terminal-2615979395-clip-terminal">
       <rect x="0" y="0" width="1219.0" height="72.19999999999999" />
     </clipPath>
-    <clipPath id="terminal-41318739-line-0">
+    <clipPath id="terminal-2615979395-line-0">
     <rect x="0" y="1.5" width="1220" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-41318739-line-1">
+<clipPath id="terminal-2615979395-line-1">
     <rect x="0" y="25.9" width="1220" height="24.65"/>
             </clipPath>
     </defs>
 
-    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1236" height="121.2" rx="8"/><text class="terminal-41318739-title" fill="#c5c8c6" text-anchor="middle" x="618" y="27">Moon&#160;Traveler&#160;CLI&#160;—&#160;Status&#160;Bar&#160;with&#160;Follower</text>
+    <rect fill="#292929" stroke="rgba(255,255,255,0.35)" stroke-width="1" x="1" y="1" width="1236" height="121.2" rx="8"/><text class="terminal-2615979395-title" fill="#c5c8c6" text-anchor="middle" x="618" y="27">Moon&#160;Traveler&#160;CLI&#160;—&#160;Status&#160;Bar&#160;with&#160;Follower</text>
             <g transform="translate(26,22)">
             <circle cx="0" cy="0" r="7" fill="#ff5f57"/>
             <circle cx="22" cy="0" r="7" fill="#febc2e"/>
             <circle cx="44" cy="0" r="7" fill="#28c840"/>
             </g>
         
-    <g transform="translate(9, 41)" clip-path="url(#terminal-41318739-clip-terminal)">
+    <g transform="translate(9, 41)" clip-path="url(#terminal-2615979395-clip-terminal)">
     
-    <g class="terminal-41318739-matrix">
-    <text class="terminal-41318739-r1" x="0" y="20" textLength="48.8" clip-path="url(#terminal-41318739-line-0)">&#160;🕳️&#160;</text><text class="terminal-41318739-r2" x="48.8" y="20" textLength="48.8" clip-path="url(#terminal-41318739-line-0)">Suit</text><text class="terminal-41318739-r3" x="109.8" y="20" textLength="61" clip-path="url(#terminal-41318739-line-0)">█████</text><text class="terminal-41318739-r4" x="183" y="20" textLength="24.4" clip-path="url(#terminal-41318739-line-0)">92</text><text class="terminal-41318739-r2" x="207.4" y="20" textLength="12.2" clip-path="url(#terminal-41318739-line-0)">%</text><text class="terminal-41318739-r2" x="244" y="20" textLength="48.8" clip-path="url(#terminal-41318739-line-0)">Batt</text><text class="terminal-41318739-r3" x="305" y="20" textLength="48.8" clip-path="url(#terminal-41318739-line-0)">████</text><text class="terminal-41318739-r2" x="353.8" y="20" textLength="12.2" clip-path="url(#terminal-41318739-line-0)">░</text><text class="terminal-41318739-r4" x="378.2" y="20" textLength="24.4" clip-path="url(#terminal-41318739-line-0)">88</text><text class="terminal-41318739-r2" x="402.6" y="20" textLength="12.2" clip-path="url(#terminal-41318739-line-0)">%</text><text class="terminal-41318739-r2" x="439.2" y="20" textLength="48.8" clip-path="url(#terminal-41318739-line-0)">⏱&#160;1h</text><text class="terminal-41318739-r1" x="1220" y="20" textLength="12.2" clip-path="url(#terminal-41318739-line-0)">
-</text><text class="terminal-41318739-r2" x="12.2" y="44.4" textLength="146.4" clip-path="url(#terminal-41318739-line-1)">🤝&#160;Following:</text><text class="terminal-41318739-r3" x="183" y="44.4" textLength="73.2" clip-path="url(#terminal-41318739-line-1)">Pyreth</text><text class="terminal-41318739-r1" x="1220" y="44.4" textLength="12.2" clip-path="url(#terminal-41318739-line-1)">
-</text><text class="terminal-41318739-r5" x="0" y="68.8" textLength="146.4" clip-path="url(#terminal-41318739-line-2)">Azure&#160;Warren</text><text class="terminal-41318739-r6" x="158.6" y="68.8" textLength="12.2" clip-path="url(#terminal-41318739-line-2)">&gt;</text><text class="terminal-41318739-r1" x="1220" y="68.8" textLength="12.2" clip-path="url(#terminal-41318739-line-2)">
+    <g class="terminal-2615979395-matrix">
+    <text class="terminal-2615979395-r1" x="0" y="20" textLength="36.6" clip-path="url(#terminal-2615979395-line-0)">&#160;🌊&#160;</text><text class="terminal-2615979395-r2" x="48.8" y="20" textLength="48.8" clip-path="url(#terminal-2615979395-line-0)">Food</text><text class="terminal-2615979395-r3" x="109.8" y="20" textLength="61" clip-path="url(#terminal-2615979395-line-0)">█████</text><text class="terminal-2615979395-r4" x="183" y="20" textLength="24.4" clip-path="url(#terminal-2615979395-line-0)">98</text><text class="terminal-2615979395-r2" x="207.4" y="20" textLength="12.2" clip-path="url(#terminal-2615979395-line-0)">%</text><text class="terminal-2615979395-r2" x="244" y="20" textLength="61" clip-path="url(#terminal-2615979395-line-0)">Water</text><text class="terminal-2615979395-r3" x="317.2" y="20" textLength="61" clip-path="url(#terminal-2615979395-line-0)">█████</text><text class="terminal-2615979395-r4" x="390.4" y="20" textLength="24.4" clip-path="url(#terminal-2615979395-line-0)">97</text><text class="terminal-2615979395-r2" x="414.8" y="20" textLength="12.2" clip-path="url(#terminal-2615979395-line-0)">%</text><text class="terminal-2615979395-r2" x="451.4" y="20" textLength="48.8" clip-path="url(#terminal-2615979395-line-0)">Suit</text><text class="terminal-2615979395-r3" x="512.4" y="20" textLength="61" clip-path="url(#terminal-2615979395-line-0)">█████</text><text class="terminal-2615979395-r4" x="585.6" y="20" textLength="24.4" clip-path="url(#terminal-2615979395-line-0)">92</text><text class="terminal-2615979395-r2" x="610" y="20" textLength="12.2" clip-path="url(#terminal-2615979395-line-0)">%</text><text class="terminal-2615979395-r2" x="646.6" y="20" textLength="48.8" clip-path="url(#terminal-2615979395-line-0)">Batt</text><text class="terminal-2615979395-r3" x="707.6" y="20" textLength="48.8" clip-path="url(#terminal-2615979395-line-0)">████</text><text class="terminal-2615979395-r2" x="756.4" y="20" textLength="12.2" clip-path="url(#terminal-2615979395-line-0)">░</text><text class="terminal-2615979395-r4" x="780.8" y="20" textLength="24.4" clip-path="url(#terminal-2615979395-line-0)">88</text><text class="terminal-2615979395-r2" x="805.2" y="20" textLength="12.2" clip-path="url(#terminal-2615979395-line-0)">%</text><text class="terminal-2615979395-r2" x="841.8" y="20" textLength="48.8" clip-path="url(#terminal-2615979395-line-0)">Inv&#160;</text><text class="terminal-2615979395-r4" x="890.6" y="20" textLength="12.2" clip-path="url(#terminal-2615979395-line-0)">0</text><text class="terminal-2615979395-r2" x="902.8" y="20" textLength="12.2" clip-path="url(#terminal-2615979395-line-0)">/</text><text class="terminal-2615979395-r4" x="915" y="20" textLength="24.4" clip-path="url(#terminal-2615979395-line-0)">10</text><text class="terminal-2615979395-r2" x="963.8" y="20" textLength="48.8" clip-path="url(#terminal-2615979395-line-0)">⏱&#160;1h</text><text class="terminal-2615979395-r1" x="1220" y="20" textLength="12.2" clip-path="url(#terminal-2615979395-line-0)">
+</text><text class="terminal-2615979395-r2" x="12.2" y="44.4" textLength="146.4" clip-path="url(#terminal-2615979395-line-1)">🤝&#160;Following:</text><text class="terminal-2615979395-r3" x="183" y="44.4" textLength="73.2" clip-path="url(#terminal-2615979395-line-1)">Pyreth</text><text class="terminal-2615979395-r1" x="1220" y="44.4" textLength="12.2" clip-path="url(#terminal-2615979395-line-1)">
+</text><text class="terminal-2615979395-r5" x="0" y="68.8" textLength="158.6" clip-path="url(#terminal-2615979395-line-2)">Vapor&#160;Expanse</text><text class="terminal-2615979395-r6" x="170.8" y="68.8" textLength="12.2" clip-path="url(#terminal-2615979395-line-2)">&gt;</text><text class="terminal-2615979395-r1" x="1220" y="68.8" textLength="12.2" clip-path="url(#terminal-2615979395-line-2)">
 </text>
     </g>
     </g>

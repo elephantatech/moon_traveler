@@ -34,7 +34,11 @@ _STEP_TRIGGERS = {
     },
     TutorialStep.PROMPT_TALK: {
         "triggers": {"talk", "speak"},
-        "next_hint": "You're on your own now, Commander. Good luck out there.",
+        "next_hint": (
+            "You're on your own now. Try [cyan]give[/cyan] to build trust, "
+            "[cyan]trade[/cyan] with Merchants, [cyan]escort[/cyan] allies to your ship, "
+            "and [cyan]ship[/cyan] to manage repairs. Good luck, Commander."
+        ),
     },
 }
 
@@ -60,6 +64,23 @@ class TutorialManager:
         ui.console.print()
         ui.show_crash()
         ui.console.print()
+        ui.console.print("[dim]You've crash-landed on Enceladus, Saturn's icy moon.[/dim]")
+        ui.console.print("[dim]Your ship is damaged. You'll need to find materials and allies to repair it.[/dim]")
+        ui.console.print()
+
+        # Offer skip for returning players
+        try:
+            skip = ui.console.input("[dim]Skip tutorial? (y/n) > [/dim]").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            skip = "n"
+
+        if skip in ("y", "yes"):
+            ui.console.print()
+            ui.console.print(drone.speak("Systems online. You know the drill, Commander."))
+            ui.console.print()
+            self.step = TutorialStep.COMPLETED
+            ship_ai.boot_complete = True
+            return
 
         # --- System boot ---
         ui.console.print("[bold bright_white]ARIA SYSTEM v4.2.1 — INITIALIZING[/bold bright_white]")

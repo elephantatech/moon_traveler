@@ -36,7 +36,6 @@ def build_repair_checklist(mode: str, creatures: list | None = None) -> dict:
     return checklist
 
 
-
 def check_win(ctx: GameContext) -> bool:
     return all(ctx.repair_checklist.values())
 
@@ -119,7 +118,7 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
     """Initialize a new game and return the context."""
     world = generate_world(mode, seed)
     rng = random.Random(world["seed"])
-    creatures = generate_creatures(world, rng)
+    creatures = generate_creatures(world, rng, required_materials=REPAIR_MATERIALS[mode])
     player = Player()
     drone = Drone()
     repair_checklist = build_repair_checklist(mode, creatures)
@@ -154,10 +153,16 @@ def game_loop(ctx: GameContext):
     while True:
         # Check win/lose
         if check_win(ctx):
+            if ctx.dev_mode:
+                ctx.dev_mode.debug("game_win", hours=ctx.player.hours_elapsed)
             show_win_sequence(ctx)
             break
 
         if check_lose(ctx):
+            if ctx.dev_mode:
+                ctx.dev_mode.debug("game_lose",
+                    food=ctx.player.food, water=ctx.player.water,
+                    suit=ctx.player.suit_integrity, hours=ctx.player.hours_elapsed)
             show_lose_sequence(ctx)
             break
 
@@ -180,6 +185,9 @@ def game_loop(ctx: GameContext):
 
         if not raw:
             continue
+
+        if ctx.dev_mode:
+            ctx.dev_mode.debug("command_input", raw=raw, location=ctx.player.location_name)
 
         dispatch(ctx, raw)
 

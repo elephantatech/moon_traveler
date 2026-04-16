@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>moon-traveler-cli</id>
+    <version>0.3.0</version>
+    <title>Moon Traveler CLI</title>
+    <authors>elephantatech</authors>
+    <owners>elephantatech</owners>
+    <projectUrl>https://github.com/elephantatech/moon_traveler</projectUrl>
+    <licenseUrl>https://github.com/elephantatech/moon_traveler/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A text-based survival game set on Enceladus, Saturn's icy moon. Build relationships with alien creatures through LLM-powered conversations, trade for materials, survive a hostile environment, and repair your ship to escape. Features 10 creature archetypes, a trade system, hazardous travel events, and an AI drone companion.</description>
+    <summary>Text-based survival game on Saturn's moon with LLM-powered alien dialogue</summary>
+    <tags>game cli terminal survival text-adventure ai llm python enceladus saturn</tags>
+    <releaseNotes>https://github.com/elephantatech/moon_traveler/blob/main/CHANGELOG.md</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

@@ -2,7 +2,7 @@
 
 import random
 
-from src import llm, ui
+from src import input_handler, llm, ui
 from src.creatures import Creature
 from src.drone import UPGRADE_EFFECTS, Drone
 from src.player import Player
@@ -24,6 +24,7 @@ HELP_TEXT = """
   [cyan]inventory[/cyan] / [cyan]inv[/cyan]       — Show your inventory
   [cyan]talk[/cyan] <creature>      — Talk to a creature here (LLM dialogue)
   [cyan]give[/cyan] <item> to <creature> — Give an item to build trust
+  [cyan]trade[/cyan]                — Trade items with a Merchant creature
   [cyan]escort[/cyan]               — Ask a creature to travel with you
   [cyan]drone[/cyan]                — Show drone status and upgrades
   [cyan]upgrade[/cyan] <component>  — Install a drone upgrade from inventory
@@ -48,6 +49,7 @@ CHAT_HELP_TEXT = """
   [cyan]/history[/cyan]              — Show recent conversation history
   [cyan]/<command>[/cyan]              — Run a game command (e.g. /status, /inventory, /look)
   [cyan]/give[/cyan] <item> to <name> — Give an item to this creature
+  [cyan]/trade[/cyan]                 — Open trade menu (Merchants only)
   [dim]Anything without a / prefix is sent as dialogue through the ARIA translator.[/dim]
 """
 
@@ -108,6 +110,26 @@ class GameContext:
                 return c
         return None
 
+    def any_creature_here(self, location_name: str, name_hint: str = "") -> Creature | None:
+        """Find any creature at location — residents first, then followers.
+
+        If name_hint is given, match by name (partial, case-insensitive).
+        """
+        if name_hint:
+            hint = name_hint.lower()
+            for c in self.creatures:
+                if c.location_name == location_name and hint in c.name.lower():
+                    return c
+            return None
+        # Prefer resident, fall back to follower
+        resident = self.creature_at_location(location_name)
+        if resident:
+            return resident
+        for c in self.creatures:
+            if c.following and c.location_name == location_name:
+                return c
+        return None
+
     def find_creature(self, name: str) -> Creature | None:
         name_lower = name.lower()
         for c in self.creatures:
@@ -161,6 +183,12 @@ def cmd_look(ctx: GameContext, args: str):
     items_display = [i.replace("_", " ").title() for i in loc.items]
     ui.show_location(loc.name, loc.loc_type, loc.description, items_display, creature_name)
 
+    # Show followers present
+    followers_here = [c for c in ctx.creatures if c.following and c.location_name == loc.name]
+    if followers_here:
+        names = [f"[{c.color}]{c.name}[/{c.color}]" for c in followers_here]
+        ui.dim(f"  Companions here: {', '.join(names)}")
+
     if loc.food_source:
         ui.info("This location has a renewable food source.")
     if loc.water_source:
@@ -192,6 +220,10 @@ def cmd_scan(ctx: GameContext, args: str):
         discovered.append((loc.name, loc.loc_type, dist))
 
     ui.loading_spinner("Scanning surroundings...", 1.0)
+
+    if ctx.dev_mode:
+        ctx.dev_mode.debug("scan", location=ctx.player.location_name,
+            discovered=len(discovered), battery_after=round(drone.battery, 1))
 
     if discovered:
         ui.success(f"Discovered {len(discovered)} new location(s):")
@@ -225,6 +257,8 @@ def cmd_gps(ctx: GameContext, args: str):
                 "distance": dist,
                 "x": loc.x,
                 "y": loc.y,
+                "food_source": loc.food_source if loc.visited else False,
+                "water_source": loc.water_source if loc.visited else False,
             }
         )
     ui.show_gps(loc_data, cur.x, cur.y)
@@ -257,6 +291,15 @@ def cmd_travel(ctx: GameContext, args: str):
     hours_int = max(1, round(hours))
     food_cost = hours_int * 2.0
     water_cost = hours_int * 3.0
+
+    # Account for late-game extra water drain in estimate
+    from src.travel import LATE_GAME_THRESHOLDS
+    late_threshold = LATE_GAME_THRESHOLDS.get(ctx.world_mode, 40)
+    # Use pre-trip hours to match what execute_travel computes
+    hours_past = max(0, ctx.player.hours_elapsed - late_threshold)
+    if hours_past > 0:
+        water_cost += hours_int * 0.5 * (hours_past // 10 + 1)
+
     food_after = ctx.player.food - food_cost
     water_after = ctx.player.water - water_cost
 
@@ -281,9 +324,25 @@ def cmd_travel(ctx: GameContext, args: str):
     # Clear screen before travel
     ui.console.clear()
 
-    messages = execute_travel(ctx.player, ctx.drone, dest, cur, ctx.rng, ctx.ship_ai, ctx.locations)
+    # Log travel start
+    if ctx.dev_mode:
+        ctx.dev_mode.debug("travel_start",
+            origin=cur.name, destination=dest.name,
+            distance_km=round(cur.distance_to(dest.x, dest.y), 1),
+            food_before=round(ctx.player.food, 1), water_before=round(ctx.player.water, 1),
+            suit_before=round(ctx.player.suit_integrity, 1), battery_before=round(ctx.drone.battery, 1))
+
+    messages = execute_travel(ctx.player, ctx.drone, dest, cur, ctx.rng, ctx.ship_ai, ctx.locations, ctx.world_mode)
     for msg in messages:
         ui.console.print(msg)
+
+    # Log travel result
+    if ctx.dev_mode:
+        ctx.dev_mode.debug("travel_arrive",
+            destination=dest.name,
+            food_after=round(ctx.player.food, 1), water_after=round(ctx.player.water, 1),
+            suit_after=round(ctx.player.suit_integrity, 1), battery_after=round(ctx.drone.battery, 1),
+            hours_elapsed=ctx.player.hours_elapsed)
 
     ui.console.print()
 
@@ -333,6 +392,9 @@ def cmd_take(ctx: GameContext, args: str):
         ctx.player.add_item(item_name)
         display = item_name.replace("_", " ").title()
         ui.success(f"Picked up: {display}")
+        if ctx.dev_mode:
+            ctx.dev_mode.debug("item_pickup", item=item_name, location=loc.name,
+                inventory_count=ctx.player.total_items)
         # Hint if this is a needed repair material
         key = f"material_{item_name}"
         if key in ctx.repair_checklist and not ctx.repair_checklist[key]:
@@ -360,14 +422,15 @@ def _interjection_probability(creature, exchange_count: int) -> float:
 
 def cmd_talk(ctx: GameContext, args: str):
     loc = ctx.current_location()
-    creature = ctx.creature_at_location(loc.name)
+    creature = ctx.any_creature_here(loc.name, name_hint=args)
 
     if not creature:
-        ui.info("There's no one to talk to here.")
-        return
-
-    if args and creature.name.lower() != args.lower() and args.lower() not in creature.name.lower():
-        ui.error(f"'{args}' is not here. {creature.name} is at this location.")
+        # Try without hint to give a helpful message
+        anyone = ctx.any_creature_here(loc.name)
+        if anyone and args:
+            ui.error(f"'{args}' is not here. {anyone.name} is at this location.")
+        else:
+            ui.info("There's no one to talk to here.")
         return
 
     # Hostile and low trust — chase away
@@ -386,18 +449,18 @@ def cmd_talk(ctx: GameContext, args: str):
         " — 'bye' or '/end' to disconnect | /? for help[/dim]\n"
     )
 
-    # Drone initial coaching tip
-    initial_tip = ctx.drone.get_interaction_advice(creature, ctx.rng)
+    # Drone initial coaching tip (context-aware)
+    initial_tip = ctx.drone.get_smart_advice(creature, ctx.player, ctx.repair_checklist, ctx.rng)
     if initial_tip:
         ui.console.print(initial_tip)
         ui.console.print()
 
+    chat_session = input_handler.create_chat_session(ctx, creature)
     exchange_count = 0
 
     while True:
-        try:
-            player_input = ui.console.input("[bold]You>[/bold] ").strip()
-        except (EOFError, KeyboardInterrupt):
+        player_input = input_handler.get_chat_input(chat_session)
+        if player_input is None:
             break
 
         if not player_input:
@@ -452,6 +515,11 @@ def cmd_talk(ctx: GameContext, args: str):
         response, actions = llm.parse_actions(raw_response)
         creature.add_message("assistant", response)
 
+        if ctx.dev_mode and actions:
+            ctx.dev_mode.debug("llm_actions",
+                creature=creature.name, actions=[a["action"] for a in actions],
+                trust=creature.trust, archetype=creature.archetype)
+
         # Drone translation frame (always on first exchange, ~40% after)
         show_frame = exchange_count == 0 or ctx.rng.random() < 0.4
         if show_frame:
@@ -470,18 +538,50 @@ def cmd_talk(ctx: GameContext, args: str):
                 ui.console.print(msg)
 
         # Trust gain from conversation
+        old_trust = creature.trust
         creature.add_trust(3)
+        if ctx.dev_mode:
+            ctx.dev_mode.debug("trust_change",
+                creature=creature.name, old=old_trust, new=creature.trust,
+                source="conversation", exchange=exchange_count)
         next_tier = 70 if creature.trust < 70 else 100
-        tier_label = "full cooperation" if next_tier == 70 else "max"
+        tier_label = "full cooperation" if next_tier == 70 else "max trust"
         ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — {next_tier} for {tier_label})[/dim]")
         exchange_count += 1
 
         # Drone private advice (NOT added to creature conversation history)
         interjection_chance = _interjection_probability(creature, exchange_count)
         if ctx.rng.random() < interjection_chance:
-            advice = ctx.drone.get_interaction_advice(creature, ctx.rng)
+            advice = ctx.drone.get_smart_advice(creature, ctx.player, ctx.repair_checklist, ctx.rng)
             if advice:
                 ui.console.print(advice)
+
+        # Fallback material offering (when LLM is unavailable)
+        if not llm.is_available():
+            from src.creatures import ROLE_CAPABILITIES
+            caps = ROLE_CAPABILITIES.get(creature.archetype, {})
+            thresholds = caps.get("trust_threshold", {})
+            mat_threshold = thresholds.get("materials", thresholds.get("trade", 50))
+            role_inv = creature.role_inventory if creature.role_inventory else creature.can_give_materials
+            unoffered = [m for m in role_inv if m not in creature.given_items]
+            if creature.trust >= mat_threshold and unoffered and exchange_count % 3 == 2:
+                mat = unoffered[0]
+                display = mat.replace("_", " ").title()
+                ui.console.print(f"\n[bold]{creature.name} reaches into their pack and holds out: {display}[/bold]")
+                try:
+                    accept = ui.console.input("[bold](accept? y/n) > [/bold]").strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    accept = "n"
+                if accept in ("y", "yes"):
+                    ctx.player.add_item(mat)
+                    role_inv.remove(mat)
+                    creature.given_items.append(mat)
+                    # Keep can_give_materials in sync (only if different list)
+                    if role_inv is not creature.can_give_materials and mat in creature.can_give_materials:
+                        creature.can_give_materials.remove(mat)
+                    ui.success(f"You received {display}!")
+                else:
+                    ui.dim(f"{creature.name} puts it away.")
 
         # High trust — creature might reveal info
         if creature.trust >= 70:
@@ -522,13 +622,9 @@ def cmd_give(ctx: GameContext, args: str):
     creature_part = args[to_idx + 4 :].strip()
 
     loc = ctx.current_location()
-    creature = ctx.creature_at_location(loc.name)
+    creature = ctx.any_creature_here(loc.name, name_hint=creature_part)
 
     if not creature:
-        ui.error("There's no creature here to give items to.")
-        return
-
-    if creature_part.lower() not in creature.name.lower():
         ui.error(f"'{creature_part}' is not here.")
         return
 
@@ -545,25 +641,114 @@ def cmd_give(ctx: GameContext, args: str):
     trust_gain = 15
     if creature.disposition == "hostile":
         trust_gain = 10
+    old_trust = creature.trust
     creature.add_trust(trust_gain)
+    if ctx.dev_mode:
+        ctx.dev_mode.debug("trust_change",
+            creature=creature.name, old=old_trust, new=creature.trust,
+            source="gift", item=item_part)
     next_tier = 70 if creature.trust < 70 else 100
-    tier_label = "full cooperation" if next_tier == 70 else "max"
+    tier_label = "full cooperation" if next_tier == 70 else "max trust"
     remaining = next_tier - creature.trust
     if remaining > 0:
         ui.info(f"{creature.name}'s trust: {creature.trust}/100 ({creature.trust_level}) — {remaining} to {tier_label}")
     else:
         ui.info(f"{creature.name}'s trust: {creature.trust}/100 ({creature.trust_level})")
 
-    # At high trust, creature shares materials and info
+    # At high trust, creature acknowledges friendship
     if creature.trust >= 70 and not creature.has_helped_repair:
         creature.has_helped_repair = True
+        ui.success(f"{creature.name} considers you a true friend. They may share what they have in conversation.")
 
-        # Give materials
-        for mat in creature.can_give_materials:
-            ctx.player.add_item(mat)
-            mat_display = mat.replace("_", " ").title()
-            ui.success(f"{creature.name} gives you: {mat_display}")
-        creature.can_give_materials.clear()
+
+def cmd_trade(ctx: GameContext, args: str):
+    """Trade items with a Merchant creature."""
+    loc = ctx.current_location()
+    creature = ctx.creature_at_location(loc.name)
+
+    if not creature:
+        ui.error("There's no creature here to trade with.")
+        return
+
+    if creature.archetype != "Merchant":
+        ui.info(f"{creature.name} is not a trader. Try talking to them instead.")
+        return
+
+    from src.creatures import ROLE_CAPABILITIES
+    caps = ROLE_CAPABILITIES.get("Merchant", {})
+    required_trust = caps.get("trust_threshold", {}).get("trade", 20)
+
+    if creature.trust < required_trust:
+        ui.warn(
+            f"{creature.name} doesn't trust you enough to trade. "
+            f"(Trust: {creature.trust}/100, need {required_trust}+)"
+        )
+        return
+
+    # Show what the merchant has and wants
+    has_items = [m for m in creature.role_inventory if m not in creature.given_items]
+    wants_items = creature.trade_wants
+
+    if not has_items:
+        ui.info(f"{creature.name} has nothing left to trade.")
+        return
+
+    ui.console.print(f"\n[bold]── Trade with [{creature.color}]{creature.name}[/{creature.color}] ──[/bold]")
+    ui.console.print("\n[bold]They have:[/bold]")
+    for i, item in enumerate(has_items, 1):
+        display = item.replace("_", " ").title()
+        ui.console.print(f"  [cyan]{i}[/cyan]. {display}")
+
+    ui.console.print("\n[bold]They want:[/bold]")
+    available_wants = [w for w in wants_items if ctx.player.has_item(w)]
+    if not available_wants:
+        ui.dim(f"  Items wanted: {', '.join(w.replace('_', ' ').title() for w in wants_items)}")
+        ui.warn("  You don't have anything they want.")
+        return
+
+    for i, item in enumerate(available_wants, 1):
+        display = item.replace("_", " ").title()
+        ui.console.print(f"  [yellow]{i}[/yellow]. {display}")
+
+    ui.console.print(f"\n[dim]Pick an item to receive (1-{len(has_items)}), or 0 to cancel:[/dim]")
+    try:
+        pick_get = ui.console.input("[bold]Receive #> [/bold]").strip()
+        idx_get = int(pick_get) - 1
+        if idx_get < 0 or idx_get >= len(has_items):
+            return
+    except (ValueError, EOFError, KeyboardInterrupt):
+        return
+
+    ui.console.print(f"[dim]Pick an item to give (1-{len(available_wants)}), or 0 to cancel:[/dim]")
+    try:
+        pick_give = ui.console.input("[bold]Give #> [/bold]").strip()
+        idx_give = int(pick_give) - 1
+        if idx_give < 0 or idx_give >= len(available_wants):
+            return
+    except (ValueError, EOFError, KeyboardInterrupt):
+        return
+
+    get_item = has_items[idx_get]
+    give_item = available_wants[idx_give]
+
+    ctx.player.remove_item(give_item)
+    ctx.player.add_item(get_item)
+    creature.role_inventory.remove(get_item)
+    creature.given_items.append(get_item)
+
+    get_display = get_item.replace("_", " ").title()
+    give_display = give_item.replace("_", " ").title()
+    ui.success(f"Traded! You gave {give_display} and received {get_display}.")
+
+    if ctx.dev_mode:
+        ctx.dev_mode.debug("trade",
+            creature=creature.name, gave=give_item, received=get_item,
+            trust_before=creature.trust)
+
+    # Trust bonus for trading
+    creature.add_trust(5)
+    ui.dim(f"+5 trust ({creature.trust}/100)")
+    ctx.do_auto_save()
 
 
 def cmd_escort(ctx: GameContext, args: str):
@@ -577,10 +762,32 @@ def cmd_escort(ctx: GameContext, args: str):
         if not followers:
             ui.info("No one is following you.")
             return
-        for c in followers:
-            c.following = False
-            c.location_name = ctx.player.location_name
-            ui.success(f"{c.name} stays at {ctx.player.location_name}.")
+        if len(followers) == 1:
+            followers[0].following = False
+            followers[0].location_name = ctx.player.location_name
+            ui.success(f"{followers[0].name} stays at {ctx.player.location_name}.")
+            return
+        # Multiple followers — let player choose
+        ui.console.print("\n[bold]Dismiss which companion?[/bold]")
+        for i, c in enumerate(followers, 1):
+            ui.console.print(f"  [cyan]{i}[/cyan]. [{c.color}]{c.name}[/{c.color}] ({c.archetype})")
+        ui.console.print(f"  [cyan]{len(followers) + 1}[/cyan]. Dismiss all")
+        try:
+            pick = ui.console.input("[bold]> [/bold]").strip()
+            idx = int(pick) - 1
+            if idx == len(followers):
+                # Dismiss all
+                for c in followers:
+                    c.following = False
+                    c.location_name = ctx.player.location_name
+                    ui.success(f"{c.name} stays at {ctx.player.location_name}.")
+            elif 0 <= idx < len(followers):
+                c = followers[idx]
+                c.following = False
+                c.location_name = ctx.player.location_name
+                ui.success(f"{c.name} stays at {ctx.player.location_name}.")
+        except (ValueError, EOFError, KeyboardInterrupt):
+            return
         return
 
     # Check if there's a creature here to ask
@@ -668,15 +875,21 @@ def _companions_help_at_ship(ctx: GameContext, companions: list):
                         helped = True
                         break
 
-        # Any creature with materials can donate them
-        if creature.can_give_materials and not creature.has_helped_repair:
+        # Any creature with materials can donate them (use role_inventory, fall back to can_give_materials)
+        donate_list = creature.role_inventory if creature.role_inventory else creature.can_give_materials
+        unoffered = [m for m in donate_list if m not in creature.given_items]
+        if unoffered and not creature.has_helped_repair:
             creature.has_helped_repair = True
-            for mat in list(creature.can_give_materials):
+            for mat in list(unoffered):
                 ctx.player.add_item(mat)
+                donate_list.remove(mat)
+                creature.given_items.append(mat)
+                # Keep can_give_materials in sync (only if different list)
+                if donate_list is not creature.can_give_materials and mat in creature.can_give_materials:
+                    creature.can_give_materials.remove(mat)
                 display = mat.replace("_", " ").title()
                 ui.success(f"  {creature.name} contributes: {display}")
                 helped = True
-            creature.can_give_materials.clear()
 
         # Trust bonus for the trip
         creature.add_trust(10)
@@ -871,6 +1084,9 @@ def _bay_repair(ctx: GameContext):
             ctx.repair_checklist[key] = True
             display = mat.replace("_", " ").title()
             ui.success(f"Installed {display} into ship repairs!")
+            if ctx.dev_mode:
+                done = sum(1 for v in ctx.repair_checklist.values() if v)
+                ctx.dev_mode.debug("repair_install", material=mat, progress=f"{done}/{len(ctx.repair_checklist)}")
 
 
 def _bay_storage(ctx: GameContext):
@@ -890,10 +1106,13 @@ def _bay_storage(ctx: GameContext):
     else:
         ui.dim("  Ship storage is empty.")
 
+    has_inv = bool(ctx.player.inventory)
     ui.console.print()
-    ui.console.print("  [cyan]1[/cyan]. Stash items (inventory → storage)")
-    ui.console.print("  [cyan]2[/cyan]. Retrieve items (storage → inventory)")
-    ui.console.print("  [cyan]3[/cyan]. Back")
+    ui.console.print("  [cyan]1[/cyan]. Stash items (inventory \u2192 storage)")
+    ui.console.print("  [cyan]2[/cyan]. Retrieve items (storage \u2192 inventory)")
+    if has_inv:
+        ui.console.print("  [cyan]3[/cyan]. Stash all items")
+    ui.console.print(f"  [cyan]{'4' if has_inv else '3'}[/cyan]. Back")
 
     try:
         choice = ui.console.input("\n[bold]> [/bold]").strip()
@@ -944,6 +1163,17 @@ def _bay_storage(ctx: GameContext):
                 ui.success(f"Retrieved {display} from storage.")
         except (ValueError, EOFError, KeyboardInterrupt):
             return
+
+    elif choice == "3" and has_inv:
+        stashed = []
+        for item in list(ctx.player.inventory.keys()):
+            qty = ctx.player.inventory[item]
+            for _ in range(qty):
+                ctx.player.stash_item(item)
+            stashed.append(f"{item.replace('_', ' ').title()} x{qty}")
+        ui.success(f"Stashed all: {', '.join(stashed)}")
+
+    # Back: "3" when no inventory, "4" when inventory exists — both just return
 
 
 # Items that can be cooked and what they produce
@@ -1154,6 +1384,8 @@ def cmd_rest(ctx: GameContext, args: str):
 
 def cmd_save(ctx: GameContext, args: str):
     slot = args.strip() if args.strip() else "manual"
+    if ctx.dev_mode:
+        ctx.dev_mode.debug("save", slot=slot, hours=ctx.player.hours_elapsed)
     save_game(
         slot,
         ctx.player,
@@ -1259,6 +1491,7 @@ COMMANDS = {
     "talk": cmd_talk,
     "speak": cmd_talk,
     "give": cmd_give,
+    "trade": cmd_trade,
     "escort": cmd_escort,
     "drone": cmd_drone,
     "upgrade": cmd_upgrade,

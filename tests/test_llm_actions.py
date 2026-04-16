@@ -120,12 +120,28 @@ class TestApplyActions:
         msgs = apply_actions([{"action": "REPAIR_SUIT"}], p, Drone(), c, {})
         assert len(msgs) == 0
 
-    def test_give_material(self):
+    def test_give_material_legacy_path(self):
+        """Legacy path: role_inventory empty, falls back to can_give_materials."""
         p = Player()
         c = _make_creature(trust=50, can_give_materials=["ice_crystal", "bio_gel"])
         msgs = apply_actions([{"action": "GIVE_MATERIAL", "item": "ice_crystal"}], p, Drone(), c, {})
         assert p.has_item("ice_crystal")
         assert "ice_crystal" not in c.can_give_materials
+        assert len(msgs) == 1
+
+    def test_give_material_role_inventory_path(self):
+        """Primary path: role_inventory populated, used instead of can_give_materials."""
+        p = Player()
+        c = _make_creature(
+            trust=50, archetype="Builder",
+            role_inventory=["metal_shard", "hull_patch"],
+            can_give_materials=["metal_shard", "hull_patch"],
+        )
+        msgs = apply_actions([{"action": "GIVE_MATERIAL", "item": "metal_shard"}], p, Drone(), c, {})
+        assert p.has_item("metal_shard")
+        assert "metal_shard" not in c.role_inventory
+        assert "metal_shard" not in c.can_give_materials  # synced
+        assert "metal_shard" in c.given_items
         assert len(msgs) == 1
 
     def test_give_material_unknown_item_ignored(self):
@@ -137,13 +153,77 @@ class TestApplyActions:
 
     def test_trust_guard_blocks_low_trust(self):
         p = Player(water=50.0)
-        c = _make_creature(trust=10)  # low trust
+        # Guardian has water threshold of 35 (default), so trust=10 blocks
+        c = _make_creature(trust=10, archetype="Guardian")
         msgs = apply_actions([{"action": "GIVE_WATER"}], p, Drone(), c, {})
         assert p.water == 50.0  # unchanged
         assert len(msgs) == 0
 
+    def test_healer_can_give_water_at_low_trust(self):
+        """Healers have trust threshold 10 for water — it's their calling."""
+        p = Player(water=50.0)
+        c = _make_creature(trust=10, archetype="Healer")
+        msgs = apply_actions([{"action": "GIVE_WATER"}], p, Drone(), c, {})
+        assert p.water == 100.0
+        assert len(msgs) == 1
+
     def test_medium_trust_allows_actions(self):
         p = Player(water=50.0)
-        c = _make_creature(trust=40)  # medium
+        c = _make_creature(trust=40)  # medium — meets default threshold 35
         apply_actions([{"action": "GIVE_WATER"}], p, Drone(), c, {})
         assert p.water == 100.0
+
+    def test_guardian_blocks_materials_below_70(self):
+        p = Player()
+        c = _make_creature(trust=60, archetype="Guardian", role_inventory=["power_cell"])
+        msgs = apply_actions([{"action": "GIVE_MATERIAL", "item": "power_cell"}], p, Drone(), c, {})
+        assert not p.has_item("power_cell")
+        assert len(msgs) == 0
+
+    def test_guardian_allows_materials_at_70(self):
+        p = Player()
+        c = _make_creature(trust=70, archetype="Guardian", role_inventory=["power_cell"])
+        msgs = apply_actions([{"action": "GIVE_MATERIAL", "item": "power_cell"}], p, Drone(), c, {})
+        assert p.has_item("power_cell")
+        assert len(msgs) == 1
+
+    def test_give_material_tracks_given_items(self):
+        p = Player()
+        c = _make_creature(trust=50, archetype="Builder", role_inventory=["metal_shard"])
+        apply_actions([{"action": "GIVE_MATERIAL", "item": "metal_shard"}], p, Drone(), c, {})
+        assert "metal_shard" in c.given_items
+        assert "metal_shard" not in c.role_inventory
+
+
+class TestTradeActions:
+    def test_parse_trade_tag(self):
+        _, actions = parse_actions("Let us trade. [TRADE:circuit_board:ice_crystal]")
+        assert len(actions) == 1
+        assert actions[0]["action"] == "TRADE"
+        assert actions[0]["offered"] == "circuit_board"
+        assert actions[0]["wanted"] == "ice_crystal"
+
+    def test_trade_applies(self):
+        p = Player()
+        p.add_item("ice_crystal")
+        c = _make_creature(trust=25, archetype="Merchant", role_inventory=["circuit_board"])
+        msgs = apply_actions(
+            [{"action": "TRADE", "offered": "circuit_board", "wanted": "ice_crystal"}],
+            p, Drone(), c, {},
+        )
+        assert p.has_item("circuit_board")
+        assert not p.has_item("ice_crystal")
+        assert "circuit_board" not in c.role_inventory
+        assert len(msgs) == 1
+
+    def test_trade_blocked_below_trust(self):
+        p = Player()
+        p.add_item("ice_crystal")
+        c = _make_creature(trust=15, archetype="Merchant", role_inventory=["circuit_board"])
+        msgs = apply_actions(
+            [{"action": "TRADE", "offered": "circuit_board", "wanted": "ice_crystal"}],
+            p, Drone(), c, {},
+        )
+        assert not p.has_item("circuit_board")
+        assert p.has_item("ice_crystal")
+        assert len(msgs) == 0

@@ -1,7 +1,16 @@
 """Tests for travel mechanics: time calculation, resource costs, and route suggestions."""
 
+import random
+
 from src.drone import Drone
-from src.travel import _find_closer_alternative, calculate_travel_time
+from src.player import Player
+from src.travel import (
+    HAZARD_EVENTS,
+    LATE_GAME_THRESHOLDS,
+    _find_closer_alternative,
+    calculate_travel_time,
+    execute_travel,
+)
 from src.world import Location
 
 
@@ -59,3 +68,42 @@ class TestFindCloserAlternative:
         locations = [dest, far]
         result = _find_closer_alternative(locations, dest)
         assert result is None
+
+
+class TestHazardEvents:
+    def test_hazard_events_defined(self):
+        assert len(HAZARD_EVENTS) >= 5
+        for h in HAZARD_EVENTS:
+            assert "message" in h
+            assert "effect" in h
+            assert "probability" in h
+            assert 0 < h["probability"] < 1
+
+    def test_hazards_can_damage_suit(self):
+        """With a rigged RNG that always triggers, suit should take damage."""
+        current = Location(name="Here", loc_type="plains", x=0, y=0, discovered=True, visited=True)
+        dest = Location(name="There", loc_type="ridge", x=10, y=0, discovered=True)
+
+        # Use a seed that produces low random values (more likely to trigger hazards)
+        # Run multiple times to statistically ensure at least one hazard triggers
+        damage_occurred = False
+        for seed in range(100):
+            p = Player(suit_integrity=92.0)
+            rng = random.Random(seed)
+            execute_travel(p, Drone(), dest, current, rng)
+            if p.suit_integrity < 92.0:
+                damage_occurred = True
+                break
+        assert damage_occurred, "At least one seed should trigger suit damage"
+
+
+class TestLateGameThresholds:
+    def test_thresholds_defined(self):
+        assert "short" in LATE_GAME_THRESHOLDS
+        assert "medium" in LATE_GAME_THRESHOLDS
+        assert "long" in LATE_GAME_THRESHOLDS
+
+    def test_late_game_threshold_values(self):
+        """Late-game thresholds should be reasonable per mode."""
+        assert LATE_GAME_THRESHOLDS["short"] < LATE_GAME_THRESHOLDS["medium"]
+        assert LATE_GAME_THRESHOLDS["medium"] < LATE_GAME_THRESHOLDS["long"]

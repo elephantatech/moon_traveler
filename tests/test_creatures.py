@@ -1,6 +1,6 @@
 """Tests for Creature state, trust, and serialization."""
 
-from src.creatures import Creature
+from src.creatures import GUARANTEED_ARCHETYPES, ROLE_CAPABILITIES, Creature
 
 
 def _make_creature(**overrides) -> Creature:
@@ -102,3 +102,113 @@ class TestSerialization:
         c = Creature.from_dict(d)
         assert c.following is False
         assert c.home_location is None
+
+    def test_round_trip_new_fields(self):
+        c = _make_creature(
+            role_inventory=["circuit_board", "antenna_array"],
+            given_items=["circuit_board"],
+            backstory="A test backstory.",
+            trade_wants=["ice_crystal"],
+        )
+        d = c.to_dict()
+        c2 = Creature.from_dict(d)
+        assert c2.role_inventory == ["circuit_board", "antenna_array"]
+        assert c2.given_items == ["circuit_board"]
+        assert c2.backstory == "A test backstory."
+        assert c2.trade_wants == ["ice_crystal"]
+
+    def test_from_dict_backwards_compat_no_role_inventory(self):
+        """Old saves without role_inventory should map can_give_materials."""
+        d = _make_creature(can_give_materials=["bio_gel", "metal_shard"]).to_dict()
+        del d["role_inventory"]
+        del d["given_items"]
+        del d["backstory"]
+        del d["trade_wants"]
+        c = Creature.from_dict(d)
+        assert c.role_inventory == ["bio_gel", "metal_shard"]
+        assert c.given_items == []
+        assert c.backstory == ""
+        assert c.trade_wants == []
+
+
+class TestTrustMeets:
+    def test_healer_heals_at_zero_trust(self):
+        c = _make_creature(archetype="Healer", trust=0)
+        assert c.trust_meets("heal") is True
+        assert c.trust_meets("repair_suit") is True
+
+    def test_healer_needs_trust_for_food(self):
+        c = _make_creature(archetype="Healer", trust=5)
+        assert c.trust_meets("food") is False
+        c.trust = 10
+        assert c.trust_meets("food") is True
+
+    def test_guardian_high_threshold_for_materials(self):
+        c = _make_creature(archetype="Guardian", trust=50)
+        assert c.trust_meets("materials") is False
+        c.trust = 70
+        assert c.trust_meets("materials") is True
+
+    def test_hermit_very_high_threshold(self):
+        c = _make_creature(archetype="Hermit", trust=79)
+        assert c.trust_meets("materials") is False
+        c.trust = 80
+        assert c.trust_meets("materials") is True
+
+    def test_merchant_trade_threshold(self):
+        c = _make_creature(archetype="Merchant", trust=19)
+        assert c.trust_meets("trade") is False
+        c.trust = 20
+        assert c.trust_meets("trade") is True
+
+
+class TestRoleCapabilities:
+    def test_all_archetypes_have_capabilities(self):
+        from src.data.names import PERSONALITY_ARCHETYPES
+        for archetype in PERSONALITY_ARCHETYPES:
+            assert archetype in ROLE_CAPABILITIES, f"Missing ROLE_CAPABILITIES for {archetype}"
+
+    def test_guaranteed_archetypes_defined(self):
+        for arch in GUARANTEED_ARCHETYPES:
+            assert arch in ROLE_CAPABILITIES
+
+
+class TestGenerateCreatures:
+    def test_guaranteed_spawns(self):
+        import random
+
+        from src.creatures import generate_creatures
+        from src.world import generate_world
+        world = generate_world("short", seed=42)
+        rng = random.Random(42)
+        creatures = generate_creatures(world, rng, required_materials=["ice_crystal", "metal_shard", "bio_gel"])
+        archetypes = [c.archetype for c in creatures]
+        for req in GUARANTEED_ARCHETYPES:
+            assert req in archetypes, f"Missing guaranteed archetype: {req}"
+
+    def test_guaranteed_archetypes_not_hostile(self):
+        import random
+
+        from src.creatures import generate_creatures
+        from src.world import generate_world
+        world = generate_world("medium", seed=99)
+        rng = random.Random(99)
+        creatures = generate_creatures(world, rng, required_materials=["ice_crystal", "metal_shard", "bio_gel"])
+        for c in creatures:
+            if c.archetype in GUARANTEED_ARCHETYPES:
+                assert c.disposition != "hostile", f"{c.archetype} should not be hostile"
+
+    def test_material_coverage(self):
+        import random
+
+        from src.creatures import generate_creatures
+        from src.world import generate_world
+        required = ["ice_crystal", "metal_shard", "bio_gel", "circuit_board", "power_cell"]
+        world = generate_world("medium", seed=77)
+        rng = random.Random(77)
+        creatures = generate_creatures(world, rng, required_materials=required)
+        covered = set()
+        for c in creatures:
+            covered.update(c.role_inventory)
+        for mat in required:
+            assert mat in covered, f"Missing material coverage: {mat}"

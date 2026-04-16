@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moon Traveler — The Story</title>
+  <meta name="description" content="The story behind Moon Traveler Terminal — crash-landed on Enceladus, surviving the ice, and earning the trust of alien creatures.">
+  <meta property="og:title" content="Moon Traveler — The Story">
+  <meta property="og:description" content="A routine survey run. A micrometeorite cluster. A dead ship on an alien moon.">
+  <meta property="og:image" content="assets/og-image.svg">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Hanken+Grotesk:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #0a0d18;
+      --deep: #111525;
+      --surface: #181d30;
+      --surface-border: rgba(140, 164, 190, 0.08);
+      --text: #b4bcd4;
+      --text-bright: #dce0ee;
+      --text-muted: #7c84a4;
+      --amber: #c89450;
+      --amber-dim: rgba(200, 148, 80, 0.06);
+      --ice: #8ca4be;
+      --red: #c85050;
+      --yellow: #c8a844;
+      --green: #5caa78;
+      --font-display: 'Chakra Petch', sans-serif;
+      --font-body: 'Hanken Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { font-size: 18px; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--void);
+      color: var(--text);
+      line-height: 1.9;
+      overflow-x: hidden;
+    }
+
+    /* Starfield */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        radial-gradient(1px 1px at 10% 20%, rgba(220,225,240,0.6) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 30% 60%, rgba(180,190,220,0.4) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 50% 10%, rgba(220,225,240,0.6) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 70% 40%, rgba(180,190,220,0.4) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 90% 80%, rgba(220,225,240,0.6) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 15% 90%, rgba(180,190,220,0.4) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 45% 45%, rgba(220,225,240,0.6) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 85% 15%, rgba(220,225,240,0.6) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 60% 75%, rgba(180,190,220,0.4) 0.5px, transparent 1px),
+        radial-gradient(1px 1px at 25% 35%, rgba(220,225,240,0.6) 0.5px, transparent 1px);
+      z-index: -2;
+    }
+
+    /* Saturn glow */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px; right: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(200, 148, 80, 0.04) 0%, transparent 60%);
+      border-radius: 50%;
+      z-index: -1;
+    }
+
+    /* Skip to content */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 16px;
+      z-index: 200;
+      padding: 12px 20px;
+      background: var(--amber);
+      color: var(--void);
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 16px; }
+
+    a { color: var(--amber); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--text-bright); }
+
+    :focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .story {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 80px 24px 120px;
+    }
+
+    .chapter {
+      margin-bottom: 80px;
+    }
+
+    .chapter-num {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      color: var(--amber);
+      margin-bottom: 40px;
+      letter-spacing: 3px;
+      line-height: 1.3;
+    }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--ice);
+      margin-bottom: 20px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+      max-width: 65ch;
+    }
+
+    .highlight {
+      color: var(--ice);
+    }
+
+    .warm {
+      color: var(--amber);
+    }
+
+    .dim {
+      color: var(--text-muted);
+    }
+
+    .system-log {
+      background: var(--deep);
+      border: 1px solid var(--surface-border);
+      padding: 20px 24px;
+      margin: 32px 0;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+    .system-log .label {
+      color: var(--amber);
+      font-weight: 500;
+    }
+
+    .separator {
+      text-align: center;
+      color: var(--text-muted);
+      margin: 60px 0;
+      font-size: 0.8rem;
+      letter-spacing: 8px;
+    }
+
+    /* Status readout in epilogue */
+    .status-critical { color: var(--red); }
+    .status-warning { color: var(--yellow); }
+    .status-ok { color: var(--ice); }
+    .status-good { color: var(--green); }
+
+    .cta {
+      text-align: center;
+      margin-top: 60px;
+    }
+    .cta a {
+      display: inline-block;
+      padding: 14px 32px;
+      background: var(--amber);
+      color: var(--void);
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 1px;
+      transition: background 0.2s;
+    }
+    .cta a:hover { background: #d8a462; }
+
+    .back-link {
+      display: inline-block;
+      text-align: center;
+      margin-top: 20px;
+      padding: 8px 0;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--amber); }
+
+    footer {
+      text-align: center;
+      padding: 28px 24px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .footer-meta {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    footer nav {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.5px;
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--amber); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 1.5rem; letter-spacing: 2px; }
+      .story { padding: 48px 20px 80px; }
+      .system-log { padding: 16px; font-size: 0.72rem; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<main id="main">
+<div class="story">
+
+  <!-- Prologue -->
+  <article class="chapter">
+    <div class="chapter-num">Prologue</div>
+    <h1>The Last Survey Run</h1>
+
+    <p>
+      The job was supposed to be simple. A three-week survey loop through the Saturnian system.
+      Map subsurface water tables on Enceladus, tag mineral deposits on Titan, file the reports,
+      collect the pay, fly home. You had done it eleven times before.
+    </p>
+
+    <p>
+      Your ship, the <span class="highlight">Meridian</span>, was a twenty-year-old survey shuttle held together by
+      aftermarket hull patches and stubbornness. She wasn't fast and she wasn't pretty, but her
+      sensors were sharp and her life support was reliable. For a solo operator working the outer
+      system, that was enough.
+    </p>
+
+    <p>
+      The trouble started past Titan, on the long arc toward Enceladus. A micrometeorite cluster
+      &mdash; the kind too small for the collision alert to flag, too dense to pass through cleanly.
+      The first impact cracked the starboard radiator. The second punched through the navigation
+      array. By the time the third sheared the main fuel line, you were already falling.
+    </p>
+
+    <div class="system-log" role="region" aria-label="Ship system alert">
+      <span class="label">ARIA SYSTEM v4.2.1</span><br>
+      COLLISION ALERT &mdash; MULTIPLE HULL BREACHES DETECTED<br>
+      PROPULSION: OFFLINE<br>
+      NAVIGATION: OFFLINE<br>
+      FUEL LINE INTEGRITY: 0%<br>
+      CALCULATING EMERGENCY DESCENT TRAJECTORY...<br>
+      TARGET: ENCELADUS &mdash; SOUTHERN HEMISPHERE<br>
+      IMPACT IN: 4 MINUTES 22 SECONDS<br>
+      <span class="label">BRACE FOR IMPACT</span>
+    </div>
+
+    <p>
+      ARIA did what she could. Vented the remaining fuel to slow your descent. Angled the ship
+      belly-first to spread the impact across the reinforced undercarriage. Deployed the emergency
+      crash bags around the cockpit three seconds before contact.
+    </p>
+
+    <p>
+      You hit the ice at 340 kilometers per hour.
+    </p>
+  </article>
+
+  <div class="separator">&middot; &middot; &middot;</div>
+
+  <!-- Chapter 1 -->
+  <article class="chapter">
+    <div class="chapter-num">Chapter I</div>
+    <h2>Waking in the Cold</h2>
+
+    <p>
+      The silence is what hits you first. Not the absence of sound &mdash; there's a thin whistle
+      of atmosphere through a cracked seal somewhere &mdash; but the absence of the <em>ship</em>.
+      No hum of the reactor. No click of the navigation computer cycling through waypoints. No
+      soft vibration of a vessel in flight.
+    </p>
+
+    <p>
+      The Meridian is dead.
+    </p>
+
+    <p>
+      You open your eyes to a cockpit painted in emergency red. The crash bags have deflated. Your
+      suit is intact &mdash; <span class="highlight">92% integrity</span>, according to the
+      heads-up display. Bruised ribs. Blood taste. But alive.
+    </p>
+
+    <p>
+      Through the fractured canopy, you see Enceladus. Not the way you've seen it on surveys &mdash;
+      a pale marble hanging in Saturn's amber light &mdash; but <em>up close</em>. Ice stretching
+      to every horizon. Geysers venting in the distance, their plumes catching faint sunlight before
+      freezing and drifting back down like slow-motion snow. The surface is cracked and ridged and
+      ancient, and the temperature outside is two hundred degrees below zero.
+    </p>
+
+    <p>
+      Saturn fills a quarter of the sky. Its rings are so bright they cast shadows on the ice.
+    </p>
+
+    <div class="system-log" role="region" aria-label="ARIA system dialogue">
+      <span class="label">ARIA:</span> Systems online. I've assessed the damage &mdash; it's
+      significant but recoverable.<br>
+      <span class="label">ARIA:</span> Hull integrity 23%. Propulsion, navigation, and
+      communications are offline.<br>
+      <span class="label">ARIA:</span> Life support is degraded but functional. Power is on
+      backup cells only.<br>
+      <span class="label">ARIA:</span> I am detecting biological signatures within scanning
+      range. You are not alone here, Commander.
+    </div>
+
+    <p>
+      You pull yourself out of the wreckage and stand on the ice. Your boots crunch through a
+      brittle crust into something softer beneath. The suit compensates for the cold, but you can
+      feel it pressing against the seals, patient and constant, looking for a way in.
+    </p>
+
+    <p>
+      Above the ship, a small drone detaches from the hull and hovers beside you. The ARIA Scout
+      Drone &mdash; your field companion. Scanner. Translator. The only voice you'll hear out here
+      besides your own.
+    </p>
+
+    <p class="dim">
+      "Online and operational. I'll handle translation, scanning, and keeping you alive."
+    </p>
+  </article>
+
+  <div class="separator">&middot; &middot; &middot;</div>
+
+  <!-- Chapter 2 -->
+  <article class="chapter">
+    <div class="chapter-num">Chapter II</div>
+    <h2>The Inhabitants</h2>
+
+    <p>
+      The survey reports mentioned them. <span class="highlight">Indigenous life forms</span>,
+      classified but not contacted. Silicate-based organisms adapted to extreme cold and low
+      gravity. The reports described them as "pre-industrial" and "non-threatening" and left it
+      at that.
+    </p>
+
+    <p>
+      The reports were wrong about the "non-threatening" part.
+    </p>
+
+    <p>
+      Not because they're violent. They're not. But they are <em>people</em>. They have families.
+      Settlements. Opinions. Grudges. They have Healers who tend the sick and Builders who raise
+      shelters from ice-crystal and scavenged metal. They have Merchants who know the value of
+      everything and Enforcers who keep order. They have Warriors who guard the borders and Hermits
+      who guard their solitude.
+    </p>
+
+    <p>
+      And they have every reason to distrust you.
+    </p>
+
+    <p>
+      You crashed on their moon. Uninvited. Your ship gouged a crater in their ice. Your presence
+      disrupts their patterns, worries their elders, frightens their young. Some will chase you
+      away with sharp words before you can open your mouth. Others will watch you from a distance,
+      waiting to see what kind of creature falls from the sky and whether it means harm.
+    </p>
+
+    <p>
+      A few &mdash; the curious ones, the compassionate ones &mdash; might talk to you. If you
+      listen. If you show respect. If you earn their trust one conversation at a time.
+    </p>
+
+    <p>
+      You need them. Your ship requires <span class="highlight">eight materials</span> to fly
+      again, and the creatures of Enceladus have most of them. Circuit boards scavenged from
+      ancient ruins. Thermal paste harvested from geyser vents. Antenna arrays that the Builders
+      keep in their workshops. You can't take these things by force. You can't buy them with money
+      that doesn't exist here. You can only ask &mdash; and hope they say yes.
+    </p>
+  </article>
+
+  <div class="separator">&middot; &middot; &middot;</div>
+
+  <!-- Chapter 3 -->
+  <article class="chapter">
+    <div class="chapter-num">Chapter III</div>
+    <h2>The Ice Is Patient</h2>
+
+    <p>
+      Enceladus doesn't care about your problems.
+    </p>
+
+    <p>
+      The geysers erupt without warning, blasting scalding vapor through ice you were standing on
+      a moment ago. The surface gives way into crevasses that swallow you to the waist. Ice storms
+      roll in off the northern plains and strip the moisture from your suit's external reserves.
+      Toxic vents seep through cracks that weren't there yesterday.
+    </p>
+
+    <p>
+      Every trip across the ice costs you. <span class="warm">Food. Water. Suit integrity.</span>
+      The numbers on your heads-up display tick downward with mechanical patience. Your suit's
+      bio-recyclers stretch what you have, but they can't create something from nothing. When the
+      food runs out, you get slow. When the water runs out, you get confused. When the suit fails,
+      the cold gets in, and the cold doesn't let go.
+    </p>
+
+    <p>
+      And the longer you stay, the worse it gets. The weather patterns shift. Storms grow more
+      frequent. The ice thins in places it shouldn't. ARIA calls it <span class="highlight">late-stage
+      atmospheric destabilization</span>. You call it running out of time.
+    </p>
+
+    <div class="system-log" role="region" aria-label="ARIA warning">
+      <span class="label">ARIA:</span> Commander, surface conditions are deteriorating. Hazard
+      probability is increasing by 5% per cycle.<br>
+      <span class="label">ARIA:</span> I recommend accelerating the repair timeline.<br>
+      <span class="label">ARIA:</span> Current water drain rate has increased by 0.5% per hour
+      due to atmospheric changes.<br>
+      <span class="label">ARIA:</span> I am... concerned.
+    </div>
+  </article>
+
+  <div class="separator">&middot; &middot; &middot;</div>
+
+  <!-- Chapter 4 -->
+  <article class="chapter">
+    <div class="chapter-num">Chapter IV</div>
+    <h2>The Choice</h2>
+
+    <p>
+      So here you are. Standing on an alien moon, 1.2 billion kilometers from the nearest cup of
+      coffee. Your ship is a wreck. Your supplies are finite. The ice is trying to kill you in six
+      different ways. And the only beings who can help you don't trust you yet.
+    </p>
+
+    <p>
+      You have two options.
+    </p>
+
+    <p>
+      <span class="warm">Fix the ship.</span> Scan the terrain. Travel to the settlements and
+      caves and ruins scattered across the ice. Find the creatures who live here. Talk to them.
+      Learn their names. Understand what they need and what they fear. Build trust. Trade fairly.
+      Ask for help. Earn it. Collect the materials. Carry them back. Install them one by one.
+      Watch the repair checklist shrink. Fire the thrusters. Rise from the ice. Go home.
+    </p>
+
+    <p>
+      Or don't. Stay too long. Run out of food in a canyon forty kilometers from the crash site.
+      Watch your suit integrity drop to single digits while an ice storm howls overhead.
+      <span class="dim">Collapse on the ice. See Saturn's rings one last time, shimmering
+      above. Let the cold take you.</span>
+    </p>
+
+    <p>
+      The ice doesn't care which one you choose.
+    </p>
+
+    <p>
+      But the creatures might.
+    </p>
+  </article>
+
+  <div class="separator">&middot; &middot; &middot;</div>
+
+  <!-- Epilogue -->
+  <article class="chapter">
+    <div class="chapter-num">Begin</div>
+    <h2>Your survival starts now.</h2>
+
+    <div class="system-log" role="region" aria-label="Ship status readout">
+      <span class="label">ARIA SYSTEM v4.2.1 &mdash; INITIALIZING</span><br><br>
+      Hull Integrity .............. <span class="status-critical">CRITICAL &mdash; 23%</span><br>
+      Life Support ............... <span class="status-warning">ONLINE &mdash; Degraded</span><br>
+      Propulsion ................. <span class="status-critical">OFFLINE</span><br>
+      Navigation ................. <span class="status-critical">OFFLINE</span><br>
+      Communications ............. <span class="status-critical">OFFLINE</span><br>
+      Power Grid ................. <span class="status-warning">BACKUP ONLY</span><br><br>
+      Surface Temp ............... <span class="status-ok">-201&deg;C</span><br>
+      Atmosphere ................. <span class="status-warning">Trace &mdash; Not breathable</span><br>
+      Biological Signatures ...... <span class="status-ok">DETECTED</span><br><br>
+      <span class="label">DEPLOYING ARIA SCOUT DRONE...</span><br>
+      <span class="status-good">CONNECTION ESTABLISHED</span>
+    </div>
+
+    <div class="cta">
+      <a href="index.html">Play Moon Traveler Terminal</a>
+    </div>
+    <p style="text-align:center">
+      <a href="index.html" class="back-link">Back to main page</a>
+    </p>
+  </article>
+
+</div>
+</main>
+
+<footer>
+  <p class="footer-meta">Moon Traveler Terminal &middot; v0.3.0 &middot; Apache 2.0</p>
+  <nav aria-label="Footer">
+    <a href="index.html">Home</a> &middot;
+    <a href="how-to-play.html">How to Play</a> &middot;
+    <a href="https://github.com/elephantatech/moon_traveler">GitHub</a> &middot;
+    <a href="https://github.com/elephantatech/moon_traveler/releases">Releases</a>
+  </nav>
+</footer>
+
+</body>
+</html>

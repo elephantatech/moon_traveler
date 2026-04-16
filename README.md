@@ -14,13 +14,18 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 
 - **Procedural world generation** with seeded RNG and chain-connected locations for replayable maps
 - **LLM-powered creature dialogue** using a local AI model (Qwen3.5 2B default, Gemma 4 E2B optional — auto-downloads on first run)
-- **Creature actions in conversation** — NPCs can give you food, water, materials, healing, and suit repair based on trust
-- **Escort system** — befriend creatures and bring them to your ship for hands-on repair help
-- **AI drone companion** that translates alien speech, gives tactical advice, and comments during travel
-- **Trust-based relationships** with 8 creature archetypes and 3 dispositions
-- **Ship bays** — Storage, Kitchen (cook items into food/water), Charging, Medical, and Repair
+- **Creature-centric gameplay** — creatures are the primary source of repair materials and survival resources, gated by role and trust
+- **10 creature archetypes** including Merchant (trades item-for-item) and Enforcer (advises who to talk to)
+- **Trade system** — barter with Merchant creatures for repair materials
+- **Escort system** — befriend creatures and bring them to your ship for hands-on repair help (per-companion dismiss)
+- **AI drone companion** with context-aware hints, alien speech translation, and travel commentary
+- **Hostile environment** — hazardous travel events (geyser eruptions, ice storms, crevasse falls) with late-game weather escalation
+- **Trust-based relationships** with role-specific thresholds (Healers heal at trust 0, Hermits need trust 80)
+- **Ship bays** — Storage (with stash-all), Kitchen, Charging, Medical, and Repair
 - **Survival mechanics** tracking food, water, suit integrity, and drone battery
-- **Live status bar** showing vitals, ship progress, creature info, and followers
+- **Live status bar** showing all vitals, inventory count, ship progress, creature info, and followers
+- **GPS with resource markers** showing food/water sources at visited locations
+- **Skip tutorial** option for returning players
 - **GPU acceleration** with automatic detection and user-selectable CPU/GPU mode
 - **Rich terminal UI** with styled text, progress bars, and ASCII art
 - **Save/load system** with silent auto-save and manual slots
@@ -59,24 +64,27 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 
 ## Installation
 
-### 1. Clone the repository
+### Quick install (pre-built binary)
 
+**macOS / Linux:**
 ```bash
-git clone https://github.com/your-username/moon-traveler-cli.git
-cd moon-traveler-cli
+curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash
 ```
 
-### 2. Install dependencies
-
-Using uv (recommended):
-```bash
-uv sync
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex
 ```
 
-Using pip:
+This downloads the latest release, extracts it, and adds `moon-traveler-cli` to your PATH. No Python required.
+
+### From source
+
 ```bash
-pip install -r requirements.txt
-pip install rich prompt_toolkit psutil
+git clone https://github.com/elephantatech/moon_traveler.git
+cd moon_traveler
+uv sync            # or: pip install -r requirements.txt
+python play.py
 ```
 
 ### 3. LLM Model (optional)
@@ -88,7 +96,7 @@ On first launch, the game offers to download an AI model:
 | **Qwen3.5 2B** (default) | 1.3 GB | ~2.3 GB | Good — best for most machines |
 | **Gemma 4 E2B** (optional) | 3.1 GB | ~4.4 GB | Very Good — richer dialogue |
 
-You can also place any `.gguf` model file manually in the `models/` directory. The game falls back to pre-written dialogue if no model is found.
+You can also place any `.gguf` model file manually in `~/.moonwalker/models/`. The game falls back to pre-written dialogue if no model is found.
 
 ## Running
 
@@ -116,7 +124,9 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 | `inventory` / `inv` | Show your inventory |
 | `talk <creature>` | Talk to a creature (LLM dialogue) |
 | `give <item> to <creature>` | Give an item to build trust |
-| `escort` | Ask a creature (trust 50+) to travel with you |
+| `trade` | Trade items with a Merchant creature |
+| `escort` | Ask a creature to travel with you / dismiss companions |
+| `rest` | Rest for 1 hour to recover food/water |
 | `drone` | Show drone status |
 | `upgrade <component>` | Install a drone upgrade |
 | `status` | Show food, water, suit, and repair progress |
@@ -140,7 +150,7 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 
 ### Winning
 
-Collect all required repair materials, bring them to the Crash Site, and install them via `ship repair`. Escort friendly creatures to the ship — Builders and Healers actively help with repairs.
+Build trust with creatures to obtain repair materials through conversation and trade. Bring materials to the Crash Site and install them via `ship repair`. Escort friendly creatures to the ship — Builders install materials, Healers restore your vitals.
 
 <p align="center">
   <img src="assets/screenshot-ship-bays-menu.svg" alt="Ship Bays" width="700"/>
@@ -148,13 +158,14 @@ Collect all required repair materials, bring them to the Crash Site, and install
 
 ### Survival Tips
 
-- Watch your food and water — they deplete during travel
+- Watch your food and water — they deplete during travel, and hazards can drain them further
+- Creatures are your main source of repair materials — build trust to unlock their help
+- Healers help at very low trust (it's their calling) — find one early for survival
+- Trade with Merchants — they always want something in return but have valuable materials
+- Ask the Enforcer who can help with your ship — they know everyone in the area
 - Cook bio_gel (food) and ice_crystal (water) at the ship's Kitchen Bay
-- Ask creatures for food/water during conversation — they'll share at medium+ trust
-- Escort Healers to the ship for free suit repair and vital restoration
-- The drone's battery drains during scanning and travel; recharge at the Crash Site
-- Build trust by having conversations (+3 per exchange) and giving gifts (+10-15)
-- Use Ship Storage to stash items and free up drone cargo for exploration
+- Use Ship Storage's "stash all" to quickly free up drone cargo for exploration
+- Late-game weather gets worse — finish repairs before conditions deteriorate
 
 ## Game Modes
 
@@ -163,6 +174,35 @@ Collect all required repair materials, bring them to the Crash Site, and install
 | Short | ~8 | 5 | ~20 km | ~30 min |
 | Medium | ~16 | 12 | ~40 km | ~1-2 hours |
 | Long | ~30 | 20 | ~60 km | ~3+ hours |
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| **Model download fails** | Manually place any `.gguf` file in `~/.moonwalker/models/` |
+| **GPU not detected** | Game auto-falls back to CPU. Check CUDA/Metal/Vulkan drivers if you want GPU acceleration |
+| **Model won't load / crashes** | Game continues with pre-written fallback dialogue. Delete and re-download the model |
+| **Dialogue feels repetitive** | Run `dev` to check if LLM is loaded (`model_loaded: true` in log). Upgrade the Translator Chip |
+| **Game hangs during conversation** | LLM inference can be slow on CPU. Press `Ctrl+C` to exit safely. Progress is auto-saved |
+| **Where are save files?** | `~/.moonwalker/saves/` (SQLite). Run `config` to view/change location |
+
+### User Data
+
+All persistent data is stored in `~/.moonwalker/` by default:
+
+```
+~/.moonwalker/
+  config.json       # game configuration
+  saves/            # save files (SQLite)
+  models/           # downloaded AI models (.gguf)
+  dev/              # dev mode diagnostic logs
+```
+
+### Dev Mode
+
+Type `dev` in-game to toggle developer diagnostics. Logs game state, creature details, chat history, LLM status, and event tracking to `~/.moonwalker/dev/dev_diagnostics.jsonl` (JSON Lines format). Use `/history` during conversations to view the last 10 exchanges with a creature.
+
+See **[HOW_TO_PLAY.md](HOW_TO_PLAY.md#troubleshooting)** for the full troubleshooting guide and dev mode reference.
 
 ## Building a Release
 
@@ -186,7 +226,7 @@ python -m pytest tests/ -v
 
 The project uses [ruff](https://github.com/astral-sh/ruff) for linting:
 ```bash
-ruff check src/
+ruff check src/ tests/
 ```
 
 ## Project Structure
@@ -198,22 +238,21 @@ moon-traveler-cli/
     game.py            Main game loop, init, win/lose
     world.py           Procedural world generation
     player.py          Player state, inventory, survival meters
-    creatures.py       Creature generation, trust, dialogue
-    drone.py           Drone: scanning, speech, translation, advice
-    travel.py          Movement, events, drone musings
-    commands.py        Command registry, NPC chat with drone interjections
-    llm.py             LLM interface, GPU detection
+    creatures.py       Creature generation, roles, trust, dialogue
+    drone.py           Drone: scanning, speech, translation, smart advice
+    travel.py          Movement, hazard events, late-game weather
+    commands.py        Command registry, NPC chat, trade, escort
+    llm.py             LLM interface, GPU detection, action tags
     ship_ai.py         ARIA ship AI: warnings, summaries
     ui.py              Rich console output, ASCII art
     tutorial.py        Boot sequence, guided tutorial
-    save_load.py       JSON serialization
+    save_load.py       SQLite save/load
     input_handler.py   Autocomplete
-    dev_mode.py        Developer panel
+    dev_mode.py        Developer diagnostics (JSON log)
     data/
       names.py         Name pools
       prompts.py       LLM prompts + drone message pools
-  models/              GGUF model files
-  saves/               Save game files
+  ~/.moonwalker/       User data (saves, models, config, dev logs)
   tests/               Test suite
   scripts/             Build and release scripts
 ```

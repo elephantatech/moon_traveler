@@ -85,17 +85,21 @@ class ShipAI:
 
     # --- Post-travel summary ---
 
-    def post_travel_summary(self, player, drone, hours: int, distance: float) -> str:
-        food_cost = hours * 2.0
-        water_cost = hours * 3.0
-        suit_cost = hours * 0.5
-        batt_cost = distance * 0.5
+    def post_travel_summary(
+        self, player, drone,
+        food_before: float = 0, water_before: float = 0,
+        suit_before: float = 0, batt_before: float = 0,
+    ) -> str:
+        food_lost = food_before - player.food
+        water_lost = water_before - player.water
+        suit_lost = suit_before - player.suit_integrity
+        batt_lost = batt_before - drone.battery
         return self.speak(
             f"Arrived at {player.location_name}. "
-            f"Food: {player.food:.0f}% (-{food_cost:.0f}) | "
-            f"Water: {player.water:.0f}% (-{water_cost:.0f}) | "
-            f"Suit: {player.suit_integrity:.0f}% (-{suit_cost:.0f}) | "
-            f"Battery: {drone.battery:.0f}% (-{batt_cost:.0f})"
+            f"Food: {player.food:.0f}% (-{food_lost:.0f}) | "
+            f"Water: {player.water:.0f}% (-{water_lost:.0f}) | "
+            f"Suit: {player.suit_integrity:.0f}% (-{suit_lost:.0f}) | "
+            f"Battery: {drone.battery:.0f}% (-{batt_lost:.0f})"
         )
 
     # --- Objective reminder (periodic) ---
@@ -125,7 +129,9 @@ class ShipAI:
     @classmethod
     def from_dict(cls, d: dict) -> "ShipAI":
         ai = cls()
-        ai.warnings_given = {k: set(v) for k, v in d.get("warnings_given", {}).items()}
+        # Merge loaded warnings into defaults so all keys exist (old saves may be missing some)
+        loaded = {k: set(v) for k, v in d.get("warnings_given", {}).items()}
+        ai.warnings_given = {**ai.warnings_given, **loaded}
         ai.command_count = d.get("command_count", 0)
         ai.boot_complete = d.get("boot_complete", True)
         return ai

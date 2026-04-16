@@ -92,18 +92,6 @@ def show_crash():
     console.print(CRASH_ART)
 
 
-def narrate(text: str, style: str = "italic", delay: float = 0.02):
-    """Print text character-by-character for narrative effect."""
-    import sys as _sys
-
-    for i in range(len(text)):
-        _sys.stdout.write(f"\r  {text[:i+1]}")
-        _sys.stdout.flush()
-        time.sleep(delay)
-    _sys.stdout.write("\n")
-    _sys.stdout.flush()
-
-
 def narrate_lines(lines: list[str], style: str = "italic", pause: float = 0.5):
     """Print multiple lines with pauses between them."""
     for line in lines:
@@ -188,6 +176,7 @@ def show_gps(locations: list[dict], player_x: float, player_y: float):
     table.add_column("Location", style="cyan")
     table.add_column("Type", style="dim")
     table.add_column("Dist (km)", justify="right", style="yellow")
+    table.add_column("Resources", style="green")
     table.add_column("Coords", style="dim")
 
     for loc in sorted(locations, key=lambda x: x["distance"]):
@@ -195,7 +184,13 @@ def show_gps(locations: list[dict], player_x: float, player_y: float):
         coord_str = f"({loc['x']:.0f}, {loc['y']:.0f})"
         type_str = loc["type"].replace("_", " ")
         marker = " [bold green]<< YOU[/bold green]" if loc["distance"] < 0.1 else ""
-        table.add_row(loc["name"] + marker, type_str, dist_str, coord_str)
+        resources = []
+        if loc.get("food_source"):
+            resources.append("\U0001f34e")
+        if loc.get("water_source"):
+            resources.append("\U0001f6b0")
+        resource_str = " ".join(resources)
+        table.add_row(loc["name"] + marker, type_str, dist_str, resource_str, coord_str)
     console.print(table)
 
 
@@ -290,16 +285,6 @@ def show_ship_repair(checklist: dict):
 
 def creature_speak(name: str, text: str, color: str = "green"):
     console.print(f"  [{color}]{name}:[/{color}] {text}")
-
-
-def drone_speak(text: str):
-    """Print drone-formatted speech."""
-    console.print(f"[bold magenta]DRONE:[/bold magenta] [white]{text}[/white]")
-
-
-def drone_whisper(text: str):
-    """Print a private drone message (only the player sees this)."""
-    console.print(f"  [dim magenta]< DRONE >[/dim magenta] [dim italic]{text}[/dim italic]")
 
 
 def travel_progress(destination: str, duration: float):
@@ -410,6 +395,10 @@ def render_status_bar(
         rem = hours % 24
         time_str = f"{days}d{rem}h"
 
+    # Inventory count
+    inv_count = player.total_items
+    inv_max = drone.cargo_capacity
+
     if location_type == "crash_site":
         # Full vitals at Crash Site
         line = (
@@ -419,6 +408,7 @@ def render_status_bar(
             f"[dim]Suit[/dim] {suit_bar} [dim]{player.suit_integrity:.0f}%[/dim]  "
             f"[dim]Batt[/dim] {batt_bar} [dim]{drone.battery:.0f}%[/dim]  "
             f"[{repair_color}]Ship {done}/{total}[/{repair_color}]  "
+            f"[dim]Inv {inv_count}/{inv_max}[/dim]  "
             f"[dim]⏱ {time_str}[/dim]"
         )
         console.print(line)
@@ -437,14 +427,13 @@ def render_status_bar(
             bays.append("[green]Repair:Done[/green]")
         console.print(f" [dim]🔧 Ship Bays:[/dim] {' │ '.join(bays)}")
     else:
-        # Exploring bar — always show suit/battery, show food/water when low
+        # Exploring bar — always show all vitals for ambient awareness
         parts = [f" {env_icon} "]
-        if player.food <= 50:
-            parts.append(f"[dim]Food[/dim] {food_bar} [dim]{player.food:.0f}%[/dim]  ")
-        if player.water <= 50:
-            parts.append(f"[dim]Water[/dim] {water_bar} [dim]{player.water:.0f}%[/dim]  ")
+        parts.append(f"[dim]Food[/dim] {food_bar} [dim]{player.food:.0f}%[/dim]  ")
+        parts.append(f"[dim]Water[/dim] {water_bar} [dim]{player.water:.0f}%[/dim]  ")
         parts.append(f"[dim]Suit[/dim] {suit_bar} [dim]{player.suit_integrity:.0f}%[/dim]  ")
         parts.append(f"[dim]Batt[/dim] {batt_bar} [dim]{drone.battery:.0f}%[/dim]  ")
+        parts.append(f"[dim]Inv {inv_count}/{inv_max}[/dim]  ")
         parts.append(f"[dim]⏱ {time_str}[/dim]")
         console.print("".join(parts))
 

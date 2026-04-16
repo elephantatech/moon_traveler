@@ -1,229 +1,254 @@
-"""Developer diagnostics overlay — session-only, not saved."""
+"""Developer diagnostics — logs game state to a JSON log file."""
 
+import json
 import math
-
-from rich.table import Table
-from rich.tree import Tree
+import os
+import time
+from pathlib import Path
 
 from src import ui
+from src.config import get_data_dir
+
+# Log location: ~/.moonwalker/dev/
+DEV_LOG_DIR = get_data_dir() / "dev"
+DEV_LOG_FILE = DEV_LOG_DIR / "dev_diagnostics.jsonl"
 
 
 class DevMode:
-    """Toggle-able diagnostics panel. Session-only — never persisted."""
+    """Toggle-able diagnostics logger. Writes JSON lines to a log file."""
 
     def __init__(self):
         self.enabled = False
+        self.log_path = DEV_LOG_FILE
 
     def toggle(self):
         self.enabled = not self.enabled
+        if self.enabled:
+            DEV_LOG_DIR.mkdir(parents=True, exist_ok=True)
+            ui.success(f"Dev mode ON — logging to {self.log_path}")
+        else:
+            ui.info("Dev mode OFF — logging stopped.")
+
+    def debug(self, event: str, **data):
+        """Write a debug log entry. No-op when dev mode is off. Never crashes the game."""
+        if not self.enabled:
+            return
+        entry = {
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S.") + f"{time.time() % 1:.3f}"[2:],
+            "level": "DEBUG",
+            "event": event,
+            **data,
+        }
+        try:
+            DEV_LOG_DIR.mkdir(parents=True, exist_ok=True)
+            with open(self.log_path, "a") as f:
+                f.write(json.dumps(entry, default=str) + "\n")
+        except OSError:
+            pass  # Never crash the game due to logging failure
 
     def render_panel(self, ctx):
-        """Print a diagnostics table with system + game state info."""
+        """Log diagnostics to JSON file. Never crashes the game."""
         if not self.enabled:
             return
 
-        table = Table(
-            title="DEV — Diagnostics",
-            border_style="bright_black",
-            show_header=False,
-            padding=(0, 1),
-        )
-        table.add_column("Key", style="dim")
-        table.add_column("Value")
+        try:
+            entry = {
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "event": "diagnostics",
+                "system": _system_metrics_dict(),
+                "game": _game_state_dict(ctx),
+                "locations": _locations_dict(ctx),
+                "creatures": _creatures_dict(ctx),
+                "scan_tree": _scan_tree_dict(ctx),
+                "chat_history": _chat_history_dict(ctx),
+            }
 
-        # --- System metrics ---
-        ram_str, cpu_str = _system_metrics()
-        table.add_row("RAM (RSS)", ram_str)
-        table.add_row("CPU", cpu_str)
-        table.add_row("", "")  # spacer
-
-        # --- Game state ---
-        table.add_row("Mode", ctx.world_mode)
-        table.add_row("Seed", str(ctx.world_seed))
-        table.add_row("Location", ctx.player.location_name)
-        table.add_row("Food / Water", f"{ctx.player.food:.0f}% / {ctx.player.water:.0f}%")
-        table.add_row("Hours", str(ctx.player.hours_elapsed))
-        table.add_row("Inventory", str(ctx.player.total_items))
-        table.add_row("", "")
-
-        # --- World ---
-        known = len(ctx.player.known_locations)
-        total_locs = len(ctx.locations)
-        table.add_row("Locations", f"{known} known / {total_locs} total")
-        table.add_row("Drone Battery", f"{ctx.drone.battery:.0f}%")
-        table.add_row("", "")
-
-        # --- Creatures + trust ---
-        for c in ctx.creatures:
-            trust_color = "green" if c.trust >= 70 else "yellow" if c.trust >= 35 else "red"
-            disp_tag = {"friendly": "[green]F[/green]", "neutral": "[yellow]N[/yellow]", "hostile": "[red]H[/red]"}
-            tag = disp_tag.get(c.disposition, "?")
-            helped = " *" if c.has_helped_repair else ""
-            table.add_row(
-                f"{c.name} {tag}",
-                f"[{trust_color}]{c.trust}/100[/{trust_color}]{helped}",
-            )
-        table.add_row("", "")
-
-        # --- Repair ---
-        done = sum(1 for v in ctx.repair_checklist.values() if v)
-        total = len(ctx.repair_checklist)
-        table.add_row("Repair", f"{done}/{total}")
-
-        # --- Tutorial ---
-        if ctx.tutorial:
-            table.add_row("Tutorial", ctx.tutorial.step.name)
-
-        # --- LLM ---
-        from src import llm
-
-        table.add_row("LLM", "loaded" if llm._llm_available else "unavailable")
-
-        ui.console.print(table)
-
-        # --- Location details table ---
-        loc_table = Table(
-            title="DEV — Locations",
-            border_style="bright_black",
-            padding=(0, 1),
-        )
-        loc_table.add_column("#", style="dim", justify="right")
-        loc_table.add_column("Name", style="cyan")
-        loc_table.add_column("Type", style="dim")
-        loc_table.add_column("Coords", style="dim")
-        loc_table.add_column("Dist", justify="right")
-        loc_table.add_column("Status")
-        loc_table.add_column("Items", style="yellow")
-        loc_table.add_column("Creature", style="green")
-
-        cur = ctx.current_location()
-        sorted_locs = sorted(ctx.locations, key=lambda loc: cur.distance_to(loc.x, loc.y))
-        for i, loc in enumerate(sorted_locs, 1):
-            d = cur.distance_to(loc.x, loc.y)
-            dist_str = f"{d:.1f} km" if d > 0.01 else "HERE"
-
-            if loc.visited:
-                status = "[green]visited[/green]"
-            elif loc.discovered:
-                status = "[yellow]known[/yellow]"
-            else:
-                status = "[red]hidden[/red]"
-
-            items_str = ", ".join(loc.items) if loc.items else "[dim]-[/dim]"
-            creature = ctx.creature_at_location(loc.name)
-            creature_str = f"{creature.name} ({creature.disposition[0].upper()})" if creature else "[dim]-[/dim]"
-
-            # Add food/water source markers
-            markers = []
-            if loc.food_source:
-                markers.append("F")
-            if loc.water_source:
-                markers.append("W")
-            type_str = loc.loc_type.replace("_", " ")
-            if markers:
-                type_str += f" [green]{''.join(markers)}[/green]"
-
-            loc_table.add_row(
-                str(i), loc.name, type_str, f"({loc.x:.0f},{loc.y:.0f})",
-                dist_str, status, items_str, creature_str,
-            )
-
-        ui.console.print(loc_table)
-
-        # --- Scan reachability tree ---
-        self._render_scan_tree(ctx)
-
-        # --- Chat history ---
-        self._render_chat_history(ctx)
+            DEV_LOG_DIR.mkdir(parents=True, exist_ok=True)
+            with open(self.log_path, "a") as f:
+                f.write(json.dumps(entry, default=str) + "\n")
+        except Exception:
+            pass  # Never crash the game due to logging failure
 
     def _render_scan_tree(self, ctx):
-        """Render a tree showing scan reachability from the current location."""
-        cur = ctx.current_location()
-        scanner_range = ctx.drone.scanner_range
+        """No-op: scan tree is now included in the JSON log."""
 
-        tree = Tree(f"[bold cyan]{cur.name}[/bold cyan] [dim](scan range: {scanner_range} km)[/dim]")
+    def _render_chat_history(self, ctx):
+        """No-op: chat history is now included in the JSON log."""
 
-        # Find locations scannable from current position
-        scannable = []
-        for loc in ctx.locations:
-            if loc.name == cur.name:
-                continue
-            d = cur.distance_to(loc.x, loc.y)
-            if d <= scanner_range:
-                scannable.append((loc, d))
 
-        scannable.sort(key=lambda x: x[1])
+def _system_metrics_dict() -> dict:
+    """Return system metrics as a plain dict for JSON logging."""
+    result = {
+        "ram_rss_mb": None,
+        "ram_vms_mb": None,
+        "system_ram_total_gb": None,
+        "system_ram_used_gb": None,
+        "system_ram_percent": None,
+        "cpu_percent": None,
+        "model_ram_estimate_mb": None,
+        "model_file_size_mb": None,
+        "model_loaded": False,
+    }
+    try:
+        import psutil
 
-        for loc, d in scannable:
-            known = loc.name in ctx.player.known_locations
-            if known:
-                label = f"[green]{loc.name}[/green] [dim]({d:.1f} km · known)[/dim]"
-            else:
-                label = f"[yellow]{loc.name}[/yellow] [dim]({d:.1f} km · undiscovered)[/dim]"
+        proc = psutil.Process()
+        mem = proc.memory_info()
+        result["ram_rss_mb"] = round(mem.rss / (1024 * 1024), 1)
+        result["ram_vms_mb"] = round(mem.vms / (1024 * 1024), 1)
 
-            branch = tree.add(label)
+        sys_mem = psutil.virtual_memory()
+        result["system_ram_total_gb"] = round(sys_mem.total / (1024**3), 1)
+        result["system_ram_used_gb"] = round(sys_mem.used / (1024**3), 1)
+        result["system_ram_percent"] = sys_mem.percent
 
-            # Show what's scannable from THAT location (depth 2)
+        result["cpu_percent"] = round(proc.cpu_percent(interval=0.05), 1)
+    except (ImportError, Exception):
+        pass
+
+    try:
+        from src import llm
+        if llm._llm_available and llm._llm_model is not None:
+            result["model_loaded"] = True
+            model_path = getattr(llm._llm_model, "model_path", None)
+            if model_path:
+                try:
+                    size_mb = os.path.getsize(model_path) / (1024 * 1024)
+                    result["model_file_size_mb"] = round(size_mb, 0)
+                    result["model_ram_estimate_mb"] = round(size_mb * 1.3, 0)
+                except OSError:
+                    pass
+    except Exception:
+        pass
+
+    return result
+
+
+def _game_state_dict(ctx) -> dict:
+    """Return core game state as a dict."""
+    done = sum(1 for v in ctx.repair_checklist.values() if v)
+    total = len(ctx.repair_checklist)
+
+    from src import llm
+
+    return {
+        "mode": ctx.world_mode,
+        "seed": ctx.world_seed,
+        "location": ctx.player.location_name,
+        "food": round(ctx.player.food, 1),
+        "water": round(ctx.player.water, 1),
+        "suit_integrity": round(ctx.player.suit_integrity, 1),
+        "hours_elapsed": ctx.player.hours_elapsed,
+        "inventory_count": ctx.player.total_items,
+        "inventory_capacity": ctx.drone.cargo_capacity,
+        "drone_battery": round(ctx.drone.battery, 1),
+        "locations_known": len(ctx.player.known_locations),
+        "locations_total": len(ctx.locations),
+        "repair_done": done,
+        "repair_total": total,
+        "repair_checklist": {k: v for k, v in ctx.repair_checklist.items()},
+        "tutorial_step": ctx.tutorial.step.name if ctx.tutorial else "N/A",
+        "llm_available": llm._llm_available,
+    }
+
+
+def _locations_dict(ctx) -> list[dict]:
+    """Return all locations as a list of dicts."""
+    cur = ctx.current_location()
+    result = []
+    sorted_locs = sorted(ctx.locations, key=lambda loc: cur.distance_to(loc.x, loc.y))
+    for loc in sorted_locs:
+        d = cur.distance_to(loc.x, loc.y)
+        creature = ctx.creature_at_location(loc.name)
+        result.append({
+            "name": loc.name,
+            "type": loc.loc_type,
+            "x": loc.x,
+            "y": loc.y,
+            "distance_km": round(d, 1),
+            "discovered": loc.discovered,
+            "visited": loc.visited,
+            "items": list(loc.items),
+            "food_source": loc.food_source,
+            "water_source": loc.water_source,
+            "creature": creature.name if creature else None,
+        })
+    return result
+
+
+def _creatures_dict(ctx) -> list[dict]:
+    """Return all creatures as a list of dicts."""
+    result = []
+    for c in ctx.creatures:
+        result.append({
+            "name": c.name,
+            "species": c.species,
+            "archetype": c.archetype,
+            "disposition": c.disposition,
+            "location": c.location_name,
+            "trust": c.trust,
+            "trust_level": c.trust_level,
+            "following": c.following,
+            "has_helped_repair": c.has_helped_repair,
+            "role_inventory": list(c.role_inventory),
+            "given_items": list(c.given_items),
+            "can_give_materials": list(c.can_give_materials),
+            "trade_wants": list(c.trade_wants),
+            "knows_food_source": c.knows_food_source,
+            "knows_water_source": c.knows_water_source,
+            "conversation_count": len(c.conversation_history),
+        })
+    return result
+
+
+def _scan_tree_dict(ctx) -> dict:
+    """Return scan reachability from current location."""
+    cur = ctx.current_location()
+    scanner_range = ctx.drone.scanner_range
+    scannable = []
+    for loc in ctx.locations:
+        if loc.name == cur.name:
+            continue
+        d = cur.distance_to(loc.x, loc.y)
+        if d <= scanner_range:
+            # Depth-2: what's scannable from that location
+            reachable_from = []
             for loc2 in ctx.locations:
                 if loc2.name in (cur.name, loc.name):
                     continue
                 d2 = math.sqrt((loc.x - loc2.x) ** 2 + (loc.y - loc2.y) ** 2)
                 if d2 <= scanner_range:
-                    k2 = loc2.name in ctx.player.known_locations
-                    style = "green" if k2 else "red"
-                    branch.add(f"[{style}]{loc2.name}[/{style}] [dim]({d2:.1f} km)[/dim]")
-
-        if not scannable:
-            tree.add("[dim]No locations in scan range[/dim]")
-
-        ui.console.print(tree)
-
-    def _render_chat_history(self, ctx):
-        """Show conversation history for all creatures that have been spoken to."""
-        creatures_with_history = [c for c in ctx.creatures if c.conversation_history]
-        if not creatures_with_history:
-            return
-
-        from rich.panel import Panel
-
-        ui.console.print()
-        for creature in creatures_with_history:
-            lines = []
-            for msg in creature.conversation_history:
-                role = msg["role"]
-                content = msg["content"]
-                if len(content) > 80:
-                    content = content[:77] + "..."
-                if role == "user":
-                    lines.append(f"[bold]You>[/bold] {content}")
-                else:
-                    lines.append(f"[{creature.color}]{creature.name}>[/{creature.color}] {content}")
-
-            trust_color = "green" if creature.trust >= 70 else "yellow" if creature.trust >= 35 else "red"
-            title = (
-                f"[{creature.color}]{creature.name}[/{creature.color}] "
-                f"[dim]({creature.species} · {creature.archetype})[/dim] "
-                f"[{trust_color}]Trust: {creature.trust}/100[/{trust_color}] "
-                f"[dim]({len(creature.conversation_history)} msgs)[/dim]"
-            )
-            ui.console.print(Panel(
-                "\n".join(lines),
-                title=title,
-                border_style="bright_black",
-                padding=(0, 1),
-            ))
+                    reachable_from.append({
+                        "name": loc2.name,
+                        "distance_km": round(d2, 1),
+                        "known": loc2.name in ctx.player.known_locations,
+                    })
+            scannable.append({
+                "name": loc.name,
+                "distance_km": round(d, 1),
+                "known": loc.name in ctx.player.known_locations,
+                "reachable_from": reachable_from,
+            })
+    return {
+        "current": cur.name,
+        "scanner_range_km": scanner_range,
+        "scannable": scannable,
+    }
 
 
-def _system_metrics() -> tuple[str, str]:
-    """Return (ram_str, cpu_str). Gracefully handles missing psutil."""
-    try:
-        import psutil
-
-        proc = psutil.Process()
-        ram_mb = proc.memory_info().rss / (1024 * 1024)
-        cpu = proc.cpu_percent(interval=0.05)
-        return f"{ram_mb:.1f} MB", f"{cpu:.1f}%"
-    except ImportError:
-        return "psutil not installed", "psutil not installed"
-    except Exception as e:
-        return f"error: {e}", f"error: {e}"
+def _chat_history_dict(ctx) -> list[dict]:
+    """Return conversation history for creatures that have been spoken to."""
+    result = []
+    for c in ctx.creatures:
+        if not c.conversation_history:
+            continue
+        messages = []
+        for msg in c.conversation_history:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+        result.append({
+            "creature": c.name,
+            "trust": c.trust,
+            "message_count": len(c.conversation_history),
+            "messages": messages,
+        })
+    return result
