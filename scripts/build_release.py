@@ -23,11 +23,13 @@ Output:
 """
 
 import argparse
+import hashlib
 import os
 import platform
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -35,7 +37,9 @@ DIST_DIR = PROJECT_ROOT / "dist"
 BUILD_DIR = PROJECT_ROOT / "build"
 APP_NAME = "moon-traveler-cli"
 ENTRY_POINT = PROJECT_ROOT / "play.py"
-VERSION = "0.1.0"
+
+with open(PROJECT_ROOT / "pyproject.toml", "rb") as _f:
+    VERSION = tomllib.load(_f)["project"]["version"]
 
 
 def detect_platform() -> str:
@@ -101,6 +105,9 @@ def build_executable(target_platform: str):
         "--hidden-import", "rich",
         "--hidden-import", "prompt_toolkit",
         "--hidden-import", "psutil",
+        "--hidden-import", "llama_cpp",
+        "--hidden-import", "jinja2",
+        "--hidden-import", "markupsafe",
         # Output directories
         "--distpath", str(DIST_DIR / output_name),
         "--workpath", str(BUILD_DIR / output_name),
@@ -130,8 +137,8 @@ def build_executable(target_platform: str):
 
     # Create a README for the models directory
     (models_dir / "PLACE_MODEL_HERE.txt").write_text(
-        "Place your GGUF model file here.\n"
-        "Expected: gemma-4-E2B-it-Q4_K_M.gguf\n"
+        "Place your GGUF model file here, or let the game download it on first run.\n"
+        "Expected: gemma-4-E2B-it-Q4_K_M.gguf (~2.9 GB)\n"
         "Any .gguf file will work. The game falls back to\n"
         "pre-written dialogue if no model is found.\n"
     )
@@ -146,6 +153,17 @@ def build_executable(target_platform: str):
     return True
 
 
+def _write_checksum(filepath: Path):
+    """Write a SHA-256 checksum file alongside the archive."""
+    sha256 = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            sha256.update(chunk)
+    checksum_path = filepath.with_suffix(filepath.suffix + ".sha256")
+    checksum_path.write_text(f"{sha256.hexdigest()}  {filepath.name}\n")
+    print(f"  Checksum: {checksum_path}")
+
+
 def create_release_archive(target_platform: str):
     """Create a zip/tar.gz archive of the built release."""
     output_name = f"{APP_NAME}-{target_platform}"
@@ -158,13 +176,15 @@ def create_release_archive(target_platform: str):
     archive_path = DIST_DIR / archive_name
 
     if target_platform == "windows":
-        # Create zip for Windows
         shutil.make_archive(str(archive_path), "zip", str(DIST_DIR), output_name)
-        print(f"  Archive: {archive_path}.zip")
+        final = Path(f"{archive_path}.zip")
+        print(f"  Archive: {final}")
+        _write_checksum(final)
     else:
-        # Create tar.gz for macOS/Linux
         shutil.make_archive(str(archive_path), "gztar", str(DIST_DIR), output_name)
-        print(f"  Archive: {archive_path}.tar.gz")
+        final = Path(f"{archive_path}.tar.gz")
+        print(f"  Archive: {final}")
+        _write_checksum(final)
 
 
 def main():

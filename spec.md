@@ -24,8 +24,17 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Terminal UI | rich |
 | Input | prompt_toolkit |
 | LLM | llama-cpp-python |
-| Model | Gemma 4 E2B (Q4_K_M GGUF, ~3.1 GB) |
+| Model | Gemma 4 E2B (Q4_K_M GGUF, ~2.9 GB) |
 | Build | PyInstaller |
+| Save Storage | SQLite (key-value) |
+
+### 1.2.1 System Requirements
+
+| Config | RAM | CPU | Disk | GPU |
+|--------|-----|-----|------|-----|
+| Minimum (no AI) | 256 MB | Any | 50 MB | None |
+| Recommended (AI) | 6 GB | 4+ cores | 3.5 GB | None |
+| With GPU | 2 GB + 4 GB VRAM | Any | 3.5 GB | CUDA/Metal/Vulkan |
 
 ### 1.3 Dependencies
 

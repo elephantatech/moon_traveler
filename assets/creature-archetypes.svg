@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <rect width="1200" height="600" rx="8" fill="#0e0e1e"/>
+  <text x="600" y="45" text-anchor="middle" font-family="monospace" font-size="24" fill="#4af0f0" font-weight="bold">Creature Archetypes of Enceladus</text>
+  <text x="600" y="70" text-anchor="middle" font-family="monospace" font-size="13" fill="#666">8 personalities shape how creatures interact with you</text>
+
+  <!-- Row 1 -->
+  <!-- Wise Elder -->
+  <rect x="30" y="100" width="260" height="200" rx="8" fill="#1a1a2e" stroke="#4a8ab5" stroke-width="1"/>
+  <text x="50" y="130" font-family="monospace" font-size="28">&#x1F9D9;</text>
+  <text x="90" y="130" font-family="monospace" font-size="16" fill="#4af0f0" font-weight="bold">Wise Elder</text>
+  <text x="45" y="155" font-family="monospace" font-size="12" fill="#aaa">Patient, philosophical.</text>
+  <text x="45" y="172" font-family="monospace" font-size="12" fill="#aaa">Speaks in metaphors drawn</text>
+  <text x="45" y="189" font-family="monospace" font-size="12" fill="#aaa">from ice and geysers.</text>
+  <text x="45" y="215" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Helps install repairs</text>
+  <text x="45" y="232" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Deep knowledge</text>
+  <text x="45" y="255" font-family="monospace" font-size="11" fill="#cc4">Tip: Ask thoughtful questions</text>
+
+  <!-- Trickster -->
+  <rect x="310" y="100" width="260" height="200" rx="8" fill="#1a1a2e" stroke="#c4a35a" stroke-width="1"/>
+  <text x="330" y="130" font-family="monospace" font-size="28">&#x1F3AD;</text>
+  <text x="370" y="130" font-family="monospace" font-size="16" fill="#c4a35a" font-weight="bold">Trickster</text>
+  <text x="325" y="155" font-family="monospace" font-size="12" fill="#aaa">Playful, evasive.</text>
+  <text x="325" y="172" font-family="monospace" font-size="12" fill="#aaa">Loves riddles and wordplay.</text>
+  <text x="325" y="189" font-family="monospace" font-size="12" fill="#aaa">Never gives straight answers.</text>
+  <text x="325" y="215" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Tests your wits</text>
+  <text x="325" y="232" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Amusing dialogue</text>
+  <text x="325" y="255" font-family="monospace" font-size="11" fill="#cc4">Tip: Play along with riddles</text>
+
+  <!-- Guardian -->
+  <rect x="590" y="100" width="260" height="200" rx="8" fill="#1a1a2e" stroke="#5a9ac5" stroke-width="1"/>
+  <text x="610" y="130" font-family="monospace" font-size="28">&#x1F6E1;</text>
+  <text x="650" y="130" font-family="monospace" font-size="16" fill="#5a9ac5" font-weight="bold">Guardian</text>
+  <text x="605" y="155" font-family="monospace" font-size="12" fill="#aaa">Protective, territorial.</text>
+  <text x="605" y="172" font-family="monospace" font-size="12" fill="#aaa">Suspicious of outsiders.</text>
+  <text x="605" y="189" font-family="monospace" font-size="12" fill="#aaa">Respects strength and honor.</text>
+  <text x="605" y="215" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Guards territory</text>
+  <text x="605" y="232" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Respects directness</text>
+  <text x="605" y="255" font-family="monospace" font-size="11" fill="#cc4">Tip: Be direct and honest</text>
+
+  <!-- Healer -->
+  <rect x="870" y="100" width="260" height="200" rx="8" fill="#1a1a2e" stroke="#4a4" stroke-width="1"/>
+  <text x="890" y="130" font-family="monospace" font-size="28">&#x1FA7A;</text>
+  <text x="930" y="130" font-family="monospace" font-size="16" fill="#4a4" font-weight="bold">Healer</text>
+  <text x="885" y="155" font-family="monospace" font-size="12" fill="#aaa">Gentle, empathetic.</text>
+  <text x="885" y="172" font-family="monospace" font-size="12" fill="#aaa">Knows medicinal flora.</text>
+  <text x="885" y="189" font-family="monospace" font-size="12" fill="#aaa">Concerned about your health.</text>
+  <text x="885" y="215" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Heals food/water +30%</text>
+  <text x="885" y="232" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Repairs suit +25%</text>
+  <text x="885" y="255" font-family="monospace" font-size="11" fill="#cc4">Tip: Escort to ship!</text>
+
+  <!-- Row 2 -->
+  <!-- Builder -->
+  <rect x="30" y="330" width="260" height="200" rx="8" fill="#1a1a2e" stroke="#cc4" stroke-width="1"/>
+  <text x="50" y="360" font-family="monospace" font-size="28">&#x1F527;</text>
+  <text x="90" y="360" font-family="monospace" font-size="16" fill="#cc4" font-weight="bold">Builder</text>
+  <text x="45" y="385" font-family="monospace" font-size="12" fill="#aaa">Practical, industrious.</text>
+  <text x="45" y="402" font-family="monospace" font-size="12" fill="#aaa">Curious about your ship</text>
+  <text x="45" y="419" font-family="monospace" font-size="12" fill="#aaa">and human technology.</text>
+  <text x="45" y="445" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Helps install repairs</text>
+  <text x="45" y="462" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Appreciates tools</text>
+  <text x="45" y="485" font-family="monospace" font-size="11" fill="#cc4">Tip: Escort to ship!</text>
+
+  <!-- Wanderer -->
+  <rect x="310" y="330" width="260" height="200" rx="8" fill="#1a1a2e" stroke="#8abfdf" stroke-width="1"/>
+  <text x="330" y="360" font-family="monospace" font-size="28">&#x1F9ED;</text>
+  <text x="370" y="360" font-family="monospace" font-size="16" fill="#8abfdf" font-weight="bold">Wanderer</text>
+  <text x="325" y="385" font-family="monospace" font-size="12" fill="#aaa">Restless, well-traveled.</text>
+  <text x="325" y="402" font-family="monospace" font-size="12" fill="#aaa">Knows many locations and</text>
+  <text x="325" y="419" font-family="monospace" font-size="12" fill="#aaa">paths across Enceladus.</text>
+  <text x="325" y="445" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Reveals locations</text>
+  <text x="325" y="462" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Tells stories</text>
+  <text x="325" y="485" font-family="monospace" font-size="11" fill="#cc4">Tip: Ask about far places</text>
+
+  <!-- Hermit -->
+  <rect x="590" y="330" width="260" height="200" rx="8" fill="#1a1a2e" stroke="#888" stroke-width="1"/>
+  <text x="610" y="360" font-family="monospace" font-size="28">&#x1F3D4;</text>
+  <text x="650" y="360" font-family="monospace" font-size="16" fill="#888" font-weight="bold">Hermit</text>
+  <text x="605" y="385" font-family="monospace" font-size="12" fill="#aaa">Prefers solitude.</text>
+  <text x="605" y="402" font-family="monospace" font-size="12" fill="#aaa">Rarely speaks, but words</text>
+  <text x="605" y="419" font-family="monospace" font-size="12" fill="#aaa">carry great weight.</text>
+  <text x="605" y="445" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Knows secrets</text>
+  <text x="605" y="462" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Deep knowledge</text>
+  <text x="605" y="485" font-family="monospace" font-size="11" fill="#cc4">Tip: Be patient and brief</text>
+
+  <!-- Warrior -->
+  <rect x="870" y="330" width="260" height="200" rx="8" fill="#1a1a2e" stroke="#c44" stroke-width="1"/>
+  <text x="890" y="360" font-family="monospace" font-size="28">&#x2694;&#xFE0F;</text>
+  <text x="930" y="360" font-family="monospace" font-size="16" fill="#c44" font-weight="bold">Warrior</text>
+  <text x="885" y="385" font-family="monospace" font-size="12" fill="#aaa">Fierce and direct.</text>
+  <text x="885" y="402" font-family="monospace" font-size="12" fill="#aaa">Respects courage.</text>
+  <text x="885" y="419" font-family="monospace" font-size="12" fill="#aaa">Tests those who approach.</text>
+  <text x="885" y="445" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Respects courage</text>
+  <text x="885" y="462" font-family="monospace" font-size="11" fill="#5c5">&#x2714; Direct communication</text>
+  <text x="885" y="485" font-family="monospace" font-size="11" fill="#cc4">Tip: Show bravery, no fear</text>
+
+  <!-- Footer -->
+  <text x="600" y="570" text-anchor="middle" font-family="monospace" font-size="12" fill="#666">Trust 50+ to escort &#x2022; Trust 70+ for materials &#x2022; Healers &amp; Builders are most useful at the Crash Site</text>
+</svg>

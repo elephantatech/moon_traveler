@@ -104,8 +104,7 @@ class ShipAI:
         if done == total:
             return self.speak("All repairs complete. You should be able to launch, Commander.")
         return self.speak(
-            f"Repair progress: {done}/{total}. "
-            f"{'Materials and crew assistance are still needed.' if done < total else ''}"
+            f"Repair progress: {done}/{total}. Materials and crew assistance are still needed."
         )
 
     # --- Serialization ---

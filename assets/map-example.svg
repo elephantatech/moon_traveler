@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <rect width="800" height="800" fill="#0e0e1e"/>
+  <text x="400" y="35" text-anchor="middle" font-family="monospace" font-size="18" fill="#4af0f0" font-weight="bold">World Map &#x2014; Medium Mode (seed: 42)</text>
+
+  <!-- Grid -->
+  <line x1="400" y1="60" x2="400" y2="740" stroke="#1a1a3a" stroke-width="1"/>
+  <line x1="60" y1="400" x2="740" y2="400" stroke="#1a1a3a" stroke-width="1"/>
+  <circle cx="400" cy="400" r="300" fill="none" stroke="#1a1a3a" stroke-width="1" stroke-dasharray="4,4"/>
+  <circle cx="400" cy="400" r="150" fill="none" stroke="#1a1a3a" stroke-width="1" stroke-dasharray="2,4"/>
+  <text x="710" y="395" font-family="monospace" font-size="10" fill="#333">40km</text>
+  <text x="560" y="395" font-family="monospace" font-size="10" fill="#333">20km</text>
+
+  <!-- Scanner range circle from crash site -->
+  <circle cx="400" cy="400" r="75" fill="#4af0f0" opacity="0.05" stroke="#4af0f0" stroke-width="1" stroke-dasharray="3,3" opacity="0.3"/>
+  <text x="480" y="345" font-family="monospace" font-size="9" fill="#4af0f0" opacity="0.5">10km scan</text>
+
+  <!-- Locations (scaled: 1km = 7.5px from center at 400,400) -->
+  <!-- Crash Site (0,0) -->
+  <circle cx="400" cy="400" r="8" fill="#cc4" stroke="#fff" stroke-width="2"/>
+  <text x="415" y="418" font-family="monospace" font-size="11" fill="#cc4">Crash Site</text>
+
+  <!-- Azure Warren (3, -4) = (422.5, 370) -->
+  <circle cx="422" cy="370" r="6" fill="#4af0f0"/>
+  <text x="435" y="368" font-family="monospace" font-size="10" fill="#4af0f0">Azure Warren</text>
+
+  <!-- Ashen Ridge (5, 2) = (437.5, 415) -->
+  <circle cx="437" cy="415" r="6" fill="#4af0f0"/>
+  <text x="448" y="428" font-family="monospace" font-size="10" fill="#4af0f0">Ashen Ridge</text>
+
+  <!-- Iron Flats (-7, 3) = (347.5, 422.5) -->
+  <circle cx="347" cy="422" r="6" fill="#4af0f0"/>
+  <text x="290" y="435" font-family="monospace" font-size="10" fill="#4af0f0">Iron Flats</text>
+
+  <!-- Frozen Plumes (8, -7) = (460, 347.5) -->
+  <circle cx="460" cy="347" r="6" fill="#cc4"/>
+  <text x="473" y="345" font-family="monospace" font-size="10" fill="#cc4">Frozen Plumes</text>
+
+  <!-- Pale Hollow (-2, -8) = (385, 340) -->
+  <circle cx="385" cy="340" r="6" fill="#cc4"/>
+  <text x="330" y="335" font-family="monospace" font-size="10" fill="#cc4">Pale Hollow</text>
+
+  <!-- Obsidian Haven (10, 5) = (475, 437.5) -->
+  <circle cx="475" cy="437" r="6" fill="#cc4"/>
+  <text x="488" y="450" font-family="monospace" font-size="10" fill="#cc4">Obsidian Haven</text>
+
+  <!-- Glass Remnants (-12, 6) = (310, 445) -->
+  <circle cx="310" cy="445" r="6" fill="#cc4"/>
+  <text x="240" y="458" font-family="monospace" font-size="10" fill="#cc4">Glass Remnants</text>
+
+  <!-- Lunar Flats (12, -10) = (490, 325) -->
+  <circle cx="490" cy="325" r="6" fill="#c44"/>
+  <text x="503" y="322" font-family="monospace" font-size="10" fill="#c44">Lunar Flats</text>
+
+  <!-- Bright Flats (-5, -12) = (362.5, 310) -->
+  <circle cx="362" cy="310" r="6" fill="#c44"/>
+  <text x="300" y="305" font-family="monospace" font-size="10" fill="#c44">Bright Flats</text>
+
+  <!-- Shadow Stretch (14, 8) = (505, 460) -->
+  <circle cx="505" cy="460" r="6" fill="#c44"/>
+  <text x="518" y="473" font-family="monospace" font-size="10" fill="#c44">Shadow Stretch</text>
+
+  <!-- Cobalt Stretch (-15, 10) = (287.5, 475) -->
+  <circle cx="287" cy="475" r="6" fill="#c44"/>
+  <text x="215" y="488" font-family="monospace" font-size="10" fill="#c44">Cobalt Stretch</text>
+
+  <!-- Scan connections -->
+  <line x1="400" y1="400" x2="422" y2="370" stroke="#4af0f0" stroke-width="0.5" opacity="0.3"/>
+  <line x1="400" y1="400" x2="437" y2="415" stroke="#4af0f0" stroke-width="0.5" opacity="0.3"/>
+  <line x1="400" y1="400" x2="347" y2="422" stroke="#4af0f0" stroke-width="0.5" opacity="0.3"/>
+  <line x1="422" y1="370" x2="460" y2="347" stroke="#cc4" stroke-width="0.5" opacity="0.3"/>
+  <line x1="422" y1="370" x2="385" y2="340" stroke="#cc4" stroke-width="0.5" opacity="0.3"/>
+  <line x1="437" y1="415" x2="475" y2="437" stroke="#cc4" stroke-width="0.5" opacity="0.3"/>
+  <line x1="347" y1="422" x2="310" y2="445" stroke="#cc4" stroke-width="0.5" opacity="0.3"/>
+  <line x1="460" y1="347" x2="490" y2="325" stroke="#c44" stroke-width="0.5" opacity="0.3"/>
+  <line x1="385" y1="340" x2="362" y2="310" stroke="#c44" stroke-width="0.5" opacity="0.3"/>
+  <line x1="475" y1="437" x2="505" y2="460" stroke="#c44" stroke-width="0.5" opacity="0.3"/>
+  <line x1="310" y1="445" x2="287" y2="475" stroke="#c44" stroke-width="0.5" opacity="0.3"/>
+
+  <!-- Legend -->
+  <rect x="30" y="680" width="740" height="90" rx="5" fill="#1a1a2e"/>
+  <circle cx="60" cy="710" r="6" fill="#cc4" stroke="#fff" stroke-width="1.5"/>
+  <text x="75" y="714" font-family="monospace" font-size="12" fill="#ddd">Crash Site</text>
+  <circle cx="200" cy="710" r="5" fill="#4af0f0"/>
+  <text x="215" y="714" font-family="monospace" font-size="12" fill="#ddd">Discovered (known)</text>
+  <circle cx="400" cy="710" r="5" fill="#cc4"/>
+  <text x="415" y="714" font-family="monospace" font-size="12" fill="#ddd">Scannable (1 hop)</text>
+  <circle cx="580" cy="710" r="5" fill="#c44"/>
+  <text x="595" y="714" font-family="monospace" font-size="12" fill="#ddd">Hidden (2+ hops)</text>
+  <text x="60" y="745" font-family="monospace" font-size="11" fill="#666">Lines show scan reachability &#x2022; Dashed circle = scanner range (10km)</text>
+  <text x="60" y="760" font-family="monospace" font-size="11" fill="#666">Locations form a connected chain &#x2014; every location is discoverable</text>
+</svg>
