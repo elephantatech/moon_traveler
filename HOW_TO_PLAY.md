@@ -35,7 +35,7 @@ If no AI model is found, the game will offer to **download one automatically**. 
 The game opens with a brief context line and offers to **skip the tutorial** for returning players. New players will see ARIA (your ship's AI) run a boot diagnostic before being dropped at the Crash Site. Follow the tutorial prompts — they'll walk you through the basics and then point you toward key mechanics like giving gifts, trading, escorting, and ship repair.
 
 <p align="center">
-  <img src="assets/screenshot-title-screen.svg" alt="Title Screen" width="700"/>
+  <img src="assets/tui-new-game.svg" alt="Title Screen" width="700"/>
 </p>
 
 ---
@@ -47,7 +47,7 @@ Type commands at the prompt and press Enter. Tab autocomplete is supported for c
 A **status bar** is displayed before every prompt showing food, water, suit, battery, inventory count, ship repair progress, and elapsed time. All vitals are always visible. When at the Crash Site, ship bay details are shown. When a creature is at your location, their name, archetype, disposition, and trust level appear. The **GPS** (`gps` command) shows food and water source markers for locations you've visited.
 
 <p align="center">
-  <img src="assets/screenshot-crash-site--first-look.svg" alt="Status Bar and Crash Site" width="700"/>
+  <img src="assets/tui-crash-site.svg" alt="Status Bar and Crash Site" width="700"/>
 </p>
 
 ### Exploration
@@ -109,11 +109,11 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 ### Scanning and Navigation
 
 <p align="center">
-  <img src="assets/screenshot-scanning-for-locations.svg" alt="Scanning for Locations" width="700"/>
+  <img src="assets/tui-scan.svg" alt="Scanning for Locations" width="700"/>
 </p>
 
 <p align="center">
-  <img src="assets/screenshot-gps-map-view.svg" alt="GPS Map" width="700"/>
+  <img src="assets/tui-gps.svg" alt="GPS Map" width="700"/>
 </p>
 
 ---
@@ -172,7 +172,7 @@ Four meters track your condition. If food, water, or suit integrity reaches zero
 - **Healer companions** at the Crash Site restore +30%
 
 <p align="center">
-  <img src="assets/screenshot-player-status.svg" alt="Player Status" width="700"/>
+  <img src="assets/tui-status.svg" alt="Player Status" width="700"/>
 </p>
 
 ### Warnings
@@ -218,7 +218,7 @@ Find these components in the world, then use `upgrade <name>` to install them:
 Better translation quality means creatures speak more clearly and with fewer garbled words. The Voice Module replaces beep sounds with spoken announcements. The Autopilot Chip saves you from manually typing `look` and `scan` at every new location.
 
 <p align="center">
-  <img src="assets/screenshot-drone-status.svg" alt="Drone Status" width="700"/>
+  <img src="assets/tui-drone.svg" alt="Drone Status" width="700"/>
 </p>
 
 ---
@@ -374,7 +374,7 @@ At the Crash Site, the `ship` command opens the bay menu. Each bay serves a diff
 Once all materials are installed via the Repair Bay, you win.
 
 <p align="center">
-  <img src="assets/screenshot-ship-bays-menu.svg" alt="Ship Bays" width="700"/>
+  <img src="assets/tui-ship-bays.svg" alt="Ship Bays" width="700"/>
 </p>
 
 <p align="center">
