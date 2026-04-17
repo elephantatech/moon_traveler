@@ -35,13 +35,21 @@ class UIBridge:
 
         Passes Rich renderables (Panel, Table, Text) directly to RichLog.write().
         Strings with Rich markup are passed as-is (RichLog has markup=True).
-        Zero args prints a blank line.
+        Zero args prints a blank line. Multi-arg calls are joined.
         """
         if not args:
             self._app.call_from_thread(self._log.write, "")
             return
-        for arg in args:
-            self._app.call_from_thread(self._log.write, arg)
+        if len(args) == 1 and not kwargs:
+            self._app.call_from_thread(self._log.write, args[0])
+            return
+        # Multiple args or kwargs: render through a temporary Console
+        import io
+        from rich.console import Console as _TmpConsole
+        buf = io.StringIO()
+        tmp = _TmpConsole(file=buf, highlight=False, markup=True)
+        tmp.print(*args, **kwargs)
+        self._app.call_from_thread(self._log.write, buf.getvalue().rstrip("\n"))
 
     def clear(self):
         """Clear the game log."""
@@ -110,6 +118,20 @@ class UIBridge:
     def update_header(self, text: str):
         """Update the header bar."""
         self._app.call_from_thread(self._app.update_header, text)
+
+    # --- Screenshot ---
+
+    def take_screenshot(self) -> str:
+        """Take a screenshot from the worker thread. Blocks until done."""
+        import threading
+        result = []
+        done = threading.Event()
+        def _do():
+            result.append(self._app.take_screenshot())
+            done.set()
+        self._app.call_from_thread(_do)
+        done.wait()
+        return result[0] if result else ""
 
     # --- Helpers ---
 

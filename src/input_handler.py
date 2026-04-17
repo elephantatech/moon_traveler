@@ -39,6 +39,7 @@ BASE_COMMANDS = [
     "config",
     "tutorial",
     "sound",
+    "screenshot",
     "clear",
     "cls",
     "quit",
