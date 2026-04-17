@@ -117,9 +117,11 @@ LOCATION_ITEMS = {
 DRONE_UPGRADES = {
     "ruins": ["range_module", "translator_chip", "voice_module"],
     "settlement": ["cargo_rack", "translator_chip", "autopilot_chip"],
-    "cave": ["battery_cell", "voice_module"],
-    "ridge": ["thruster_pack"],
-    "canyon": ["range_module", "autopilot_chip"],
+    "cave": ["battery_cell", "voice_module", "thruster_pack"],
+    "ridge": ["thruster_pack", "autopilot_chip"],
+    "canyon": ["range_module", "autopilot_chip", "battery_cell"],
+    "geyser_field": ["voice_module"],
+    "ice_lake": ["autopilot_chip"],
 }
 
 MODE_CONFIG = {
@@ -250,6 +252,18 @@ def generate_world(mode: str, seed: int | None = None) -> dict:
     if len(locations) < num_locations:
         from src import ui
         ui.warn(f"World generation: placed {len(locations)}/{num_locations} locations (seed={seed}).")
+
+    # Guarantee at least one food source and one water source
+    non_crash = [loc for loc in locations if loc.loc_type != "crash_site"]
+    if non_crash and not any(loc.food_source for loc in locations):
+        # Pick the first cave/forest, or fall back to any non-crash location
+        food_candidates = [loc for loc in non_crash if loc.loc_type in ("forest", "cave")]
+        target = food_candidates[0] if food_candidates else non_crash[0]
+        target.food_source = True
+    if non_crash and not any(loc.water_source for loc in locations):
+        water_candidates = [loc for loc in non_crash if loc.loc_type in ("ice_lake", "geyser_field")]
+        target = water_candidates[0] if water_candidates else non_crash[0]
+        target.water_source = True
 
     return {
         "seed": seed,

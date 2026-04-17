@@ -53,6 +53,14 @@ def _get_db() -> sqlite3.Connection:
             PRIMARY KEY (slot, creature_id, seq)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS creature_memory (
+            slot TEXT NOT NULL,
+            creature_id TEXT NOT NULL,
+            memory TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY (slot, creature_id)
+        )
+    """)
     conn.commit()
     return conn
 
@@ -169,6 +177,15 @@ def _save_to_db(conn, slot, player, drone, locations, creatures,
             chat_rows,
         )
 
+    # Save creature memory
+    conn.execute("DELETE FROM creature_memory WHERE slot = ?", (slot,))
+    mem_rows = [(slot, c.id, c.memory) for c in creatures if c.memory]
+    if mem_rows:
+        conn.executemany(
+            "INSERT INTO creature_memory (slot, creature_id, memory) VALUES (?, ?, ?)",
+            mem_rows,
+        )
+
 
 
 def _load_kv(conn: sqlite3.Connection, slot: str) -> dict | None:
@@ -191,10 +208,23 @@ def load_game(slot: str) -> dict | None:
             conn = _get_db()
             kv = _load_kv(conn, slot)
             if kv:
+                # Check save version compatibility
+                try:
+                    row = conn.execute(
+                        "SELECT save_version FROM save_meta WHERE slot = ?", (slot,)
+                    ).fetchone()
+                    if row and row[0] > SAVE_VERSION:
+                        ui.warn(f"Save '{slot}' was created by a newer game version (v{row[0]} > v{SAVE_VERSION}).")
+                        ui.warn("Some features may not load correctly.")
+                    elif row and row[0] < 3:
+                        ui.warn(f"Save '{slot}' is from an old version (v{row[0]}). Some data may be missing.")
+                except Exception:
+                    pass
                 # Load chat history from dedicated table
                 chat = _load_chat_history(conn, slot)
+                memories = _load_creature_memory(conn, slot)
                 conn.close()
-                return _reconstruct_state(kv, chat)
+                return _reconstruct_state(kv, chat, memories)
             conn.close()
         except Exception as e:
             ui.error(f"Failed to load from database: {e}")
@@ -222,7 +252,20 @@ def _load_chat_history(conn: sqlite3.Connection, slot: str) -> dict[str, list[di
     return history
 
 
-def _reconstruct_state(kv: dict, chat: dict[str, list[dict]] | None = None) -> dict:
+def _load_creature_memory(conn: sqlite3.Connection, slot: str) -> dict[str, str]:
+    """Load creature memory for all creatures in a slot. Returns {creature_id: memory_md}."""
+    try:
+        cursor = conn.execute(
+            "SELECT creature_id, memory FROM creature_memory WHERE slot = ?",
+            (slot,),
+        )
+        return {cid: mem for cid, mem in cursor.fetchall()}
+    except sqlite3.OperationalError:
+        return {}  # Table may not exist in old saves
+
+
+def _reconstruct_state(kv: dict, chat: dict[str, list[dict]] | None = None,
+                       memories: dict[str, str] | None = None) -> dict:
     """Reconstruct game objects from key-value pairs."""
     state = {}
     state["world_seed"] = kv["world_seed"]
@@ -238,6 +281,11 @@ def _reconstruct_state(kv: dict, chat: dict[str, list[dict]] | None = None) -> d
         for creature in state["creatures"]:
             if creature.id in chat:
                 creature.conversation_history = chat[creature.id]
+
+    if memories:
+        for creature in state["creatures"]:
+            if creature.id in memories:
+                creature.memory = memories[creature.id]
 
     # Optional fields
     if "ship_ai" in kv:
@@ -308,6 +356,7 @@ def delete_save(slot: str) -> bool:
             conn.execute("DELETE FROM saves WHERE slot = ?", (slot,))
             conn.execute("DELETE FROM save_meta WHERE slot = ?", (slot,))
             conn.execute("DELETE FROM chat_history WHERE slot = ?", (slot,))
+            conn.execute("DELETE FROM creature_memory WHERE slot = ?", (slot,))
             conn.commit()
             conn.close()
             deleted = True

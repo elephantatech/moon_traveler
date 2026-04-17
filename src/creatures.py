@@ -138,6 +138,7 @@ class Creature:
     given_items: list[str] = field(default_factory=list)
     backstory: str = ""
     trade_wants: list[str] = field(default_factory=list)  # Merchant only
+    memory: str = ""  # Structured markdown memory of the player and world
 
     @property
     def trust_level(self) -> str:
@@ -152,9 +153,6 @@ class Creature:
 
     def add_message(self, role: str, content: str):
         self.conversation_history.append({"role": role, "content": content})
-        # Keep last 10 exchanges (20 messages)
-        if len(self.conversation_history) > 20:
-            self.conversation_history = self.conversation_history[-20:]
 
     def trust_meets(self, action: str) -> bool:
         """Check if trust meets the threshold for this action based on archetype."""
@@ -185,6 +183,7 @@ class Creature:
             "given_items": list(self.given_items),
             "backstory": self.backstory,
             "trade_wants": list(self.trade_wants),
+            "memory": self.memory,
         }
 
     @classmethod

@@ -61,12 +61,12 @@ class TestConversationHistory:
         assert len(c.conversation_history) == 1
         assert c.conversation_history[0] == {"role": "user", "content": "Hello"}
 
-    def test_history_trimmed_at_20(self):
+    def test_history_unlimited(self):
         c = _make_creature()
-        for i in range(25):
+        for i in range(200):
             c.add_message("user", f"msg {i}")
-        assert len(c.conversation_history) == 20
-        assert c.conversation_history[0]["content"] == "msg 5"
+        assert len(c.conversation_history) == 200
+        assert c.conversation_history[0]["content"] == "msg 0"
 
 
 class TestSerialization:
