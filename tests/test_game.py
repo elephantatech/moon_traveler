@@ -26,8 +26,12 @@ class TestRepairChecklist:
         cl = build_repair_checklist("long")
         assert len(cl) == 8
 
+    def test_brutal_has_8_materials(self):
+        cl = build_repair_checklist("brutal")
+        assert len(cl) == 8
+
     def test_materials_match_config(self):
-        for mode in ("short", "medium", "long"):
+        for mode in ("short", "medium", "long", "brutal"):
             cl = build_repair_checklist(mode)
             for mat in REPAIR_MATERIALS[mode]:
                 assert f"material_{mat}" in cl

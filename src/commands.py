@@ -67,12 +67,14 @@ HELP_TEXT = """
   [cyan]escort[/cyan]               — Ask a creature to travel with you
   [cyan]drone[/cyan]                — Show drone status and upgrades
   [cyan]upgrade[/cyan] <component>  — Install a drone upgrade from inventory
+  [cyan]inspect[/cyan] <item>      — Examine an item to see what it's used for
   [cyan]status[/cyan]               — Show player status (food, water, time)
   [cyan]ship[/cyan]                 — Ship bays menu (storage, kitchen, charging, medical, repair)
   [cyan]rest[/cyan]                 — Rest for 1 hour to recover food/water
   [cyan]save[/cyan] [slot]          — Save game (default slot: 'manual')
   [cyan]load[/cyan] [slot]          — Load a saved game
   [cyan]sound[/cyan]                — Toggle sound effects on/off
+  [cyan]charge[/cyan]               — Toggle drone auto-charge (requires Charge Module)
   [cyan]clear[/cyan] / [cyan]cls[/cyan]          — Clear the screen
   [cyan]config[/cyan]               — Show/change game settings (e.g. save path)
   [cyan]dev[/cyan]                  — Toggle developer diagnostics panel
@@ -125,6 +127,7 @@ class GameContext:
         self.should_quit = False
         self.should_load = False
         self.loaded_state: dict | None = None
+        self.easter_egg_announced = False
 
     def current_location(self) -> Location:
         for loc in self.locations:
@@ -597,9 +600,15 @@ def cmd_talk(ctx: GameContext, args: str):
             for msg in action_msgs:
                 ui.console.print(msg)
 
-        # Trust gain from conversation
+        # Trust gain from conversation (scaled by difficulty)
+        from src.difficulty import EASTER_EGG_TRUST_MULTIPLIER, check_junk_easter_egg, get_difficulty
+
+        diff = get_difficulty(ctx.world_mode)
+        trust_gain = diff["trust_per_chat"]
+        if check_junk_easter_egg(ctx.player, ctx.world_mode):
+            trust_gain = int(trust_gain * EASTER_EGG_TRUST_MULTIPLIER)
         old_trust = creature.trust
-        creature.add_trust(3)
+        creature.add_trust(trust_gain)
         if ctx.dev_mode:
             ctx.dev_mode.debug(
                 "trust_change",
@@ -610,11 +619,11 @@ def cmd_talk(ctx: GameContext, args: str):
                 exchange=exchange_count,
             )
         if creature.trust >= 100:
-            ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — max trust)[/dim]")
+            ui.console.print(f"[dim]+{trust_gain} trust ({creature.trust}/100 — max trust)[/dim]")
         else:
             next_tier = 70 if creature.trust < 70 else 100
             tier_label = "full cooperation" if next_tier == 70 else "max trust"
-            ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — {next_tier} for {tier_label})[/dim]")
+            ui.console.print(f"[dim]+{trust_gain} trust ({creature.trust}/100 — {next_tier} for {tier_label})[/dim]")
         exchange_count += 1
 
         # Drone private advice (NOT added to creature conversation history)
@@ -709,14 +718,29 @@ def cmd_give(ctx: GameContext, args: str):
         ui.error(f"You don't have '{display}' in your inventory.")
         return
 
+    # Check if it's a junk item — creature mocks but gives it back
+    from src.difficulty import JUNK_REACTIONS, is_junk_item
+
+    if is_junk_item(item_part):
+        display = item_part.replace("_", " ").title()
+        reaction = ctx.rng.choice(JUNK_REACTIONS).format(name=creature.name, item=display)
+        ui.creature_speak(creature.name, reaction, creature.color)
+        ui.dim(f"  {creature.name} hands the {display} back to you.")
+        return
+
     ctx.player.remove_item(item_part)
     display = item_part.replace("_", " ").title()
     ui.success(f"You give {display} to {creature.name}.")
 
-    # Trust increase from gift
-    trust_gain = 15
+    # Trust increase from gift (scaled by difficulty)
+    from src.difficulty import EASTER_EGG_TRUST_MULTIPLIER, check_junk_easter_egg, get_difficulty
+
+    diff = get_difficulty(ctx.world_mode)
+    trust_gain = diff["trust_per_gift"]
     if creature.disposition == "hostile":
-        trust_gain = 10
+        trust_gain = diff["trust_per_gift_hostile"]
+    if check_junk_easter_egg(ctx.player, ctx.world_mode):
+        trust_gain = int(trust_gain * EASTER_EGG_TRUST_MULTIPLIER)
     old_trust = creature.trust
     creature.add_trust(trust_gain)
     if ctx.dev_mode:
@@ -1261,6 +1285,19 @@ def _bay_storage(ctx: GameContext):
             stashed.append(f"{item.replace('_', ' ').title()} x{qty}")
         ui.success(f"Stashed all: {', '.join(stashed)}")
 
+    # Check for junk easter egg (only on stash operations, fire once)
+    if choice in ("1", "3") and not ctx.easter_egg_announced:
+        from src.difficulty import check_junk_easter_egg
+
+        if check_junk_easter_egg(ctx.player, ctx.world_mode):
+            ctx.easter_egg_announced = True
+            ui.console.print()
+            ui.console.print("[bold magenta]Something shifts in the air...[/bold magenta]")
+            ui.console.print(
+                "[dim magenta]The creatures of Enceladus sense your curiosity. "
+                "They seem... friendlier somehow.[/dim magenta]"
+            )
+
     # Back: "3" when no inventory, "4" when inventory exists — both just return
 
 
@@ -1333,35 +1370,64 @@ def _bay_charging(ctx: GameContext):
     batt = ctx.drone.battery
     batt_max = ctx.drone.battery_max
     batt_color = "green" if batt > 50 else "yellow" if batt > 20 else "red"
-    ui.console.print(f"  Drone Battery: [{batt_color}]{batt:.0f}%[/{batt_color}] / {batt_max:.0f}%\n")
+    ui.console.print(f"  Drone Battery: [{batt_color}]{batt:.0f}%[/{batt_color}] / {batt_max:.0f}%")
 
-    if batt >= batt_max:
-        ui.success("Drone battery is fully charged!")
-        return
+    # Show auto-charge status
+    if ctx.drone.charge_module_installed:
+        ac_status = "[green]ON[/green]" if ctx.drone.auto_charge_enabled else "[dim]OFF[/dim]"
+        ui.console.print(f"  Auto-Charge: {ac_status} (+5%/hr during travel)")
+    ui.console.print()
 
-    ui.console.print("  [cyan]1[/cyan]. Full recharge (free at Crash Site)")
+    options = []
+    if batt < batt_max:
+        options.append(("recharge", "Full recharge (free at Crash Site)"))
     has_power_cell = ctx.player.has_item("power_cell")
     if has_power_cell:
-        ui.console.print("  [cyan]2[/cyan]. Overcharge with Power Cell (+10% max capacity permanently)")
-    ui.console.print(f"  [cyan]{'3' if has_power_cell else '2'}[/cyan]. Back")
+        options.append(("overcharge", "Overcharge with Power Cell (+10% max capacity permanently)"))
+    if ctx.drone.charge_module_installed:
+        toggle = "OFF" if ctx.drone.auto_charge_enabled else "ON"
+        options.append(("toggle", f"Turn auto-charge {toggle}"))
+    else:
+        options.append(("no_module", "[dim]Auto-charge — no charge module detected[/dim]"))
+
+    options.append(("back", "Back"))
+
+    for i, (_, label) in enumerate(options, 1):
+        ui.console.print(f"  [cyan]{i}[/cyan]. {label}")
 
     try:
         choice = ui.console.input("\n[bold]> [/bold]").strip()
-    except (EOFError, KeyboardInterrupt):
+        idx = int(choice) - 1
+        if idx < 0 or idx >= len(options):
+            return
+    except (ValueError, EOFError, KeyboardInterrupt):
         return
 
-    if choice == "1":
+    action = options[idx][0]
+
+    if action == "recharge":
         ctx.drone.recharge()
         if ctx.ship_ai:
             ctx.ship_ai.reset_warnings("battery")
         ui.success(f"Drone fully recharged! Battery: {ctx.drone.battery:.0f}%")
-    elif choice == "2" and has_power_cell:
+    elif action == "overcharge":
         ctx.player.remove_item("power_cell")
         ctx.drone.battery_max += 10.0
         ctx.drone.recharge()
         if ctx.ship_ai:
             ctx.ship_ai.reset_warnings("battery")
         ui.success(f"Power Cell consumed! Battery max: {ctx.drone.battery_max:.0f}%. Battery: {ctx.drone.battery:.0f}%")
+    elif action == "toggle":
+        ctx.drone.auto_charge_enabled = not ctx.drone.auto_charge_enabled
+        if ctx.drone.auto_charge_enabled:
+            sound.play("success")
+            ui.success("Auto-charge: ON — drone recovers +5% battery per hour of travel.")
+        else:
+            ui.info("Auto-charge: OFF")
+    elif action == "no_module":
+        ui.error("No advanced charge module detected. Find and install a Charge Module upgrade.")
+
+    ctx.do_auto_save()
 
 
 def _bay_medical(ctx: GameContext):
@@ -1618,6 +1684,55 @@ def cmd_sound(ctx: GameContext, args: str):
         ui.info("Sound effects: ON")
 
 
+def cmd_inspect(ctx: GameContext, args: str):
+    """Inspect an item in your inventory to learn what it's used for."""
+    if not args:
+        ui.info("What do you want to inspect? Usage: inspect <item>")
+        return
+
+    from src.difficulty import ITEM_DESCRIPTIONS
+
+    item_name = args.strip().lower().replace(" ", "_")
+
+    if not ctx.player.has_item(item_name):
+        display = args.strip().title()
+        ui.error(f"You don't have '{display}' in your inventory.")
+        return
+
+    display = item_name.replace("_", " ").title()
+    desc = ITEM_DESCRIPTIONS.get(item_name)
+    if desc:
+        ui.console.print(f"\n[bold]{display}[/bold]")
+        ui.console.print(f"  {desc}")
+
+        # Show if it's needed for repair
+        key = f"material_{item_name}"
+        if key in ctx.repair_checklist:
+            if ctx.repair_checklist[key]:
+                ui.console.print("  [green]Already installed in ship.[/green]")
+            else:
+                ui.console.print("  [yellow]Needed for ship repair![/yellow]")
+    else:
+        ui.console.print(f"\n[bold]{display}[/bold]")
+        ui.console.print("  A mysterious item. You're not sure what it's for.")
+    ui.console.print()
+
+
+def cmd_charge(ctx: GameContext, args: str):
+    """Toggle auto-charge on/off (requires Charge Module upgrade)."""
+    if not ctx.drone.charge_module_installed:
+        ui.error("No advanced charge module detected. Find and install a Charge Module first.")
+        return
+    if ctx.drone.auto_charge_enabled:
+        ctx.drone.auto_charge_enabled = False
+        ui.info("Auto-charge: OFF — drone will not recover battery during travel.")
+    else:
+        ctx.drone.auto_charge_enabled = True
+        sound.play("success")
+        ui.success("Auto-charge: ON — drone recovers +5% battery per hour of travel.")
+    ctx.do_auto_save()
+
+
 def cmd_screenshot(ctx: GameContext, args: str):
     """Save a screenshot (TUI mode only)."""
     if ui._bridge:
@@ -1672,8 +1787,11 @@ COMMANDS = {
     "config": cmd_config,
     "dev": cmd_dev,
     "devmode": cmd_dev,
+    "inspect": cmd_inspect,
+    "examine": cmd_inspect,
     "tutorial": cmd_tutorial,
     "sound": cmd_sound,
+    "charge": cmd_charge,
     "screenshot": cmd_screenshot,
     "clear": cmd_clear,
     "cls": cmd_clear,

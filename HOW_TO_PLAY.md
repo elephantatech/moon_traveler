@@ -27,8 +27,8 @@ python play.py
 ```
 
 You'll be asked to choose:
-1. **Game length** — Short, Medium, or Long (see [Game Modes](#game-modes) below)
-2. **Compute mode** — CPU + GPU or CPU Only (if a GPU is detected)
+1. **Difficulty** — Easy (~30 min), Medium (~1-2 hours), Hard (~3+ hours), or Brutal (~5+ hours)
+2. **Compute mode** — auto-detected from config (changeable with `config gpu`)
 
 If no AI model is found, the game will offer to **download one automatically**. You can choose between Qwen3.5 2B (1.3 GB, recommended) or Gemma 4 E2B (3.1 GB, richer dialogue). You can also skip — the game works without it using pre-written dialogue.
 
@@ -66,6 +66,8 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 | `take <item>` | `get`, `pick` | Pick up an item at your location |
 | `inventory` | `inv`, `i` | Show everything you're carrying |
 | `upgrade <component>` | — | Install a drone upgrade from your inventory |
+| `inspect <item>` | `examine` | Examine an item to see what it's used for |
+| `charge` | — | Toggle drone auto-charge on/off (requires Charge Module upgrade) |
 
 ### Creatures & Dialogue
 
@@ -211,6 +213,7 @@ Find these components in the world, then use `upgrade <name>` to install them:
 | Battery Cell | +25% max battery capacity |
 | Voice Module | Enables spoken voice announcements for game events |
 | Autopilot Chip | Auto-scans and auto-looks when arriving at new locations |
+| Charge Module | Enables auto-charge: drone recovers +5% battery per hour of travel |
 
 Better translation quality means creatures speak more clearly and with fewer garbled words. The Voice Module replaces beep sounds with spoken announcements. The Autopilot Chip saves you from manually typing `look` and `scan` at every new location.
 
@@ -382,15 +385,17 @@ Once all materials are installed via the Repair Bay, you win.
 
 ## Game Modes
 
-| | Short | Medium | Long |
-|---|---|---|---|
-| **Locations** | ~8 | ~16 | ~30 |
-| **Creatures** | 5 | 12 | 20 |
-| **World Radius** | ~20 km | ~40 km | ~60 km |
-| **Repair Materials** | 3 | 5 | 8 |
-| **Estimated Time** | ~30 min | ~1–2 hours | ~3+ hours |
+| | Easy | Medium | Hard | Brutal |
+|---|---|---|---|---|
+| **Locations** | ~8 | ~16 | ~30 | ~40 |
+| **Creatures** | 5 | 12 | 20 | 25 |
+| **Hostile** | 0 | 4 | 6 | 12 |
+| **World Radius** | ~20 km | ~40 km | ~60 km | ~80 km |
+| **Repair Materials** | 3 | 5 | 8 | 8 |
+| **Resource Drain** | Normal | Normal | Normal | 1.5x |
+| **Estimated Time** | ~30 min | ~1–2 hours | ~3+ hours | ~5+ hours |
 
-Longer modes have more hostile creatures, greater distances, and require careful resource management. Food, water, and drone battery become genuine strategic concerns.
+Higher difficulty means more hostile creatures, slower trust gain, scarcer items, and greater distances. Brutal mode adds 50% faster resource drain and earlier late-game weather.
 
 ### Game Over
 

@@ -108,6 +108,8 @@ def build_executable(target_platform: str):
         "--hidden-import", "llama_cpp",
         "--hidden-import", "jinja2",
         "--hidden-import", "markupsafe",
+        "--collect-all", "textual",
+        "--add-data", f"play_tui.py{os.pathsep}.",
         # Output directories
         "--distpath", str(DIST_DIR / output_name),
         "--workpath", str(BUILD_DIR / output_name),

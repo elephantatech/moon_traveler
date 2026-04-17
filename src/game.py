@@ -26,6 +26,16 @@ REPAIR_MATERIALS = {
         "hull_patch",
         "antenna_array",
     ],
+    "brutal": [
+        "ice_crystal",
+        "metal_shard",
+        "bio_gel",
+        "circuit_board",
+        "power_cell",
+        "thermal_paste",
+        "hull_patch",
+        "antenna_array",
+    ],
 }
 
 
@@ -125,6 +135,40 @@ def show_lose_sequence(ctx: GameContext):
     ui.narrate_lines(lose_lines, pause=0.5)
     ui.console.print("[bold red]" + "=" * 60 + "[/bold red]")
     ui.console.print("\n[bold]GAME OVER[/bold]\n")
+
+
+def apply_super_mode(ctx: GameContext):
+    """Cheat mode: max trust, all repair materials, fully upgraded drone."""
+    from src.drone import UPGRADE_EFFECTS
+
+    # Max trust on all creatures
+    for c in ctx.creatures:
+        c.trust = 100
+        c.disposition = "friendly"
+
+    # Add all repair materials to inventory (skip if already in inventory or storage)
+    for key in ctx.repair_checklist:
+        mat = key.replace("material_", "")
+        in_inv = ctx.player.has_item(mat)
+        in_storage = ctx.player.ship_storage.get(mat, 0) > 0
+        if not in_inv and not in_storage:
+            ctx.player.add_item(mat)
+
+    # Max out drone upgrades
+    for upgrade_name in UPGRADE_EFFECTS:
+        if upgrade_name not in ctx.drone.upgrades_installed:
+            ctx.drone.apply_upgrade(upgrade_name)
+
+    # Full resources
+    ctx.player.food = 100.0
+    ctx.player.water = 100.0
+    ctx.player.suit_integrity = 100.0
+    ctx.drone.recharge()
+
+    ui.console.print("[bold magenta]SUPER MODE ACTIVATED[/bold magenta]")
+    ui.dim("  All creatures trust you. All repair materials in inventory.")
+    ui.dim("  Drone fully upgraded. Resources maxed.")
+    ui.console.print()
 
 
 def init_game(mode: str, seed: int | None = None) -> GameContext:
@@ -275,8 +319,19 @@ def game_loop(ctx: GameContext):
             break
 
 
+def _parse_flags() -> tuple[bool, bool]:
+    """Parse --dev and --super CLI flags. Returns (dev_flag, super_flag)."""
+    import sys
+
+    dev_flag = "--dev" in sys.argv
+    super_flag = "--super" in sys.argv
+    return dev_flag, super_flag
+
+
 def main():
     """Entry point."""
+    dev_flag, super_flag = _parse_flags()
+
     # Restore sound preference from config
     try:
         from src.config import get_sound_enabled
@@ -367,6 +422,15 @@ def main():
                 from src.config import set_tutorial_completed
 
                 set_tutorial_completed()
+            # Apply CLI flags on load
+            if dev_flag and ctx.dev_mode:
+                ctx.dev_mode.toggle()
+            if super_flag:
+                apply_super_mode(ctx)
+            # Derive easter egg state from loaded storage
+            from src.difficulty import check_junk_easter_egg
+
+            ctx.easter_egg_announced = check_junk_easter_egg(ctx.player, ctx.world_mode)
             # Wire Textual autocomplete if in TUI mode
             if ui._bridge:
                 try:
@@ -381,9 +445,11 @@ def main():
     # New game
     mode = ui.prompt_choice(
         "Choose game length:",
-        ["Short (~30 min)", "Medium (~1-2 hours)", "Long (~3+ hours)"],
+        ["Easy (~30 min)", "Medium (~1-2 hours)", "Hard (~3+ hours)", "Brutal (~5+ hours)"],
     )
-    mode_key = mode.split()[0].lower()
+    # Map display names to internal keys
+    _mode_map = {"easy": "short", "medium": "medium", "hard": "long", "brutal": "brutal"}
+    mode_key = _mode_map.get(mode.split()[0].lower(), "short")
 
     # GPU/CPU mode — auto-detect from config, no prompt
     from src.config import get_gpu_mode
@@ -402,6 +468,12 @@ def main():
     llm.load_model(gpu_mode=gpu_mode)
 
     ctx = init_game(mode_key)
+
+    # Apply CLI flags
+    if dev_flag and ctx.dev_mode:
+        ctx.dev_mode.toggle()
+    if super_flag:
+        apply_super_mode(ctx)
 
     # Wire Textual autocomplete if in TUI mode
     if ui._bridge:

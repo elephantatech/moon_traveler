@@ -37,8 +37,11 @@ BASE_COMMANDS = [
     "load",
     "help",
     "config",
+    "inspect",
+    "examine",
     "tutorial",
     "sound",
+    "charge",
     "screenshot",
     "clear",
     "cls",
@@ -130,6 +133,13 @@ class GameCompleter(Completer):
                         yield Completion(display, start_position=-len(partial))
                 if "to".startswith(partial_lower) and partial_lower != "to":
                     yield Completion("to", start_position=-len(partial))
+
+        # inspect / examine → inventory items
+        elif cmd in ("inspect", "examine"):
+            for item in sorted(self.ctx.player.inventory.keys()):
+                display = item.replace("_", " ").title()
+                if display.lower().startswith(partial_lower):
+                    yield Completion(display, start_position=-len(partial))
 
         # upgrade → upgrade items in inventory
         elif cmd == "upgrade":
@@ -309,6 +319,15 @@ class GameSuggester(_TextualSuggester):
                 if "to".startswith(arg_lower) and arg_lower != "to":
                     results.append(cmd_prefix + "to")
                 return results
+
+        # inspect / examine → inventory items
+        if cmd in ("inspect", "examine"):
+            return [
+                cmd_prefix + item.replace("_", " ").title()
+                for item in sorted(self.ctx.player.inventory.keys())
+                if item.replace("_", " ").title().lower().startswith(arg_lower)
+                and item.replace("_", " ").title().lower() != arg_lower
+            ]
 
         # upgrade → upgrade items in inventory
         if cmd == "upgrade":

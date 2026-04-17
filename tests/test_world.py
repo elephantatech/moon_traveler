@@ -36,6 +36,10 @@ class TestWorldGeneration:
         world = generate_world("long", seed=42)
         assert len(world["locations"]) == 30
 
+    def test_brutal_mode_count(self):
+        world = generate_world("brutal", seed=42)
+        assert len(world["locations"]) == 40
+
     def test_crash_site_at_origin(self):
         world = generate_world("short", seed=42)
         crash = world["locations"][0]
@@ -79,20 +83,26 @@ class TestScanReachability:
             reachable = _scan_reachability(world["locations"])
             assert len(reachable) == len(world["locations"]), f"seed={seed}: {len(reachable)}/{len(world['locations'])}"
 
+    def test_brutal_all_reachable(self):
+        for seed in [42, 123]:
+            world = generate_world("brutal", seed=seed)
+            reachable = _scan_reachability(world["locations"])
+            assert len(reachable) == len(world["locations"]), f"seed={seed}: {len(reachable)}/{len(world['locations'])}"
+
 
 class TestLocationProperties:
     def test_locations_within_radius(self):
         world = generate_world("short", seed=42)
         radius = world["config"]["radius"]
         for loc in world["locations"]:
-            d = math.sqrt(loc.x ** 2 + loc.y ** 2)
+            d = math.sqrt(loc.x**2 + loc.y**2)
             assert d <= radius + 1, f"{loc.name} at {d:.1f}km exceeds radius {radius}"
 
     def test_minimum_spacing(self):
         world = generate_world("medium", seed=42)
         locs = world["locations"]
         for i, a in enumerate(locs):
-            for b in locs[i + 1:]:
+            for b in locs[i + 1 :]:
                 d = math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
                 assert d >= 2.5, f"{a.name} and {b.name} too close: {d:.1f}km"
 

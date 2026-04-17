@@ -89,9 +89,12 @@ class TestPostTravelSummary:
         player = FakePlayer(food=80, water=70, suit_integrity=85, location_name="Crystal Ridge")
         drone = FakeDrone(battery=60)
         result = ai.post_travel_summary(
-            player, drone,
-            food_before=100.0, water_before=100.0,
-            suit_before=92.0, batt_before=100.0,
+            player,
+            drone,
+            food_before=100.0,
+            water_before=100.0,
+            suit_before=92.0,
+            batt_before=100.0,
         )
         assert "Crystal Ridge" in result
         assert "80%" in result  # food after

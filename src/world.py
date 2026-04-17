@@ -118,9 +118,9 @@ DRONE_UPGRADES = {
     "ruins": ["range_module", "translator_chip", "voice_module"],
     "settlement": ["cargo_rack", "translator_chip", "autopilot_chip"],
     "cave": ["battery_cell", "voice_module", "thruster_pack"],
-    "ridge": ["thruster_pack", "autopilot_chip"],
+    "ridge": ["thruster_pack", "autopilot_chip", "charge_module"],
     "canyon": ["range_module", "autopilot_chip", "battery_cell"],
-    "geyser_field": ["voice_module"],
+    "geyser_field": ["voice_module", "charge_module"],
     "ice_lake": ["autopilot_chip"],
 }
 
@@ -128,6 +128,7 @@ MODE_CONFIG = {
     "short": {"locations": 8, "creatures": 5, "radius": 20, "hostile_count": 0},
     "medium": {"locations": 16, "creatures": 12, "radius": 40, "hostile_count": 4},
     "long": {"locations": 30, "creatures": 20, "radius": 60, "hostile_count": 6},
+    "brutal": {"locations": 40, "creatures": 25, "radius": 80, "hostile_count": 12},
 }
 
 # Location type distribution weights
@@ -221,9 +222,14 @@ def generate_world(mode: str, seed: int | None = None) -> dict:
             name = generate_location_name(loc_type, rng)
         used_names.add(name)
 
-        # Assign items
+        # Assign items (extra drops for easier modes)
+        from src.difficulty import get_difficulty
+
+        diff = get_difficulty(mode)
         possible_items = LOCATION_ITEMS.get(loc_type, [])
-        item_count = rng.randint(0, min(1, len(possible_items)))
+        base_count = rng.randint(0, min(1, len(possible_items)))
+        extra = diff["extra_drops"] if possible_items else 0
+        item_count = min(base_count + extra, len(possible_items))
         items = rng.sample(possible_items, item_count) if possible_items else []
 
         # Possible drone upgrade
