@@ -3,123 +3,198 @@
 
 Usage: uv run python scripts/tui_screenshots.py
 
-Launches the game in --super mode with auto_pilot, runs a sequence
-of commands, and saves screenshots after each step to assets/.
-Runs headless — no terminal needed.
-
-References:
-- https://textual.textualize.io/guide/testing/
-- https://textual.textualize.io/api/pilot/
-- https://textual.textualize.io/api/app/
+Launches the game in --super mode, injects commands into the game's
+command queue, waits for output to render, then captures screenshots.
 """
 
 import sys
+import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-# Force --super mode so we have all items and max trust
 sys.argv = ["play_tui.py", "--super"]
 
 from src.tui_app import MoonTravelerApp
 
 ASSETS_DIR = Path("assets")
 
+# Shared game context — set by a hook in game.py init
+_game_ctx = None
+_ctx_ready = threading.Event()
+
+
+# Monkey-patch init_game to capture the context
+_original_init = None
+
+
+def _patched_game_loop(ctx):
+    """Intercept game_loop to capture ctx before it runs."""
+    global _game_ctx
+    _game_ctx = ctx
+    _ctx_ready.set()
+    return _original_init(ctx)
+
 
 async def screenshot_pilot(pilot):
-    """Automated pilot that plays through key game moments and captures screenshots."""
+    """Inject commands via queue and capture screenshots."""
 
     ASSETS_DIR.mkdir(exist_ok=True)
+    app = pilot.app
 
-    async def take(name: str, desc: str):
-        await pilot.pause(3.0)  # Wait for output to fully render
-        pilot.app.save_screenshot(str(ASSETS_DIR / f"{name}.svg"))
+    async def take(name, desc):
+        await pilot.pause(0.5)
+        app.refresh()
+        await pilot.pause(0.5)
+        app.save_screenshot(str(ASSETS_DIR / f"{name}.svg"))
         print(f"  Saved: assets/{name}.svg — {desc}")
 
-    async def type_and_enter(text: str):
-        """Type a full command and press Enter."""
-        for char in text:
-            if char == " ":
-                await pilot.press("space")
-            else:
-                await pilot.press(char)
-        await pilot.press("enter")
-        await pilot.pause(2.0)  # Wait for command output to render
+    async def send(text, wait=4.0):
+        app.command_queue.put(text)
+        await pilot.pause(wait)
 
-    # Wait for boot sequence to complete
+    async def respond(text, wait=2.0):
+        if app._bridge:
+            app._bridge.push_response(text)
+        await pilot.pause(wait)
+
     print("Taking TUI screenshots...\n")
-    await pilot.pause(5)
 
-    # 1. New Game prompt
-    await take("tui-new-game", "New Game / Load Game menu")
+    # Wait for app to mount
+    await pilot.pause(3.0)
+    await take("tui-title", "Title screen")
 
-    # Select New Game (1) then Easy mode (1)
-    await pilot.press("1")
-    await pilot.press("enter")
-    await pilot.pause(2)
-    await pilot.press("1")
-    await pilot.press("enter")
-    await pilot.pause(8)  # Wait for LLM load + boot sequence
+    # New Game → Easy mode
+    await respond("1", wait=2.0)
+    await respond("1", wait=15.0)
 
-    # 2. Crash site after boot
-    await take("tui-crash-site", "Crash site with status bar")
+    # Wait for game context to be available
+    _ctx_ready.wait(timeout=30)
+    ctx = _game_ctx
+    if not ctx:
+        print("  ERROR: Could not capture game context. Exiting.")
+        app.command_queue.put(None)
+        return
 
-    # 3. Look
-    await type_and_enter("look")
-    await take("tui-look", "Look at current location")
+    await take("tui-crash-site", "Crash site after boot")
 
-    # 4. Scan
-    await type_and_enter("scan")
-    await take("tui-scan", "Scan discovering locations")
+    await send("look", wait=3.0)
+    await take("tui-look", "Look at crash site")
 
-    # 5. GPS
-    await type_and_enter("gps")
-    await take("tui-gps", "GPS map view")
+    await send("scan", wait=3.0)
+    await take("tui-scan", "Scan results")
 
-    # 6. Inventory
-    await type_and_enter("inventory")
-    await take("tui-inventory", "Inventory with all items (super mode)")
+    await send("gps", wait=3.0)
+    await take("tui-gps", "GPS map")
 
-    # 7. Status
-    await type_and_enter("status")
+    await send("inventory", wait=3.0)
+    await take("tui-inventory", "Inventory (super mode)")
+
+    await send("status", wait=3.0)
     await take("tui-status", "Player status")
 
-    # 8. Drone
-    await type_and_enter("drone")
-    await take("tui-drone", "Drone status with all upgrades")
+    await send("drone", wait=3.0)
+    await take("tui-drone", "Drone status")
 
-    # 9. Ship bays
-    await type_and_enter("ship")
+    await send("ship", wait=3.0)
     await take("tui-ship-bays", "Ship bays menu")
 
-    # 10. Ship repair
-    await type_and_enter("ship repair")
-    await pilot.pause(0.5)
-    await take("tui-ship-repair", "Ship repair progress")
-
-    # 11. Help
-    await type_and_enter("help")
+    await send("help", wait=3.0)
     await take("tui-help", "Help screen")
 
-    # 12. Inspect an item
-    await type_and_enter("inspect ice crystal")
-    await take("tui-inspect", "Inspect item description")
+    await send("inspect ice crystal", wait=3.0)
+    await take("tui-inspect", "Inspect item")
 
-    # 13. Config
-    await type_and_enter("config")
-    await take("tui-config", "Game configuration")
+    await send("config", wait=3.0)
+    await take("tui-config", "Config screen")
 
-    # 14. Win sequence — install all repair materials
-    await type_and_enter("ship repair")
-    await pilot.pause(1.0)
-    await pilot.press("y")  # Confirm install
-    await pilot.press("enter")
-    await pilot.pause(5.0)  # Wait for win sequence narration
+    # Find a creature to talk to
+    # Get the first location that has a creature
+    creature_loc = None
+    creature_name = None
+    for c in ctx.creatures:
+        if not c.following:
+            creature_loc = c.location_name
+            creature_name = c.name
+            break
+
+    if creature_loc and creature_loc != ctx.player.location_name:
+        # Travel to the creature's location
+        await send(f"travel {creature_loc}", wait=3.0)
+        # Travel may ask for confirmation if dangerous
+        # Check if we're in ask mode — if so, confirm
+        await pilot.pause(1.0)
+        if app._ask_mode:
+            await respond("y", wait=5.0)
+        await take("tui-travel", "Travel to creature location")
+
+        await send("look", wait=3.0)
+        await take("tui-location-creature", "Location with creature")
+
+    if creature_name:
+        # Talk to the creature
+        await send(f"talk {creature_name}", wait=5.0)
+        await take("tui-talk-start", "Conversation started")
+
+        # Say hello
+        await respond(
+            "hello, I crashed here and need help fixing my ship",
+            wait=10.0,
+        )
+        await take("tui-conversation-1", "First response")
+
+        # Ask them to come help
+        await respond(
+            "would you come to my ship and help me fix it?",
+            wait=10.0,
+        )
+        await take("tui-conversation-2", "Asking for help")
+
+        # Say bye
+        await respond("bye", wait=3.0)
+        await take("tui-conversation-end", "Conversation ended")
+
+        # Escort the creature (trust is 100 in super mode)
+        await send(f"escort", wait=3.0)
+        await take("tui-escort", "Escort creature")
+
+    # Travel back to crash site
+    await send("travel Crash Site", wait=3.0)
+    if app._ask_mode:
+        await respond("y", wait=5.0)
+    await take("tui-return-crash", "Back at crash site")
+
+    await send("look", wait=3.0)
+    await take("tui-crash-return-look", "Crash site after exploring")
+
+    # Ship repair — "ship repair" is a direct subcommand (no bay menu)
+    # It shows installable materials then prompts "Install all? (y/n)"
+    # send() puts it in command_queue, worker runs _bay_repair(),
+    # which calls console.input() for the y/n confirmation (ask mode).
+    await send("ship repair", wait=5.0)
+
+    # Wait for ask mode to be active (worker is blocking on ask_queue)
+    for _ in range(20):
+        if app._ask_mode:
+            break
+        await pilot.pause(0.5)
+
+    await take("tui-repair-prompt", "Repair install prompt")
+
+    # Confirm installation
+    await respond("y", wait=15.0)
     await take("tui-victory", "Victory — mission complete")
 
     print(f"\nDone! Screenshots saved to {ASSETS_DIR}/")
+    app.command_queue.put(None)
+    await pilot.pause(1.0)
 
 
 if __name__ == "__main__":
+    # Patch game_loop to capture context
+    from src import game
+
+    _original_init = game.game_loop
+    game.game_loop = _patched_game_loop
+
     app = MoonTravelerApp()
-    app.run(headless=True, auto_pilot=screenshot_pilot)
+    app.run(auto_pilot=screenshot_pilot)

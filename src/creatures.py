@@ -158,6 +158,9 @@ class Creature:
 
     def add_message(self, role: str, content: str):
         self.conversation_history.append({"role": role, "content": content})
+        # Cap history to prevent unbounded save file growth
+        if len(self.conversation_history) > 100:
+            self.conversation_history = self.conversation_history[-100:]
 
     def trust_meets(self, action: str) -> bool:
         """Check if trust meets the threshold for this action based on archetype."""
