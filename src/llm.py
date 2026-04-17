@@ -65,17 +65,24 @@ def detect_gpu() -> dict:
     return {"available": False, "backend": "none"}
 
 
-# Available models — ordered by preference (smallest first)
+# Available models — ordered by size (smallest first)
 AVAILABLE_MODELS = [
     {
-        "name": "Qwen3.5 2B (Lite — recommended)",
+        "name": "SmolLM2 1.7B (Tiny — low RAM systems)",
+        "filename": "SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
+        "url": "https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
+        "size": "1.0 GB",
+        "ram": "~1.2 GB",
+    },
+    {
+        "name": "Qwen3.5 2B (Recommended — best balance)",
         "filename": "Qwen3.5-2B-Q4_K_M.gguf",
         "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
         "size": "1.3 GB",
         "ram": "~2.3 GB",
     },
     {
-        "name": "Gemma 4 E2B (Full quality)",
+        "name": "Gemma 4 E2B (Full quality — best dialogue)",
         "filename": "gemma-4-E2B-it-Q4_K_M.gguf",
         "url": "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf",
         "size": "3.1 GB",
@@ -83,8 +90,8 @@ AVAILABLE_MODELS = [
     },
 ]
 
-# Default model (Qwen3.5 2B — best balance of size and quality for this game)
-DEFAULT_MODEL = AVAILABLE_MODELS[0]
+# Default model (Qwen3.5 2B — best balance of size and quality)
+DEFAULT_MODEL = AVAILABLE_MODELS[1]
 
 
 def _get_context_size() -> int:
@@ -194,20 +201,24 @@ def maybe_download_model() -> bool:
 
         total_ram_gb = psutil.virtual_memory().total / (1024**3)
         ui.dim(f"  RAM: {total_ram_gb:.0f} GB total")
-        if total_ram_gb < 4:
-            ui.dim("  [yellow]Low RAM detected — Qwen3.5 2B (Lite) recommended[/yellow]")
-        elif total_ram_gb >= 8:
-            ui.dim("  Enough RAM for either model")
+        if total_ram_gb < 2:
+            ui.dim("  [yellow]Very low RAM — SmolLM2 1.7B recommended (1.2 GB RAM)[/yellow]")
+        elif total_ram_gb < 4:
+            ui.dim("  [yellow]Low RAM — SmolLM2 1.7B or Qwen3.5 2B recommended[/yellow]")
+        elif total_ram_gb < 8:
+            ui.dim("  Enough for SmolLM2 or Qwen3.5. Gemma 4 may be tight.")
+        else:
+            ui.dim("  Enough RAM for any model")
     except ImportError:
         pass
     ui.console.print()
 
     ui.console.print("[bold]Available models:[/bold]")
     for i, model in enumerate(AVAILABLE_MODELS, 1):
-        ui.console.print(
-            f"  [cyan]{i}[/cyan]. {model['name']}  [dim]({model['size']} download, {model['ram']} RAM)[/dim]"
-        )
+        ui.console.print(f"  [cyan]{i}[/cyan]. {model['name']}")
+        ui.console.print(f"      [dim]Download: {model['size']} | RAM needed: {model['ram']}[/dim]")
     ui.console.print(f"  [cyan]{len(AVAILABLE_MODELS) + 1}[/cyan]. Skip (use fallback dialogue)")
+    ui.console.print("      [dim]No download needed. Creatures use pre-written dialogue.[/dim]")
     ui.console.print()
 
     try:

@@ -6,16 +6,16 @@ You've crash-landed on Enceladus, Saturn's frozen moon. Your ship is wrecked. Yo
 
 ## System Requirements
 
-The game has two modes depending on whether you use the AI model:
+On first launch you choose which AI model to download. The game detects your RAM and recommends the best fit.
 
-| | No AI Model | Qwen3.5 2B (default) | Gemma 4 E2B (full) |
-|---|---|---|---|
-| **RAM** | 256 MB | 4 GB | 6 GB |
-| **Disk** | 50 MB | 1.5 GB | 3.5 GB |
-| **CPU** | Any | 4+ cores | 4+ cores |
-| **GPU** | Not needed | Optional | Optional |
+| Model | Download | RAM Needed | Disk Total | Quality |
+|-------|----------|------------|------------|---------|
+| No model | 0 | 256 MB | 50 MB | Fallback dialogue |
+| **SmolLM2 1.7B** | 1.0 GB | ~1.2 GB | ~1.1 GB | Good — low RAM systems |
+| **Qwen3.5 2B** (default) | 1.3 GB | ~2.3 GB | ~1.5 GB | Very good — recommended |
+| **Gemma 4 E2B** | 3.1 GB | ~4.4 GB | ~3.5 GB | Best — richest dialogue |
 
-On first launch you choose which model to download. Qwen3.5 2B (1.3 GB) is recommended — it's lightweight and handles creature dialogue well. Gemma 4 E2B (3.1 GB) offers richer, more creative responses. Without any model, creatures use pre-written dialogue.
+All models run on CPU. GPU (CUDA/Metal/Vulkan) is optional for faster inference. Without any model, creatures use pre-written dialogue and the game is fully playable.
 
 ---
 
@@ -464,6 +464,7 @@ Speaks in magenta: `DRONE: ...`
 
 If the automatic download fails (network issues, timeouts), you can manually download the GGUF model file and place it in the `models/` directory. The game looks for any `.gguf` file in that folder — no config changes needed.
 
+- **SmolLM2 1.7B** — download the `.gguf` file (~1.0 GB) and place it in `~/.moonwalker/models/`
 - **Qwen3.5 2B** — download the `.gguf` file (~1.3 GB) and place it in `~/.moonwalker/models/`
 - **Gemma 4 E2B** — download the `.gguf` file (~3.1 GB) and place it in `~/.moonwalker/models/`
 
