@@ -31,10 +31,17 @@ class UIBridge:
         self._app.call_from_thread(self._log.write, renderable)
 
     def print(self, *args, **kwargs):
-        """Print markup text to the game log (matches Rich Console.print API)."""
-        # Join args into a single string, handle basic Rich markup
-        text = " ".join(str(a) for a in args)
-        self._app.call_from_thread(self._log.write, text)
+        """Print to the game log (matches Rich Console.print API).
+
+        Passes Rich renderables (Panel, Table, Text) directly to RichLog.write().
+        Strings with Rich markup are passed as-is (RichLog has markup=True).
+        Zero args prints a blank line.
+        """
+        if not args:
+            self._app.call_from_thread(self._log.write, "")
+            return
+        for arg in args:
+            self._app.call_from_thread(self._log.write, arg)
 
     def clear(self):
         """Clear the game log."""
@@ -48,15 +55,34 @@ class UIBridge:
         Used for all console.input() calls — command prompts, confirmations,
         trade menus, conversation input, etc.
         """
-        # Strip Rich markup from prompt for the label display
-        clean_prompt = prompt.replace("[bold]", "").replace("[/bold]", "")
-        clean_prompt = clean_prompt.replace("[dim]", "").replace("[/dim]", "")
-        clean_prompt = clean_prompt.replace("[cyan]", "").replace("[/cyan]", "")
+        # Strip Rich markup tags from prompt for the label display
+        import re
+        clean_prompt = re.sub(r"\[/?[a-z_ ]+\]", "", prompt)
 
-        self._app.call_from_thread(self._app.enter_ask_mode, clean_prompt)
+        # Enter ask mode and wait for it to execute on the main thread
+        # before blocking, to prevent the race where user submits before
+        # ask_mode is set.
+        import threading
+        done = threading.Event()
+        def _enter():
+            self._app.enter_ask_mode(clean_prompt)
+            done.set()
+        self._app.call_from_thread(_enter)
+        done.wait()
+
         result = self._ask_queue.get()  # Blocks worker thread
-        self._app.call_from_thread(self._app.exit_ask_mode)
+
+        # Exit ask mode synchronously to prevent TOCTOU race
+        exit_done = threading.Event()
+        def _exit():
+            self._app.exit_ask_mode()
+            exit_done.set()
+        self._app.call_from_thread(_exit)
+        exit_done.wait()
+
         self._restore_prompt_label()
+        if result is None:
+            raise KeyboardInterrupt
         return result
 
     def push_response(self, text: str):

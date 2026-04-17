@@ -12,12 +12,18 @@ class MoonTravelerApp(App):
 
     CSS_PATH = "game.tcss"
     TITLE = "Moon Traveler Terminal"
+    ENABLE_COMMAND_PALETTE = False
+    # Allow terminal-native text selection (hold Option/Alt on macOS, or Shift on Linux)
+    ALLOW_SELECT = True
 
     def __init__(self):
         super().__init__()
         self.command_queue: queue.Queue[str | None] = queue.Queue()
         self._ask_mode = False
         self._bridge = None  # Set by the worker after init
+        self._tab_candidates: list[str] = []
+        self._tab_index: int = -1
+        self._tab_prefix: str = ""
 
     def compose(self) -> ComposeResult:
         yield Static("Moon Traveler Terminal", id="header")
@@ -29,22 +35,29 @@ class MoonTravelerApp(App):
 
     def on_mount(self) -> None:
         """Start the game worker thread when the app mounts."""
-        self.query_one("#game-input", Input).focus()
+        # Query widgets on main thread (thread-safe) and store references
+        self._game_log = self.query_one("#game-log", RichLog)
+        self._status_bar = self.query_one("#status-bar", Static)
+        self._prompt_label = self.query_one("#prompt-label", Label)
+        self._game_input = self.query_one("#game-input", Input)
+        self._game_input.focus()
         self.run_worker(self._game_worker, thread=True)
 
     def set_suggester(self, ctx) -> None:
-        """Attach the game-aware suggester to the input widget. Call from worker via call_from_thread."""
+        """Attach the game-aware suggester to the input widget."""
         from src.input_handler import GameSuggester
-        game_input = self.query_one("#game-input", Input)
-        game_input.suggester = GameSuggester(ctx)
+        try:
+            self._game_input.suggester = GameSuggester(ctx)
+        except Exception:
+            pass  # Autocomplete not critical
 
     def _game_worker(self) -> None:
         """Run the full game in a worker thread."""
         from src.tui_bridge import UIBridge
 
-        game_log = self.query_one("#game-log", RichLog)
-        status_bar = self.query_one("#status-bar", Static)
-        prompt_label = self.query_one("#prompt-label", Label)
+        game_log = self._game_log
+        status_bar = self._status_bar
+        prompt_label = self._prompt_label
 
         bridge = UIBridge(
             app=self,
@@ -63,8 +76,12 @@ class MoonTravelerApp(App):
         from src.game import main as game_main
         try:
             game_main()
-        except Exception:
-            pass
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            self.call_from_thread(game_log.write, f"[red]CRASH: {e}[/red]\n[dim]{tb}[/dim]")
+            import time
+            time.sleep(10)  # Keep visible before exit
         finally:
             # Game ended — exit the app
             self.call_from_thread(self.exit)
@@ -73,6 +90,17 @@ class MoonTravelerApp(App):
         """Handle Enter key in the input field."""
         text = event.value.strip()
         event.input.clear()
+        self._tab_candidates = []
+        self._tab_index = -1
+
+        # Echo the player's input in the game log
+        if text and self._bridge:
+            if self._ask_mode:
+                self._game_log.write(f"[bold]> {text}[/bold]")
+            elif self._bridge._current_location:
+                self._game_log.write(f"[bold cyan]{self._bridge._current_location}>[/bold cyan] {text}")
+            else:
+                self._game_log.write(f"[bold]> {text}[/bold]")
 
         if self._ask_mode and self._bridge:
             self._bridge.push_response(text)
@@ -105,12 +133,65 @@ class MoonTravelerApp(App):
         self.query_one("#game-log", RichLog).clear()
 
     def on_key(self, event) -> None:
-        """Handle special keys."""
-        if event.key == "ctrl+c":
+        """Handle Tab for autocomplete cycling and Ctrl+C for quit."""
+        if event.key == "tab":
+            event.prevent_default()
+            event.stop()
+            self._handle_tab()
+        elif event.key == "ctrl+c":
             if self._ask_mode and self._bridge:
-                self._bridge.push_response("")
+                self._bridge.push_response(None)
             else:
                 self.command_queue.put(None)
+
+    def _handle_tab(self) -> None:
+        """Cycle through autocomplete candidates on Tab press."""
+        game_input = self._game_input
+        if not game_input.has_focus:
+            return
+
+        current = game_input.value
+
+        # If we already have candidates and the prefix hasn't changed, cycle
+        if self._tab_candidates and current in self._tab_candidates:
+            self._tab_index = (self._tab_index + 1) % len(self._tab_candidates)
+            choice = self._tab_candidates[self._tab_index]
+            game_input.value = choice
+            game_input.cursor_position = len(choice)
+            return
+
+        # Build new candidate list from the suggester
+        self._tab_candidates = []
+        self._tab_index = -1
+        self._tab_prefix = current
+
+        if not hasattr(game_input, 'suggester') or not game_input.suggester:
+            return
+
+        suggester = game_input.suggester
+        if not hasattr(suggester, '_get_all_suggestions'):
+            # Fallback: just use the single suggestion
+            if hasattr(game_input, '_suggestion') and game_input._suggestion:
+                game_input.value = game_input._suggestion
+                game_input.cursor_position = len(game_input.value)
+            return
+
+        candidates = suggester._get_all_suggestions(current)
+        if not candidates:
+            return
+
+        self._tab_candidates = candidates
+        self._tab_index = 0
+        game_input.value = candidates[0]
+        game_input.cursor_position = len(candidates[0])
+
+    def on_unmount(self) -> None:
+        """Unblock worker queues when the app exits."""
+        self.command_queue.put(None)
+        if self._bridge:
+            self._bridge.push_response(None)
+
+
 
 
 def run_tui():
