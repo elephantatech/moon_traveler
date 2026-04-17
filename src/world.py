@@ -251,6 +251,7 @@ def generate_world(mode: str, seed: int | None = None) -> dict:
 
     if len(locations) < num_locations:
         from src import ui
+
         ui.warn(f"World generation: placed {len(locations)}/{num_locations} locations (seed={seed}).")
 
     # Guarantee at least one food source and one water source

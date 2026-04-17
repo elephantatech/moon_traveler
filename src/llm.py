@@ -91,6 +91,7 @@ def _get_context_size() -> int:
     """Get configured context size, falling back to 8192."""
     try:
         from src.config import get_context_size
+
         return get_context_size()
     except Exception:
         return 8192
@@ -145,6 +146,7 @@ def find_model_path() -> str | None:
 def _download_file(url: str, target: Path) -> bool:
     """Download a file with progress bar. Returns True on success."""
     try:
+
         def _progress(block_num, block_size, total_size):
             downloaded = block_num * block_size
             if total_size > 0:
@@ -189,7 +191,8 @@ def maybe_download_model() -> bool:
     # Recommend model based on available RAM
     try:
         import psutil
-        total_ram_gb = psutil.virtual_memory().total / (1024 ** 3)
+
+        total_ram_gb = psutil.virtual_memory().total / (1024**3)
         ui.dim(f"  RAM: {total_ram_gb:.0f} GB total")
         if total_ram_gb < 4:
             ui.dim("  [yellow]Low RAM detected — Qwen3.5 2B (Lite) recommended[/yellow]")
@@ -202,8 +205,7 @@ def maybe_download_model() -> bool:
     ui.console.print("[bold]Available models:[/bold]")
     for i, model in enumerate(AVAILABLE_MODELS, 1):
         ui.console.print(
-            f"  [cyan]{i}[/cyan]. {model['name']}  "
-            f"[dim]({model['size']} download, {model['ram']} RAM)[/dim]"
+            f"  [cyan]{i}[/cyan]. {model['name']}  [dim]({model['size']} download, {model['ram']} RAM)[/dim]"
         )
     ui.console.print(f"  [cyan]{len(AVAILABLE_MODELS) + 1}[/cyan]. Skip (use fallback dialogue)")
     ui.console.print()
@@ -590,9 +592,7 @@ def apply_actions(actions: list[dict], player, drone, creature, repair_checklist
             player.water = min(100.0, player.water + 30.0)
             player.food_warning_given = False
             player.water_warning_given = False
-            messages.append(
-                f"[bold cyan]{creature.name} healed you! Food +30%, Water +30%.[/bold cyan]"
-            )
+            messages.append(f"[bold cyan]{creature.name} healed you! Food +30%, Water +30%.[/bold cyan]")
 
         elif action == "REPAIR_SUIT":
             required = thresholds.get("repair_suit", 35)
@@ -621,9 +621,7 @@ def apply_actions(actions: list[dict], player, drone, creature, repair_checklist
                 if inventory_list is not creature.can_give_materials and item in creature.can_give_materials:
                     creature.can_give_materials.remove(item)
                 display = item.replace("_", " ").title()
-                messages.append(
-                    f"[bold cyan]{creature.name} gave you: {display}![/bold cyan]"
-                )
+                messages.append(f"[bold cyan]{creature.name} gave you: {display}![/bold cyan]")
 
         elif action == "TRADE":
             required = thresholds.get("trade", 20)
@@ -642,9 +640,7 @@ def apply_actions(actions: list[dict], player, drone, creature, repair_checklist
                     creature.can_give_materials.remove(offered)
                 off_display = offered.replace("_", " ").title()
                 want_display = wanted.replace("_", " ").title()
-                messages.append(
-                    f"[bold cyan]{creature.name} traded {off_display} for your {want_display}![/bold cyan]"
-                )
+                messages.append(f"[bold cyan]{creature.name} traded {off_display} for your {want_display}![/bold cyan]")
 
     return messages
 

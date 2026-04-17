@@ -116,8 +116,9 @@ def save_game(
         return
 
     try:
-        _save_to_db(conn, slot, player, drone, locations, creatures,
-                     world_seed, world_mode, repair_checklist, ship_ai, tutorial)
+        _save_to_db(
+            conn, slot, player, drone, locations, creatures, world_seed, world_mode, repair_checklist, ship_ai, tutorial
+        )
         conn.commit()
         conn.close()
     except Exception as e:
@@ -133,8 +134,9 @@ def save_game(
         ui.success(f"Game saved to slot '{slot}'.")
 
 
-def _save_to_db(conn, slot, player, drone, locations, creatures,
-                world_seed, world_mode, repair_checklist, ship_ai, tutorial):
+def _save_to_db(
+    conn, slot, player, drone, locations, creatures, world_seed, world_mode, repair_checklist, ship_ai, tutorial
+):
     """Write game state to the database (no commit)."""
     # Build state as key-value pairs
     kv = {
@@ -157,13 +159,16 @@ def _save_to_db(conn, slot, player, drone, locations, creatures,
         "INSERT INTO saves (slot, key, value) VALUES (?, ?, ?)",
         [(slot, k, v) for k, v in kv.items()],
     )
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO save_meta (slot, save_version, updated_at)
         VALUES (?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT(slot) DO UPDATE SET
             save_version = excluded.save_version,
             updated_at = CURRENT_TIMESTAMP
-    """, (slot, SAVE_VERSION))
+    """,
+        (slot, SAVE_VERSION),
+    )
 
     # Save chat history separately for each creature
     conn.execute("DELETE FROM chat_history WHERE slot = ?", (slot,))
@@ -185,7 +190,6 @@ def _save_to_db(conn, slot, player, drone, locations, creatures,
             "INSERT INTO creature_memory (slot, creature_id, memory) VALUES (?, ?, ?)",
             mem_rows,
         )
-
 
 
 def _load_kv(conn: sqlite3.Connection, slot: str) -> dict | None:
@@ -210,9 +214,7 @@ def load_game(slot: str) -> dict | None:
             if kv:
                 # Check save version compatibility
                 try:
-                    row = conn.execute(
-                        "SELECT save_version FROM save_meta WHERE slot = ?", (slot,)
-                    ).fetchone()
+                    row = conn.execute("SELECT save_version FROM save_meta WHERE slot = ?", (slot,)).fetchone()
                     if row and row[0] > SAVE_VERSION:
                         ui.warn(f"Save '{slot}' was created by a newer game version (v{row[0]} > v{SAVE_VERSION}).")
                         ui.warn("Some features may not load correctly.")
@@ -264,8 +266,9 @@ def _load_creature_memory(conn: sqlite3.Connection, slot: str) -> dict[str, str]
         return {}  # Table may not exist in old saves
 
 
-def _reconstruct_state(kv: dict, chat: dict[str, list[dict]] | None = None,
-                       memories: dict[str, str] | None = None) -> dict:
+def _reconstruct_state(
+    kv: dict, chat: dict[str, list[dict]] | None = None, memories: dict[str, str] | None = None
+) -> dict:
     """Reconstruct game objects from key-value pairs."""
     state = {}
     state["world_seed"] = kv["world_seed"]
@@ -290,18 +293,22 @@ def _reconstruct_state(kv: dict, chat: dict[str, list[dict]] | None = None,
     # Optional fields
     if "ship_ai" in kv:
         from src.ship_ai import ShipAI
+
         state["ship_ai"] = ShipAI.from_dict(kv["ship_ai"])
     else:
         from src.ship_ai import ShipAI
+
         ai = ShipAI()
         ai.boot_complete = True
         state["ship_ai"] = ai
 
     if "tutorial" in kv:
         from src.tutorial import TutorialManager
+
         state["tutorial"] = TutorialManager.from_dict(kv["tutorial"])
     else:
         from src.tutorial import TutorialManager, TutorialStep
+
         t = TutorialManager()
         t.step = TutorialStep.COMPLETED
         state["tutorial"] = t
@@ -323,18 +330,22 @@ def _load_legacy_json(path: Path) -> dict | None:
 
         if "ship_ai" in state and isinstance(state["ship_ai"], dict):
             from src.ship_ai import ShipAI
+
             state["ship_ai"] = ShipAI.from_dict(state["ship_ai"])
         else:
             from src.ship_ai import ShipAI
+
             ai = ShipAI()
             ai.boot_complete = True
             state["ship_ai"] = ai
 
         if "tutorial" in state and isinstance(state["tutorial"], dict):
             from src.tutorial import TutorialManager
+
             state["tutorial"] = TutorialManager.from_dict(state["tutorial"])
         else:
             from src.tutorial import TutorialManager, TutorialStep
+
             t = TutorialManager()
             t.step = TutorialStep.COMPLETED
             state["tutorial"] = t

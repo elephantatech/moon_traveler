@@ -148,7 +148,6 @@ class GameCompleter(Completer):
                     yield Completion(slot, start_position=-len(partial))
 
 
-
 _PROMPT_STYLE = Style.from_dict(
     {
         "location": "bold ansicyan",
@@ -163,6 +162,7 @@ _PROMPT_STYLE = Style.from_dict(
 def _bottom_toolbar():
     """Return the fixed status bar for the bottom of the terminal."""
     from src import ui
+
     text = ui.get_toolbar_text()
     return HTML(text) if text else ""
 
@@ -241,19 +241,25 @@ class GameSuggester(_TextualSuggester):
 
         cmd = words[0].lower()
         # For multi-word args (like location names), use everything after the command
-        arg_text = text[len(words[0]):].lstrip()
+        arg_text = text[len(words[0]) :].lstrip()
         arg_lower = arg_text.lower()
         cmd_prefix = words[0] + " "
 
         # ship → bay sub-commands
         if cmd in ("ship", "repair"):
-            return [cmd_prefix + bay for bay in ["repair", "storage", "kitchen", "charging", "medical"]
-                    if bay.startswith(arg_lower) and bay != arg_lower]
+            return [
+                cmd_prefix + bay
+                for bay in ["repair", "storage", "kitchen", "charging", "medical"]
+                if bay.startswith(arg_lower) and bay != arg_lower
+            ]
 
         # travel / go → known location names (multi-word like "Lunar Lake")
         if cmd in ("travel", "go"):
-            return [cmd_prefix + name for name in sorted(self.ctx.player.known_locations)
-                    if name.lower().startswith(arg_lower) and name.lower() != arg_lower]
+            return [
+                cmd_prefix + name
+                for name in sorted(self.ctx.player.known_locations)
+                if name.lower().startswith(arg_lower) and name.lower() != arg_lower
+            ]
 
         # talk / speak → creature at current location
         if cmd in ("talk", "speak"):
@@ -282,15 +288,16 @@ class GameSuggester(_TextualSuggester):
             if "to" in lower_words:
                 # After "to" — complete creature name
                 to_idx = lower_words.index("to")
-                after_to = " ".join(words[2 + to_idx:])
+                after_to = " ".join(words[2 + to_idx :])
                 after_lower = after_to.lower()
-                prefix_before = " ".join(words[:2 + to_idx]) + " "
+                prefix_before = " ".join(words[: 2 + to_idx]) + " "
                 loc_name = self.ctx.player.location_name
                 results = []
                 for c in self.ctx.creatures:
                     at_loc = c.location_name == loc_name and not c.following
                     following = c.following and c.location_name == loc_name
-                    if (at_loc or following) and c.name.lower().startswith(after_lower) and c.name.lower() != after_lower:
+                    name_lower = c.name.lower()
+                    if (at_loc or following) and name_lower.startswith(after_lower) and name_lower != after_lower:
                         results.append(prefix_before + c.name)
                 return results
             else:
@@ -316,7 +323,11 @@ class GameSuggester(_TextualSuggester):
         # load → save slot names
         if cmd == "load":
             from src.save_load import list_saves
-            return [cmd_prefix + slot for slot in list_saves()
-                    if slot.lower().startswith(arg_lower) and slot.lower() != arg_lower]
+
+            return [
+                cmd_prefix + slot
+                for slot in list_saves()
+                if slot.lower().startswith(arg_lower) and slot.lower() != arg_lower
+            ]
 
         return []

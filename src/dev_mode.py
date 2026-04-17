@@ -4,7 +4,6 @@ import json
 import math
 import os
 import time
-from pathlib import Path
 
 from src import ui
 from src.config import get_data_dir
@@ -108,6 +107,7 @@ def _system_metrics_dict() -> dict:
 
     try:
         from src import llm
+
         if llm._llm_available and llm._llm_model is not None:
             result["model_loaded"] = True
             model_path = getattr(llm._llm_model, "model_path", None)
@@ -160,19 +160,21 @@ def _locations_dict(ctx) -> list[dict]:
     for loc in sorted_locs:
         d = cur.distance_to(loc.x, loc.y)
         creature = ctx.creature_at_location(loc.name)
-        result.append({
-            "name": loc.name,
-            "type": loc.loc_type,
-            "x": loc.x,
-            "y": loc.y,
-            "distance_km": round(d, 1),
-            "discovered": loc.discovered,
-            "visited": loc.visited,
-            "items": list(loc.items),
-            "food_source": loc.food_source,
-            "water_source": loc.water_source,
-            "creature": creature.name if creature else None,
-        })
+        result.append(
+            {
+                "name": loc.name,
+                "type": loc.loc_type,
+                "x": loc.x,
+                "y": loc.y,
+                "distance_km": round(d, 1),
+                "discovered": loc.discovered,
+                "visited": loc.visited,
+                "items": list(loc.items),
+                "food_source": loc.food_source,
+                "water_source": loc.water_source,
+                "creature": creature.name if creature else None,
+            }
+        )
     return result
 
 
@@ -180,24 +182,26 @@ def _creatures_dict(ctx) -> list[dict]:
     """Return all creatures as a list of dicts."""
     result = []
     for c in ctx.creatures:
-        result.append({
-            "name": c.name,
-            "species": c.species,
-            "archetype": c.archetype,
-            "disposition": c.disposition,
-            "location": c.location_name,
-            "trust": c.trust,
-            "trust_level": c.trust_level,
-            "following": c.following,
-            "has_helped_repair": c.has_helped_repair,
-            "role_inventory": list(c.role_inventory),
-            "given_items": list(c.given_items),
-            "can_give_materials": list(c.can_give_materials),
-            "trade_wants": list(c.trade_wants),
-            "knows_food_source": c.knows_food_source,
-            "knows_water_source": c.knows_water_source,
-            "conversation_count": len(c.conversation_history),
-        })
+        result.append(
+            {
+                "name": c.name,
+                "species": c.species,
+                "archetype": c.archetype,
+                "disposition": c.disposition,
+                "location": c.location_name,
+                "trust": c.trust,
+                "trust_level": c.trust_level,
+                "following": c.following,
+                "has_helped_repair": c.has_helped_repair,
+                "role_inventory": list(c.role_inventory),
+                "given_items": list(c.given_items),
+                "can_give_materials": list(c.can_give_materials),
+                "trade_wants": list(c.trade_wants),
+                "knows_food_source": c.knows_food_source,
+                "knows_water_source": c.knows_water_source,
+                "conversation_count": len(c.conversation_history),
+            }
+        )
     return result
 
 
@@ -218,17 +222,21 @@ def _scan_tree_dict(ctx) -> dict:
                     continue
                 d2 = math.sqrt((loc.x - loc2.x) ** 2 + (loc.y - loc2.y) ** 2)
                 if d2 <= scanner_range:
-                    reachable_from.append({
-                        "name": loc2.name,
-                        "distance_km": round(d2, 1),
-                        "known": loc2.name in ctx.player.known_locations,
-                    })
-            scannable.append({
-                "name": loc.name,
-                "distance_km": round(d, 1),
-                "known": loc.name in ctx.player.known_locations,
-                "reachable_from": reachable_from,
-            })
+                    reachable_from.append(
+                        {
+                            "name": loc2.name,
+                            "distance_km": round(d2, 1),
+                            "known": loc2.name in ctx.player.known_locations,
+                        }
+                    )
+            scannable.append(
+                {
+                    "name": loc.name,
+                    "distance_km": round(d, 1),
+                    "known": loc.name in ctx.player.known_locations,
+                    "reachable_from": reachable_from,
+                }
+            )
     return {
         "current": cur.name,
         "scanner_range_km": scanner_range,
@@ -245,10 +253,12 @@ def _chat_history_dict(ctx) -> list[dict]:
         messages = []
         for msg in c.conversation_history:
             messages.append({"role": msg["role"], "content": msg["content"]})
-        result.append({
-            "creature": c.name,
-            "trust": c.trust,
-            "message_count": len(c.conversation_history),
-            "messages": messages,
-        })
+        result.append(
+            {
+                "creature": c.name,
+                "trust": c.trust,
+                "message_count": len(c.conversation_history),
+                "messages": messages,
+            }
+        )
     return result

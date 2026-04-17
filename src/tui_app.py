@@ -47,6 +47,7 @@ class MoonTravelerApp(App):
     def set_suggester(self, ctx) -> None:
         """Attach the game-aware suggester to the input widget."""
         from src.input_handler import GameSuggester
+
         try:
             self._game_input.suggester = GameSuggester(ctx)
         except Exception as e:
@@ -74,29 +75,37 @@ class MoonTravelerApp(App):
 
         # Wire the bridge into ui.py so all console calls route through it
         from src import ui
+
         ui.set_bridge(bridge)
 
         # Run the game
         from src.game import main as game_main
+
         try:
             game_main()
         except Exception as e:
             import traceback
+
             from rich.markup import escape as _esc
+
             tb = traceback.format_exc()
             self.call_from_thread(
                 game_log.write,
                 f"[red]CRASH: {_esc(str(e))}[/red]\n[dim]{_esc(tb)}[/dim]",
             )
             import time
+
             time.sleep(10)  # Keep visible before exit
         finally:
             # Game ended — wait for exit to process on main thread
             import threading
+
             exit_done = threading.Event()
+
             def _do_exit():
                 self.exit()
                 exit_done.set()
+
             self.call_from_thread(_do_exit)
             exit_done.wait(timeout=5)
 
@@ -116,6 +125,7 @@ class MoonTravelerApp(App):
         # Echo the player's input in the game log (escaped to prevent markup injection)
         if text and self._bridge:
             from rich.markup import escape as _esc
+
             safe = _esc(text)
             if self._ask_mode:
                 self._game_log.write(f"[bold]> {safe}[/bold]")
@@ -148,8 +158,9 @@ class MoonTravelerApp(App):
 
     def take_screenshot(self) -> str:
         """Save an SVG screenshot and return the file path."""
-        from pathlib import Path
         from datetime import datetime
+        from pathlib import Path
+
         filename = f"screenshot-{datetime.now().strftime('%Y%m%d-%H%M%S')}.svg"
         path = Path("assets") / filename
         path.parent.mkdir(exist_ok=True)
@@ -159,7 +170,7 @@ class MoonTravelerApp(App):
 
     def update_header(self, text: str) -> None:
         """Update the header bar."""
-        self._header = getattr(self, '_header', None) or self.query_one("#header", Static)
+        self._header = getattr(self, "_header", None) or self.query_one("#header", Static)
         self._header.update(text)
 
     def clear_log(self) -> None:
@@ -206,13 +217,13 @@ class MoonTravelerApp(App):
         self._tab_index = -1
         self._tab_prefix = current
 
-        if not hasattr(game_input, 'suggester') or not game_input.suggester:
+        if not hasattr(game_input, "suggester") or not game_input.suggester:
             return
 
         suggester = game_input.suggester
-        if not hasattr(suggester, '_get_all_suggestions'):
+        if not hasattr(suggester, "_get_all_suggestions"):
             # Fallback: just use the single suggestion
-            if hasattr(game_input, '_suggestion') and game_input._suggestion:
+            if hasattr(game_input, "_suggestion") and game_input._suggestion:
                 game_input.value = game_input._suggestion
                 game_input.cursor_position = len(game_input.value)
             return
@@ -231,8 +242,6 @@ class MoonTravelerApp(App):
         self.command_queue.put(None)
         if self._bridge:
             self._bridge.push_response(None)
-
-
 
 
 def run_tui():

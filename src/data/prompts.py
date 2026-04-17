@@ -79,26 +79,38 @@ def build_action_instructions(creature) -> str:
     trust_rules = []
 
     if "heal" in provides:
-        actions.append(f"- [HEAL] — Heal the human (restores some food and water). Trust needed: {thresholds.get('heal', 35)}+")
+        actions.append(
+            f"- [HEAL] — Heal the human (restores some food and water). Trust needed: {thresholds.get('heal', 35)}+"
+        )
     if "repair_suit" in provides:
-        actions.append(f"- [REPAIR_SUIT] — Help repair the human's suit. Trust needed: {thresholds.get('repair_suit', 35)}+")
+        actions.append(
+            f"- [REPAIR_SUIT] — Help repair the human's suit. Trust needed: {thresholds.get('repair_suit', 35)}+"
+        )
     if "food" in provides:
         actions.append(f"- [GIVE_FOOD] — Share food. Trust needed: {thresholds.get('food', 35)}+")
     if "water" in provides:
         actions.append(f"- [GIVE_WATER] — Share water. Trust needed: {thresholds.get('water', 35)}+")
     if "materials" in provides and materials:
         mat_str = ", ".join(materials)
-        actions.append(f"- [GIVE_MATERIAL:item_name] — Give a repair material. Available: {mat_str}. Trust needed: {thresholds.get('materials', 50)}+")
+        actions.append(
+            f"- [GIVE_MATERIAL:item_name] — Give a repair material. Available: {mat_str}. Trust needed: {thresholds.get('materials', 50)}+"
+        )
     if "trade" in provides and materials:
         mat_str = ", ".join(materials)
         wants = getattr(creature, "trade_wants", [])
         wants_str = ", ".join(wants) if wants else "various items"
-        actions.append(f"- [TRADE:offered_item:wanted_item] — Trade an item. You have: {mat_str}. You want: {wants_str}. Trust needed: {thresholds.get('trade', 20)}+")
+        actions.append(
+            f"- [TRADE:offered_item:wanted_item] — Trade an item. You have: {mat_str}. You want: {wants_str}. Trust needed: {thresholds.get('trade', 20)}+"
+        )
 
     if creature.trust_level == "low":
-        trust_rules.append("- At your current trust level, do NOT use any action tags. You do not trust them enough yet.")
+        trust_rules.append(
+            "- At your current trust level, do NOT use any action tags. You do not trust them enough yet."
+        )
     elif creature.trust_level == "medium":
-        trust_rules.append("- Trust is moderate. You may use action tags if the human asks nicely and the trust threshold is met.")
+        trust_rules.append(
+            "- Trust is moderate. You may use action tags if the human asks nicely and the trust threshold is met."
+        )
     else:
         trust_rules.append("- Trust is high. You may freely use action tags when appropriate.")
 
