@@ -838,6 +838,25 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 
 ---
 
+## Known Issues & Enhancements (post v0.4.0)
+
+### Responsive Status Bar (#1)
+The TUI status bar truncates when the terminal window is narrowed. Items are lost off-screen. The bar should detect terminal width and wrap to multiple lines, or prioritize which items to show at narrow widths (vitals first, creature info second, followers third).
+- Effort: M | Priority: v0.5.0
+- Files: `src/ui.py` (render_status_bar), `src/game.tcss` (#status-bar height)
+
+### Drone Service Boot Messages (#2)
+Replace generic "Loading LLM model... CPU only" messages with immersive drone service boot sequence:
+- "Initializing ARIA drone service..."
+- "Loading AI model: {model_name} ({mode})"
+- "AI service active — ARIA online" / "AI service unavailable — fallback dialogue"
+- Show model name and compute mode as drone status (visible in `drone` command and dev mode)
+- Keep load duration timer
+- Effort: S | Priority: v0.5.0
+- Files: `src/llm.py` (load_model messages), `src/game.py` (boot flow), `src/drone.py` (model info field)
+
+---
+
 *This roadmap is a living document. Update it alongside each release by moving completed sections into CHANGELOG.md and revising effort estimates based on actual implementation experience.*
 
 ---
