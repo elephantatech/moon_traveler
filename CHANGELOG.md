@@ -2,6 +2,42 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.4.0] - 2026-04-17
+
+### Added
+- **Textual TUI mode** — `play_tui.py` launches a full terminal UI with fixed status bar, scrollable game log, input with tab-autocomplete and command history (Up/Down arrows), F12 screenshots
+- **4 difficulty modes**: Easy (~30 min), Medium (~1-2 hours), Hard (~3+ hours), Brutal (~5+ hours)
+- **Brutal mode**: 40 locations, 25 creatures (12 hostile), 1.5x resource drain, +5% hazard bonus, late-game weather at 25h, scarce item drops
+- **Difficulty scaling**: trust gain per chat/gift, item find chance, and extra location drops all scale by mode
+- **Charge Module drone upgrade**: enables auto-charge (+5% battery/hr during travel), toggled with `charge` command
+- **`inspect` command**: examine any item to see what it's used for (repair status, cooking uses, upgrade effects)
+- **`charge` command**: toggle auto-charge on/off (requires Charge Module upgrade)
+- **`screenshot` command**: save TUI screenshots as SVG files (also F12 hotkey)
+- **`--dev` flag**: start with dev mode enabled (`python play.py --dev`)
+- **`--super` flag**: start with max trust, all items, full drone upgrades (`python play.py --super`)
+- **Junk items**: 10 collectible souvenirs found during travel (baseball, rubber duck, fossilized tooth, etc.)
+- **Easter egg**: stash 5+ junk items in ship storage to activate 2x trust multiplier (7 in Brutal mode)
+- **Creature junk reactions**: creatures mock you for trying to give them junk, but hint to keep collecting
+- **Item descriptions** for all 26 items (8 repair materials, 8 drone upgrades, 10 junk items)
+- Up/Down arrow command history in TUI mode
+- Tab-cycling through multiple autocomplete candidates
+- 36 new tests (195 → 231 total)
+
+### Fixed
+- 40+ TUI bugs across 10 review passes (threading races, markup injection, memory leaks, app exit hangs, etc.)
+- Trust display now shows actual gain (was hardcoded "+3" regardless of difficulty)
+- Auto-charge skipped at crash site (message no longer appears when full recharge supersedes it)
+- Super mode checks both inventory and ship storage before adding materials
+- Easter egg fires once per session (was re-firing on every stash after threshold)
+- Easter egg only fires on stash operations, not retrieve
+- Junk items can only be found once (checks both inventory and storage)
+
+### Changed
+- Game mode menu: Short/Medium/Long renamed to Easy/Medium/Hard + new Brutal mode
+- `_BridgeConsoleShim` routes all console.print/input through Textual when TUI bridge is set
+- Worker thread architecture: game logic runs synchronously while Textual UI stays responsive
+- All source files linted and formatted with ruff
+
 ## [0.3.2] - 2026-04-16
 
 ### Added

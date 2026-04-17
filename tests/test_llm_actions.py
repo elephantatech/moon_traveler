@@ -133,7 +133,8 @@ class TestApplyActions:
         """Primary path: role_inventory populated, used instead of can_give_materials."""
         p = Player()
         c = _make_creature(
-            trust=50, archetype="Builder",
+            trust=50,
+            archetype="Builder",
             role_inventory=["metal_shard", "hull_patch"],
             can_give_materials=["metal_shard", "hull_patch"],
         )
@@ -209,7 +210,10 @@ class TestTradeActions:
         c = _make_creature(trust=25, archetype="Merchant", role_inventory=["circuit_board"])
         msgs = apply_actions(
             [{"action": "TRADE", "offered": "circuit_board", "wanted": "ice_crystal"}],
-            p, Drone(), c, {},
+            p,
+            Drone(),
+            c,
+            {},
         )
         assert p.has_item("circuit_board")
         assert not p.has_item("ice_crystal")
@@ -222,7 +226,10 @@ class TestTradeActions:
         c = _make_creature(trust=15, archetype="Merchant", role_inventory=["circuit_board"])
         msgs = apply_actions(
             [{"action": "TRADE", "offered": "circuit_board", "wanted": "ice_crystal"}],
-            p, Drone(), c, {},
+            p,
+            Drone(),
+            c,
+            {},
         )
         assert not p.has_item("circuit_board")
         assert p.has_item("ice_crystal")

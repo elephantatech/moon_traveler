@@ -165,6 +165,7 @@ class TestTrustMeets:
 class TestRoleCapabilities:
     def test_all_archetypes_have_capabilities(self):
         from src.data.names import PERSONALITY_ARCHETYPES
+
         for archetype in PERSONALITY_ARCHETYPES:
             assert archetype in ROLE_CAPABILITIES, f"Missing ROLE_CAPABILITIES for {archetype}"
 
@@ -179,6 +180,7 @@ class TestGenerateCreatures:
 
         from src.creatures import generate_creatures
         from src.world import generate_world
+
         world = generate_world("short", seed=42)
         rng = random.Random(42)
         creatures = generate_creatures(world, rng, required_materials=["ice_crystal", "metal_shard", "bio_gel"])
@@ -191,6 +193,7 @@ class TestGenerateCreatures:
 
         from src.creatures import generate_creatures
         from src.world import generate_world
+
         world = generate_world("medium", seed=99)
         rng = random.Random(99)
         creatures = generate_creatures(world, rng, required_materials=["ice_crystal", "metal_shard", "bio_gel"])
@@ -203,6 +206,7 @@ class TestGenerateCreatures:
 
         from src.creatures import generate_creatures
         from src.world import generate_world
+
         required = ["ice_crystal", "metal_shard", "bio_gel", "circuit_board", "power_cell"]
         world = generate_world("medium", seed=77)
         rng = random.Random(77)

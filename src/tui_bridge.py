@@ -138,7 +138,7 @@ class UIBridge:
             done.set()
 
         self._app.call_from_thread(_do)
-        done.wait()
+        done.wait(timeout=5)
         return result[0] if result else ""
 
     # --- Helpers ---

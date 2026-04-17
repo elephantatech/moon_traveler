@@ -102,8 +102,115 @@ class TestLateGameThresholds:
         assert "short" in LATE_GAME_THRESHOLDS
         assert "medium" in LATE_GAME_THRESHOLDS
         assert "long" in LATE_GAME_THRESHOLDS
+        assert "brutal" in LATE_GAME_THRESHOLDS
 
     def test_late_game_threshold_values(self):
         """Late-game thresholds should be reasonable per mode."""
+        assert LATE_GAME_THRESHOLDS["brutal"] < LATE_GAME_THRESHOLDS["short"]
         assert LATE_GAME_THRESHOLDS["short"] < LATE_GAME_THRESHOLDS["medium"]
         assert LATE_GAME_THRESHOLDS["medium"] < LATE_GAME_THRESHOLDS["long"]
+
+
+class TestBrutalModeDrain:
+    def test_brutal_drains_faster(self):
+        """Brutal mode should drain food/water 1.5x faster."""
+        origin = Location(
+            name="A",
+            loc_type="plains",
+            x=0,
+            y=0,
+            items=[],
+            description="",
+            food_source=False,
+            water_source=False,
+        )
+        dest = Location(
+            name="B",
+            loc_type="plains",
+            x=10,
+            y=0,
+            items=[],
+            description="",
+            food_source=False,
+            water_source=False,
+        )
+        # Normal mode
+        p_normal = Player()
+        d_normal = Drone()
+        execute_travel(p_normal, d_normal, dest, origin, random.Random(42), game_mode="long")
+        # Brutal mode
+        p_brutal = Player()
+        d_brutal = Drone()
+        execute_travel(p_brutal, d_brutal, dest, origin, random.Random(42), game_mode="brutal")
+        # Brutal should drain more food and water
+        assert p_brutal.food < p_normal.food
+        assert p_brutal.water < p_normal.water
+
+
+class TestAutoCharge:
+    def test_auto_charge_recovers_battery(self):
+        """Auto-charge should recover battery during travel."""
+        origin = Location(
+            name="A",
+            loc_type="plains",
+            x=0,
+            y=0,
+            items=[],
+            description="",
+            food_source=False,
+            water_source=False,
+        )
+        dest = Location(
+            name="B",
+            loc_type="plains",
+            x=20,
+            y=0,
+            items=[],
+            description="",
+            food_source=False,
+            water_source=False,
+        )
+        d = Drone()
+        d.charge_module_installed = True
+        d.auto_charge_enabled = True
+        d.battery = 50.0
+        p = Player()
+        execute_travel(p, d, dest, origin, random.Random(42), game_mode="long")
+        # Battery should be higher than if no auto-charge (travel costs 10% for 20km)
+        # Without auto-charge: 50 - 10 = 40. With auto-charge: 40 + (2h * 5) = 50
+        assert d.battery > 40.0
+
+    def test_auto_charge_skipped_at_crash_site(self):
+        """Auto-charge message should not fire when arriving at crash site."""
+        origin = Location(
+            name="A",
+            loc_type="plains",
+            x=0,
+            y=0,
+            items=[],
+            description="",
+            food_source=False,
+            water_source=False,
+        )
+        crash = Location(
+            name="Crash Site",
+            loc_type="crash_site",
+            x=5,
+            y=0,
+            items=[],
+            description="",
+            food_source=False,
+            water_source=False,
+            discovered=True,
+            visited=True,
+        )
+        d = Drone()
+        d.charge_module_installed = True
+        d.auto_charge_enabled = True
+        d.battery = 50.0
+        p = Player()
+        messages = execute_travel(p, d, crash, origin, random.Random(42), game_mode="long")
+        # Should see crash site recharge but NOT auto-charge message
+        msg_text = " ".join(messages)
+        assert "Auto-charge" not in msg_text
+        assert d.battery == d.battery_max  # Full recharge at crash site

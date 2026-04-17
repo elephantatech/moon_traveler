@@ -82,6 +82,31 @@ class TestUpgrades:
         assert d.battery_max == 125.0
         assert d.battery == 105.0  # 80 + 25
 
+    def test_voice_module(self):
+        d = Drone()
+        d.apply_upgrade("voice_module")
+        assert d.voice_enabled is True
+
+    def test_autopilot_chip(self):
+        d = Drone()
+        d.apply_upgrade("autopilot_chip")
+        assert d.autopilot_enabled is True
+
+    def test_charge_module(self):
+        d = Drone()
+        d.apply_upgrade("charge_module")
+        assert d.charge_module_installed is True
+        assert d.auto_charge_enabled is False  # Must be toggled on manually
+
+    def test_charge_module_serialization(self):
+        d = Drone()
+        d.apply_upgrade("charge_module")
+        d.auto_charge_enabled = True
+        data = d.to_dict()
+        d2 = Drone.from_dict(data)
+        assert d2.charge_module_installed is True
+        assert d2.auto_charge_enabled is True
+
     def test_invalid_upgrade(self):
         d = Drone()
         result = d.apply_upgrade("nonexistent")

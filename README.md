@@ -101,12 +101,22 @@ You can also place any `.gguf` model file manually in `~/.moonwalker/models/`. T
 ## Running
 
 ```bash
-python play.py
+python play.py          # Classic CLI mode
+python play_tui.py      # Textual TUI mode (recommended)
+```
+
+**TUI mode** features a fixed status bar, scrollable game log, tab-autocomplete with cycling, command history (Up/Down arrows), and F12 screenshots.
+
+**Flags:**
+```bash
+python play_tui.py --dev     # Start with dev mode enabled
+python play_tui.py --super   # Start with max trust, all items, full upgrades (testing)
+python play_tui.py --dev --super  # Both
 ```
 
 On startup you'll choose:
-1. **Game length** (Short / Medium / Long)
-2. **Compute mode** (CPU + GPU or CPU Only, if GPU detected)
+1. **Difficulty** — Easy (~30 min), Medium (~1-2 hours), Hard (~3+ hours), Brutal (~5+ hours)
+2. **Compute mode** (auto-detected from config, changeable with `config gpu`)
 
 ## How to Play
 
@@ -129,6 +139,8 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 | `rest` | Rest for 1 hour to recover food/water |
 | `drone` | Show drone status |
 | `upgrade <component>` | Install a drone upgrade |
+| `inspect <item>` | Examine an item to see what it's used for |
+| `charge` | Toggle drone auto-charge (requires Charge Module) |
 | `status` | Show food, water, suit, and repair progress |
 | `ship` | Ship bays menu (repair, storage, kitchen, charging, medical) |
 | `save` / `load` | Save or load game |

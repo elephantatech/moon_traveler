@@ -19,6 +19,7 @@ UPGRADE_EFFECTS = {
     "battery_cell": {"battery_max": 25},
     "voice_module": {"voice_enabled": True},
     "autopilot_chip": {"autopilot_enabled": True},
+    "charge_module": {"charge_module_installed": True},
 }
 
 UPGRADE_DESCRIPTIONS = {
@@ -29,6 +30,7 @@ UPGRADE_DESCRIPTIONS = {
     "battery_cell": "Adds 25% battery capacity",
     "voice_module": "Enables voice announcements for game events",
     "autopilot_chip": "Auto-scans and observes when arriving at new locations",
+    "charge_module": "Enables auto-charge: drone recovers battery during travel",
 }
 
 TRANSLATION_LEVELS = ["low", "medium", "high"]
@@ -44,6 +46,8 @@ class Drone:
     battery_max: float = 100.0
     voice_enabled: bool = False
     autopilot_enabled: bool = False
+    charge_module_installed: bool = False
+    auto_charge_enabled: bool = False  # Must be toggled on after charge_module installed
     upgrades_installed: list[str] = field(default_factory=list)
 
     def scan_cost(self) -> float:
@@ -270,6 +274,10 @@ class Drone:
             self.autopilot_enabled = True
             result_parts.append("Auto-scan and auto-look on arrival enabled")
 
+        if "charge_module_installed" in effects:
+            self.charge_module_installed = True
+            result_parts.append("Charge module installed — use 'charge' to toggle auto-charge")
+
         self.upgrades_installed.append(upgrade)
         return ", ".join(result_parts)
 
@@ -283,6 +291,8 @@ class Drone:
             "battery_max": self.battery_max,
             "voice_enabled": self.voice_enabled,
             "autopilot_enabled": self.autopilot_enabled,
+            "charge_module_installed": self.charge_module_installed,
+            "auto_charge_enabled": self.auto_charge_enabled,
             "upgrades_installed": list(self.upgrades_installed),
         }
         if self._last_reported is not None:

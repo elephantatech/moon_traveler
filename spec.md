@@ -1,6 +1,6 @@
 # Moon Traveler CLI - Technical Specification
 
-**Version:** 0.3.2
+**Version:** 0.4.0
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -28,6 +28,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Model (optional) | Gemma 4 E2B (Q4_K_M GGUF, ~3.1 GB) |
 | Build | PyInstaller |
 | Save Storage | SQLite (key-value) |
+| TUI | textual (Textual TUI framework) |
 | Sound | System sounds (macOS say, Windows winsound, Linux paplay) |
 | User Data | ~/.moonwalker/ (saves, models, config, dev logs) |
 
@@ -935,7 +936,7 @@ tests/
   test_input_handler.py     Autocomplete for all command types (11 tests)
 ```
 
-**Total test count:** 195
+**Total test count:** 231
 
 ---
 
@@ -969,7 +970,7 @@ Activated by the `voice_module` drone upgrade. On macOS, uses the `say` command 
 
 ---
 
-## 22. Textual TUI Migration (v0.4.0 — planned)
+## 22. Textual TUI (v0.4.0 — shipped)
 
 ### 22.1 Architecture
 

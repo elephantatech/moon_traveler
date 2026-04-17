@@ -75,7 +75,7 @@ FIND_EVENTS = [
 ]
 
 # Late-game weather thresholds (hours elapsed before weather escalation)
-LATE_GAME_THRESHOLDS = {"short": 30, "medium": 40, "long": 60}
+LATE_GAME_THRESHOLDS = {"short": 30, "medium": 40, "long": 60, "brutal": 25}
 
 # Late-game narration flavor
 LATE_GAME_WEATHER = [
@@ -259,8 +259,21 @@ def execute_travel(
     # Capture pre-trip hours for late-game threshold calculation
     hours_before_trip = player.hours_elapsed
 
-    # Consume resources
-    player.consume_resources(hours_int)
+    # Consume resources (scaled by difficulty)
+    from src.difficulty import get_difficulty
+
+    diff = get_difficulty(game_mode)
+    food_mult = diff.get("food_drain_mult", 1.0)
+    water_mult = diff.get("water_drain_mult", 1.0)
+    suit_mult = diff.get("suit_drain_mult", 1.0)
+    if food_mult == 1.0 and water_mult == 1.0 and suit_mult == 1.0:
+        player.consume_resources(hours_int)
+    else:
+        # Manual drain with multipliers
+        player.food = max(0, player.food - hours_int * 2.0 * food_mult)
+        player.water = max(0, player.water - hours_int * 3.0 * water_mult)
+        player.suit_integrity = max(0, player.suit_integrity - hours_int * 0.5 * suit_mult)
+        player.hours_elapsed += hours_int
 
     # Move player
     player.location_name = destination.name
@@ -278,6 +291,7 @@ def execute_travel(
     late_threshold = LATE_GAME_THRESHOLDS.get(game_mode, 40)
     hours_past_threshold = max(0, hours_before_trip - late_threshold)
     probability_bonus = 0.05 * (hours_past_threshold // 10)  # +5% per 10 hours past threshold
+    probability_bonus += diff.get("hazard_bonus", 0)  # Extra base hazard for brutal mode
 
     # Late-game weather narration
     if hours_past_threshold > 0 and rng.random() < 0.4:
@@ -337,11 +351,26 @@ def execute_travel(
                         messages.append(ship_ai.speak("Damage sustained. Check your status, Commander."))
                 break  # max 1 hazard per roll
 
-    # Small chance to find an item
-    if rng.random() < 0.15 and player.total_items < drone.cargo_capacity:
+    # Item find chance (scaled by difficulty)
+    from src.difficulty import JUNK_FIND_MESSAGES, JUNK_ITEMS, get_difficulty
+
+    diff = get_difficulty(game_mode)
+    find_chance = diff["item_find_chance"]
+
+    if rng.random() < find_chance and player.total_items < drone.cargo_capacity:
         item, msg = rng.choice(FIND_EVENTS)
         player.add_item(item)
         messages.append(f"[yellow]{msg}[/yellow]")
+
+    # Chance to find a junk item (scaled by difficulty)
+    junk_chance = diff.get("junk_find_chance", 0.10)
+    if rng.random() < junk_chance and player.total_items < drone.cargo_capacity:
+        junk = rng.choice(JUNK_ITEMS)
+        already_have = player.has_item(junk) or player.ship_storage.get(junk, 0) > 0
+        if not already_have:  # Only find each junk once (checks inventory + storage)
+            player.add_item(junk)
+            msg = JUNK_FIND_MESSAGES.get(junk, f"You found a {junk.replace('_', ' ')}.")
+            messages.append(f"[dim yellow]{msg}[/dim yellow]")
 
     # Food/water source at destination
     if destination.food_source:
@@ -381,6 +410,15 @@ def execute_travel(
                 batt_before,
             )
         )
+
+    # Auto-charge: recover battery during travel if module is on
+    if drone.auto_charge_enabled and drone.charge_module_installed and destination.loc_type != "crash_site":
+        recovery = hours_int * 5.0  # +5% per hour
+        old_batt = drone.battery
+        drone.battery = min(drone.battery_max, drone.battery + recovery)
+        gained = drone.battery - old_batt
+        if gained > 0:
+            messages.append(f"[magenta]Auto-charge: +{gained:.0f}% battery recovered during travel.[/magenta]")
 
     # Recharge drone at crash site
     if destination.loc_type == "crash_site":

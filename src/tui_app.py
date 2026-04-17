@@ -24,6 +24,9 @@ class MoonTravelerApp(App):
         self._tab_candidates: list[str] = []
         self._tab_index: int = -1
         self._tab_prefix: str = ""
+        self._command_history: list[str] = []
+        self._history_index: int = -1
+        self._history_temp: str = ""  # Stores current input when navigating history
 
     def compose(self) -> ComposeResult:
         yield Static("Moon Traveler Terminal", id="header")
@@ -121,6 +124,11 @@ class MoonTravelerApp(App):
         event.input.clear()
         self._tab_candidates = []
         self._tab_index = -1
+        self._history_index = -1
+
+        # Add to command history (skip duplicates and empty)
+        if text and (not self._command_history or self._command_history[-1] != text):
+            self._command_history.append(text)
 
         # Echo the player's input in the game log (escaped to prevent markup injection)
         if text and self._bridge:
@@ -178,11 +186,19 @@ class MoonTravelerApp(App):
         self._game_log.clear()
 
     def on_key(self, event) -> None:
-        """Handle Tab for autocomplete, F12 for screenshot, Ctrl+C for quit."""
+        """Handle Tab, arrows, F12, Ctrl+C."""
         if event.key == "tab":
             event.prevent_default()
             event.stop()
             self._handle_tab()
+        elif event.key == "up":
+            event.prevent_default()
+            event.stop()
+            self._history_up()
+        elif event.key == "down":
+            event.prevent_default()
+            event.stop()
+            self._history_down()
         elif event.key == "f12":
             event.prevent_default()
             try:
@@ -195,6 +211,36 @@ class MoonTravelerApp(App):
                 self._bridge.push_response(None)
             else:
                 self.command_queue.put(None)
+
+    def _history_up(self) -> None:
+        """Navigate to the previous command in history."""
+        if not self._command_history:
+            return
+        game_input = self._game_input
+        if self._history_index == -1:
+            # Save current input before navigating
+            self._history_temp = game_input.value
+            self._history_index = len(self._command_history) - 1
+        elif self._history_index > 0:
+            self._history_index -= 1
+        else:
+            return  # Already at oldest
+        game_input.value = self._command_history[self._history_index]
+        game_input.cursor_position = len(game_input.value)
+
+    def _history_down(self) -> None:
+        """Navigate to the next command in history."""
+        if self._history_index == -1:
+            return  # Not navigating history
+        if self._history_index < len(self._command_history) - 1:
+            self._history_index += 1
+            self._game_input.value = self._command_history[self._history_index]
+            self._game_input.cursor_position = len(self._game_input.value)
+        else:
+            # Back to the bottom — restore the saved input
+            self._history_index = -1
+            self._game_input.value = self._history_temp
+            self._game_input.cursor_position = len(self._game_input.value)
 
     def _handle_tab(self) -> None:
         """Cycle through autocomplete candidates on Tab press."""

@@ -312,6 +312,9 @@ def show_drone_status(drone: dict, title: str = "ARIA Scout Drone"):
         table.add_row("Voice", "[green]Enabled[/green]")
     if drone.get("autopilot_enabled"):
         table.add_row("Autopilot", "[green]Enabled[/green]")
+    if drone.get("charge_module_installed"):
+        ac = "[green]ON[/green]" if drone.get("auto_charge_enabled") else "[dim]OFF[/dim]"
+        table.add_row("Auto-Charge", ac)
 
     upgrades = drone.get("upgrades_installed", [])
     if upgrades:

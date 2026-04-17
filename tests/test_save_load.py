@@ -30,9 +30,13 @@ def _make_state():
 
     creatures = [
         Creature(
-            id="creature_0", name="Kael", species="Crystallith",
-            archetype="Healer", disposition="friendly",
-            location_name="Frost Ridge", trust=40,
+            id="creature_0",
+            name="Kael",
+            species="Crystallith",
+            archetype="Healer",
+            disposition="friendly",
+            location_name="Frost Ridge",
+            trust=40,
             can_give_materials=["bio_gel"],
         ),
     ]
@@ -109,8 +113,17 @@ class TestSaveLoad:
         p1, p2 = _patch_paths(tmp_path)
         with p1, p2:
             save_game(
-                "test", player, drone, locations, creatures,
-                42, "short", checklist, ship_ai, tutorial, quiet=True,
+                "test",
+                player,
+                drone,
+                locations,
+                creatures,
+                42,
+                "short",
+                checklist,
+                ship_ai,
+                tutorial,
+                quiet=True,
             )
 
         captured = capsys.readouterr()
