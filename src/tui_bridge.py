@@ -76,7 +76,7 @@ class UIBridge:
             self._app.enter_ask_mode(clean_prompt)
             done.set()
         self._app.call_from_thread(_enter)
-        done.wait()
+        done.wait(timeout=5)
 
         result = self._ask_queue.get()  # Blocks worker thread
 
@@ -86,7 +86,7 @@ class UIBridge:
             self._app.exit_ask_mode()
             exit_done.set()
         self._app.call_from_thread(_exit)
-        exit_done.wait()
+        exit_done.wait(timeout=5)
 
         self._restore_prompt_label()
         if result is None:
