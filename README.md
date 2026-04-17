@@ -7,7 +7,7 @@
 A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-landed and must explore procedurally generated locations, befriend alien creatures through LLM-powered conversations, and gather materials to repair your ship.
 
 <p align="center">
-  <img src="assets/screenshot-location-with-creature-and-items.svg" alt="Gameplay" width="700"/>
+  <img src="assets/tui-crash-site.svg" alt="Gameplay — TUI Mode" width="700"/>
 </p>
 
 ## Features
@@ -154,7 +154,7 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 ### During Conversations
 
 <p align="center">
-  <img src="assets/screenshot-creature-conversation.svg" alt="Creature Conversation" width="700"/>
+  <img src="assets/tui-look.svg" alt="TUI Look Command" width="700"/>
 </p>
 
 - Type normally to speak through the drone translator
@@ -168,7 +168,7 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 Build trust with creatures to obtain repair materials through conversation and trade. Bring materials to the Crash Site and install them via `ship repair`. Escort friendly creatures to the ship — Builders install materials, Healers restore your vitals.
 
 <p align="center">
-  <img src="assets/screenshot-ship-bays-menu.svg" alt="Ship Bays" width="700"/>
+  <img src="assets/tui-ship-bays.svg" alt="TUI Ship Bays" width="700"/>
 </p>
 
 ### Survival Tips

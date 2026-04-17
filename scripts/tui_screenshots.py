@@ -32,7 +32,7 @@ async def screenshot_pilot(pilot):
     ASSETS_DIR.mkdir(exist_ok=True)
 
     async def take(name: str, desc: str):
-        await pilot.pause(1.5)
+        await pilot.pause(3.0)  # Wait for output to fully render
         pilot.app.save_screenshot(str(ASSETS_DIR / f"{name}.svg"))
         print(f"  Saved: assets/{name}.svg — {desc}")
 
@@ -44,7 +44,7 @@ async def screenshot_pilot(pilot):
             else:
                 await pilot.press(char)
         await pilot.press("enter")
-        await pilot.pause(1.0)
+        await pilot.pause(2.0)  # Wait for command output to render
 
     # Wait for boot sequence to complete
     print("Taking TUI screenshots...\n")
@@ -108,6 +108,14 @@ async def screenshot_pilot(pilot):
     # 13. Config
     await type_and_enter("config")
     await take("tui-config", "Game configuration")
+
+    # 14. Win sequence — install all repair materials
+    await type_and_enter("ship repair")
+    await pilot.pause(1.0)
+    await pilot.press("y")  # Confirm install
+    await pilot.press("enter")
+    await pilot.pause(5.0)  # Wait for win sequence narration
+    await take("tui-victory", "Victory — mission complete")
 
     print(f"\nDone! Screenshots saved to {ASSETS_DIR}/")
 
