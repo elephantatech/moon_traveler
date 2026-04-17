@@ -192,14 +192,22 @@ def get_input(session: PromptSession, location_name: str) -> str | None:
 # Textual Suggester — reuses GameCompleter logic for inline suggestions
 # ---------------------------------------------------------------------------
 
-class GameSuggester:
-    """Textual-compatible suggester that provides inline tab-completion.
+try:
+    from textual.suggester import Suggester as _TextualSuggester
+except ImportError:
+    _TextualSuggester = object  # Fallback if textual not installed
 
-    Textual's Suggester protocol: async get_suggestion(value) -> str | None
+
+class GameSuggester(_TextualSuggester):
+    """Textual Suggester that provides inline tab-completion.
+
+    Extends Textual's Suggester base class so _get_suggestion works.
     Returns the full completed text (not just the suffix).
     """
 
     def __init__(self, ctx):
+        if _TextualSuggester is not object:
+            super().__init__(use_cache=False)
         self.ctx = ctx
 
     async def get_suggestion(self, value: str) -> str | None:
@@ -210,8 +218,14 @@ class GameSuggester:
             return None
 
     def _suggest(self, text: str) -> str | None:
+        """Return the first matching suggestion."""
+        results = self._get_all_suggestions(text)
+        return results[0] if results else None
+
+    def _get_all_suggestions(self, text: str) -> list[str]:
+        """Return ALL matching suggestions for Tab cycling."""
         if not text:
-            return None
+            return []
 
         words = text.split()
         word_count = len(words)
@@ -222,76 +236,86 @@ class GameSuggester:
         # First word: command completion
         if word_count <= 1:
             prefix = words[0].lower() if words else ""
-            for cmd in BASE_COMMANDS:
-                if cmd.startswith(prefix) and cmd != prefix:
-                    return cmd
-            return None
+            return [cmd for cmd in BASE_COMMANDS if cmd.startswith(prefix) and cmd != prefix]
 
         cmd = words[0].lower()
-        partial = "" if at_space else (words[-1] if len(words) > 1 else "")
-        partial_lower = partial.lower()
-        before = text[:len(text) - len(partial)] if partial else text
+        # For multi-word args (like location names), use everything after the command
+        arg_text = text[len(words[0]):].lstrip()
+        arg_lower = arg_text.lower()
+        cmd_prefix = words[0] + " "
 
         # ship → bay sub-commands
         if cmd in ("ship", "repair"):
-            for bay in ["repair", "storage", "kitchen", "charging", "medical"]:
-                if bay.startswith(partial_lower) and bay != partial_lower:
-                    return before + bay
+            return [cmd_prefix + bay for bay in ["repair", "storage", "kitchen", "charging", "medical"]
+                    if bay.startswith(arg_lower) and bay != arg_lower]
 
-        # travel / go → known location names
-        elif cmd in ("travel", "go"):
-            for name in sorted(self.ctx.player.known_locations):
-                if name.lower().startswith(partial_lower) and name.lower() != partial_lower:
-                    return before + name
+        # travel / go → known location names (multi-word like "Lunar Lake")
+        if cmd in ("travel", "go"):
+            return [cmd_prefix + name for name in sorted(self.ctx.player.known_locations)
+                    if name.lower().startswith(arg_lower) and name.lower() != arg_lower]
 
         # talk / speak → creature at current location
-        elif cmd in ("talk", "speak"):
+        if cmd in ("talk", "speak"):
             loc_name = self.ctx.player.location_name
+            results = []
             for c in self.ctx.creatures:
                 at_loc = c.location_name == loc_name and not c.following
                 following = c.following and c.location_name == loc_name
-                if (at_loc or following) and c.name.lower().startswith(partial_lower) and c.name.lower() != partial_lower:
-                    return before + c.name
+                if (at_loc or following) and c.name.lower().startswith(arg_lower) and c.name.lower() != arg_lower:
+                    results.append(cmd_prefix + c.name)
+            return results
 
         # take / get / pick → items at location
-        elif cmd in ("take", "get", "pick"):
+        if cmd in ("take", "get", "pick"):
             loc = self.ctx.current_location()
+            results = []
             for item in loc.items:
                 display = item.replace("_", " ").title()
-                if display.lower().startswith(partial_lower) and display.lower() != partial_lower:
-                    return before + display
+                if display.lower().startswith(arg_lower) and display.lower() != arg_lower:
+                    results.append(cmd_prefix + display)
+            return results
 
         # give → inventory items, then "to", then creature name
-        elif cmd == "give":
+        if cmd == "give":
             lower_words = [w.lower() for w in words[1:]]
             if "to" in lower_words:
+                # After "to" — complete creature name
+                to_idx = lower_words.index("to")
+                after_to = " ".join(words[2 + to_idx:])
+                after_lower = after_to.lower()
+                prefix_before = " ".join(words[:2 + to_idx]) + " "
                 loc_name = self.ctx.player.location_name
+                results = []
                 for c in self.ctx.creatures:
                     at_loc = c.location_name == loc_name and not c.following
                     following = c.following and c.location_name == loc_name
-                    if (at_loc or following) and c.name.lower().startswith(partial_lower) and c.name.lower() != partial_lower:
-                        return before + c.name
+                    if (at_loc or following) and c.name.lower().startswith(after_lower) and c.name.lower() != after_lower:
+                        results.append(prefix_before + c.name)
+                return results
             else:
+                results = []
                 for item in sorted(self.ctx.player.inventory.keys()):
                     display = item.replace("_", " ").title()
-                    if display.lower().startswith(partial_lower) and display.lower() != partial_lower:
-                        return before + display
-                if "to".startswith(partial_lower) and partial_lower != "to":
-                    return before + "to"
+                    if display.lower().startswith(arg_lower) and display.lower() != arg_lower:
+                        results.append(cmd_prefix + display)
+                if "to".startswith(arg_lower) and arg_lower != "to":
+                    results.append(cmd_prefix + "to")
+                return results
 
         # upgrade → upgrade items in inventory
-        elif cmd == "upgrade":
+        if cmd == "upgrade":
+            results = []
             for key in UPGRADE_EFFECTS:
                 if self.ctx.player.has_item(key):
                     display = key.replace("_", " ").title()
-                    if display.lower().startswith(partial_lower) and display.lower() != partial_lower:
-                        return before + display
+                    if display.lower().startswith(arg_lower) and display.lower() != arg_lower:
+                        results.append(cmd_prefix + display)
+            return results
 
         # load → save slot names
-        elif cmd == "load":
+        if cmd == "load":
             from src.save_load import list_saves
-            for slot in list_saves():
-                if slot.lower().startswith(partial_lower) and slot.lower() != partial_lower:
-                    return before + slot
+            return [cmd_prefix + slot for slot in list_saves()
+                    if slot.lower().startswith(arg_lower) and slot.lower() != arg_lower]
 
-        return None
+        return []

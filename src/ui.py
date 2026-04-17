@@ -28,8 +28,7 @@ class _BridgeConsoleShim:
 
     def print(self, *args, **kwargs):
         if _bridge:
-            text = " ".join(str(a) for a in args)
-            _bridge.print(text)
+            _bridge.print(*args, **kwargs)
         else:
             _real_console.print(*args, **kwargs)
 
@@ -346,6 +345,13 @@ def creature_speak(name: str, text: str, color: str = "green"):
 
 def travel_progress(destination: str, duration: float):
     """Show a progress bar for travel. duration is in seconds (real-time)."""
+    if _bridge:
+        # TUI mode: single line before/after (RichLog can't animate in-place)
+        _bridge.print(f"  [dim]Traveling to[/dim] [cyan]{destination}[/cyan][dim]...[/dim]")
+        time.sleep(duration)
+        _bridge.print(f"  [green]Arrived at {destination}.[/green]")
+        return
+
     steps = 20
     step_time = duration / steps
     with Progress(
@@ -354,7 +360,7 @@ def travel_progress(destination: str, duration: float):
         BarColumn(),
         TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
         TimeElapsedColumn(),
-        console=console,
+        console=_real_console,
     ) as progress:
         task = progress.add_task("travel", total=steps)
         for _ in range(steps):
@@ -364,10 +370,15 @@ def travel_progress(destination: str, duration: float):
 
 def loading_spinner(message: str, duration: float):
     """Show a spinner for a loading operation."""
+    if _bridge:
+        _bridge.print(f"  {message}")
+        time.sleep(duration)
+        return
+
     with Progress(
         SpinnerColumn(),
         TextColumn(message),
-        console=console,
+        console=_real_console,
         transient=True,
     ) as progress:
         progress.add_task("loading", total=None)
@@ -485,13 +496,13 @@ def render_status_bar(
             trust_bar = _bar(creature.trust, 5)
             dc = {"friendly": "green", "neutral": "yellow", "hostile": "red"}.get(creature.disposition, "dim")
             markup += (
-                f"  [dim]│[/dim]  [{creature.color}]{creature.name}[/{creature.color}] "
+                f"  [dim]│[/dim]  [bold]{creature.name}[/bold] "
                 f"[dim]{creature.archetype}[/dim] [{dc}]{creature.disposition}[/{dc}] "
                 f"Trust {trust_bar} [dim]{creature.trust}[/dim]"
             )
 
         if followers:
-            names = " ".join(f"[{c.color}]{c.name}[/{c.color}]" for c in followers)
+            names = " ".join(f"[bold]{c.name}[/bold]" for c in followers)
             markup += f"  [dim]│[/dim]  [dim]Following:[/dim] {names}"
 
         _bridge.update_status_bar(markup)

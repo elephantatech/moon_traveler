@@ -279,8 +279,10 @@ def main():
     except Exception:
         pass
 
-    ui.show_title()
-    ui.console.print()
+    # Show title only in CLI mode — boot sequence handles it in TUI
+    if not ui._bridge:
+        ui.show_title()
+        ui.console.print()
 
     # First-run: prompt for save location
     from src.config import is_first_run, prompt_save_location
