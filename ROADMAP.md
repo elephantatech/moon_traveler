@@ -845,6 +845,11 @@ The TUI status bar truncates when the terminal window is narrowed. Items are los
 - Effort: M | Priority: v0.5.0
 - Files: `src/ui.py` (render_status_bar), `src/game.tcss` (#status-bar height)
 
+### Status Bar Not Updating Live (#3)
+The status bar only refreshes at the top of the main game loop. During conversations, trust gains, creature actions (heal, give food/water), and LLM inference waits, the bar shows stale values. Players can't tell if vitals changed without manually running `status`. Fix: add `ctx.refresh_status_bar()` helper called after each conversation exchange and after creature actions.
+- Effort: S | Priority: v0.5.0
+- Files: `src/commands.py` (cmd_talk inner loop), `src/game.py` (extract helper)
+
 ### Drone Service Boot Messages (#2)
 Replace generic "Loading LLM model... CPU only" messages with immersive drone service boot sequence:
 - "Initializing ARIA drone service..."
