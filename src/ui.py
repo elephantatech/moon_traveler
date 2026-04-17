@@ -494,16 +494,18 @@ def render_status_bar(
         markup = "  ".join(parts)
 
         if creature and not creature.following:
+            from rich.markup import escape
             trust_bar = _bar(creature.trust, 5)
             dc = {"friendly": "green", "neutral": "yellow", "hostile": "red"}.get(creature.disposition, "dim")
             markup += (
-                f"  [dim]│[/dim]  [bold]{creature.name}[/bold] "
-                f"[dim]{creature.archetype}[/dim] [{dc}]{creature.disposition}[/{dc}] "
+                f"  [dim]│[/dim]  [bold]{escape(creature.name)}[/bold] "
+                f"[dim]{escape(creature.archetype)}[/dim] [{dc}]{creature.disposition}[/{dc}] "
                 f"Trust {trust_bar} [dim]{creature.trust}[/dim]"
             )
 
         if followers:
-            names = " ".join(f"[bold]{c.name}[/bold]" for c in followers)
+            from rich.markup import escape
+            names = " ".join(f"[bold]{escape(c.name)}[/bold]" for c in followers)
             markup += f"  [dim]│[/dim]  [dim]Following:[/dim] {names}"
 
         _bridge.update_status_bar(markup)

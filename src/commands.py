@@ -1155,6 +1155,7 @@ def _bay_repair(ctx: GameContext):
             if ctx.dev_mode:
                 done = sum(1 for v in ctx.repair_checklist.values() if v)
                 ctx.dev_mode.debug("repair_install", material=mat, progress=f"{done}/{len(ctx.repair_checklist)}")
+        ctx.do_auto_save()
 
 
 def _bay_storage(ctx: GameContext):
