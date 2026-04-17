@@ -251,6 +251,11 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
+### Animated ASCII Intro Sequence (#29)
+Frame-by-frame ASCII animation during TUI boot: ship flying past Saturn → asteroid impact → crash on ice → astronaut + drone emerge → title card. Uses Textual `set_interval` to cycle through ~10 frames over 2-3 seconds. Falls back to static art in CLI mode.
+- Effort: M | Priority: v0.6.0
+- Files: `src/intro_animation.py` (new), `src/tutorial.py`, `src/game.tcss`
+
 ### ASCII Minimap in GPS View (#10)
 
 **Description:** The `gps` / `map` command shows a visual dot-map above the distance table. Player position is marked `@`, discovered-unvisited locations with `.`, visited locations with their type initial, crash site with `X`.
