@@ -567,8 +567,15 @@ def cmd_talk(ctx: GameContext, args: str):
             handler(ctx, cmd_args)
             continue
 
-        creature.add_message("user", player_input)
-        raw_response = llm.generate_response(creature, player_input, ctx.drone.translation_quality)
+        # Sanitize player input — strip action tag patterns to prevent injection
+        import re
+
+        clean_input = re.sub(r"\[/?[A-Z_]+(?::[^\]]*)?\]", "", player_input).strip()
+        if not clean_input:
+            clean_input = player_input  # Fallback if everything was stripped
+
+        creature.add_message("user", clean_input)
+        raw_response = llm.generate_response(creature, clean_input, ctx.drone.translation_quality)
 
         # Parse action tags from LLM response (e.g. [GIVE_WATER], [HEAL])
         response, actions = llm.parse_actions(raw_response)
@@ -1532,8 +1539,21 @@ def cmd_rest(ctx: GameContext, args: str):
         ui.dim("(Rest at the Crash Site for better recovery)")
 
 
+def _sanitize_slot(slot: str) -> str | None:
+    """Validate save slot name — prevent path traversal."""
+    import re
+
+    slot = slot.strip()
+    if not slot or not re.match(r"^[\w\-\.]+$", slot):
+        ui.error("Invalid slot name. Use only letters, numbers, hyphens, underscores.")
+        return None
+    return slot
+
+
 def cmd_save(ctx: GameContext, args: str):
-    slot = args.strip() if args.strip() else "manual"
+    slot = _sanitize_slot(args.strip() if args.strip() else "manual")
+    if not slot:
+        return
     if ctx.dev_mode:
         ctx.dev_mode.debug("save", slot=slot, hours=ctx.player.hours_elapsed)
     save_game(
@@ -1563,6 +1583,10 @@ def cmd_load(ctx: GameContext, args: str):
             slot = ui.console.input("[bold]Load which slot? > [/bold]").strip()
         except (EOFError, KeyboardInterrupt):
             return
+
+    slot = _sanitize_slot(slot)
+    if not slot:
+        return
 
     state = load_game(slot)
     if state:
