@@ -43,24 +43,18 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 | **OS** | Windows 10+, macOS 12+, Linux (glibc 2.31+) |
 | **Python** | 3.11+ (not needed for pre-built releases) |
 
-### Recommended — Qwen3.5 2B (default model)
+### AI Models (choose one on first launch)
 
-| Resource | Requirement |
-|----------|-------------|
-| **CPU** | 4+ cores (inference uses 4 threads) |
-| **RAM** | 4 GB (game ~50 MB + model ~2.3 GB in memory) |
-| **Disk** | 1.5 GB (game 50 MB + model 1.3 GB) |
-| **GPU** | Optional — CUDA/Metal/Vulkan for faster inference |
+| Model | Download | RAM Needed | Quality | Best For |
+|-------|----------|------------|---------|----------|
+| **SmolLM2 1.7B** | 1.0 GB | ~1.2 GB | Good | Low-RAM systems (2-4 GB) |
+| **Qwen3.5 2B** (default) | 1.3 GB | ~2.3 GB | Very Good | Most machines (4+ GB) |
+| **Gemma 4 E2B** | 3.1 GB | ~4.4 GB | Best | 8+ GB RAM, richest dialogue |
+| **No model** | 0 | 0 | Fallback | Pre-written dialogue, no AI |
 
-### Full Quality — Gemma 4 E2B (optional)
+All models run on CPU. GPU (CUDA/Metal/Vulkan) is optional for faster inference.
 
-| Resource | Requirement |
-|----------|-------------|
-| **RAM** | 6 GB (game ~50 MB + model ~4.4 GB in memory) |
-| **Disk** | 3.5 GB (game 50 MB + model 3.1 GB) |
-| **GPU** | Optional — 4 GB+ VRAM for full model offload |
-
-> On first launch you choose which model to download. Qwen3.5 2B (1.3 GB) is recommended for most machines. Gemma 4 E2B (3.1 GB) offers slightly richer dialogue. The game also runs without any model using pre-written dialogue.
+> On first launch you choose which model to download. The game auto-detects your RAM and recommends the best fit. You can also skip the download — the game works without a model using pre-written dialogue.
 
 ## Installation
 
@@ -96,7 +90,7 @@ On first launch, the game offers to download an AI model:
 | **Qwen3.5 2B** (default) | 1.3 GB | ~2.3 GB | Good — best for most machines |
 | **Gemma 4 E2B** (optional) | 3.1 GB | ~4.4 GB | Very Good — richer dialogue |
 
-You can also place any `.gguf` model file manually in `~/.moonwalker/models/`. The game falls back to pre-written dialogue if no model is found.
+You can also place any `.gguf` model file manually in `~/.moonwalker/models/`. Any GGUF model is auto-detected — no config needed. The game falls back to pre-written dialogue if no model is found.
 
 ## Running
 
@@ -194,7 +188,7 @@ Build trust with creatures to obtain repair materials through conversation and t
 
 | Problem | Solution |
 |---------|----------|
-| **Model download fails** | Manually place any `.gguf` file in `~/.moonwalker/models/` |
+| **Model download fails** | Manually place any `.gguf` file in `~/.moonwalker/models/` (SmolLM2, Qwen3.5, or Gemma 4) |
 | **GPU not detected** | Game auto-falls back to CPU. Check CUDA/Metal/Vulkan drivers if you want GPU acceleration |
 | **Model won't load / crashes** | Game continues with pre-written fallback dialogue. Delete and re-download the model |
 | **Dialogue feels repetitive** | Run `dev` to check if LLM is loaded (`model_loaded: true` in log). Upgrade the Translator Chip |

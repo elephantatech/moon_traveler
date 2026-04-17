@@ -24,8 +24,9 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Terminal UI | rich |
 | Input | prompt_toolkit |
 | LLM | llama-cpp-python |
+| Model (tiny) | SmolLM2 1.7B (Q4_K_M GGUF, ~1.0 GB) |
 | Model (default) | Qwen3.5 2B (Q4_K_M GGUF, ~1.3 GB) |
-| Model (optional) | Gemma 4 E2B (Q4_K_M GGUF, ~3.1 GB) |
+| Model (full) | Gemma 4 E2B (Q4_K_M GGUF, ~3.1 GB) |
 | Build | PyInstaller |
 | Save Storage | SQLite (key-value) |
 | TUI | textual (Textual TUI framework) |
@@ -37,8 +38,9 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Config | RAM | CPU | Disk | GPU |
 |--------|-----|-----|------|-----|
 | Minimum (no AI) | 256 MB | Any | 50 MB | None |
-| Recommended (Qwen3.5 2B) | 4 GB | 4+ cores | 1.5 GB | None |
-| Full (Gemma 4 E2B) | 6 GB | 4+ cores | 3.5 GB | None |
+| SmolLM2 1.7B | 2 GB | Any | 1.1 GB | None |
+| Qwen3.5 2B (default) | 4 GB | 4+ cores | 1.5 GB | None |
+| Gemma 4 E2B (full) | 6 GB | 4+ cores | 3.5 GB | None |
 | With GPU | 2 GB + 4 GB VRAM | Any | 3.5 GB | CUDA/Metal/Vulkan |
 
 ### 1.3 Dependencies
