@@ -132,9 +132,12 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 | `status` | Show food, water, suit, and repair progress |
 | `ship` | Ship bays menu (repair, storage, kitchen, charging, medical) |
 | `save` / `load` | Save or load game |
+| `sound` | Toggle sound effects on/off |
+| `tutorial` | Replay the ARIA boot sequence |
+| `config` | View/change settings (save dir, GPU mode, context size) |
 | `clear` / `cls` | Clear the screen |
 | `help` | Show all commands |
-| `quit` | Exit game |
+| `quit` | Exit game (auto-saves) |
 
 ### During Conversations
 

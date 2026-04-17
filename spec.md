@@ -1,6 +1,6 @@
 # Moon Traveler CLI - Technical Specification
 
-**Version:** 0.3.0
+**Version:** 0.3.2
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -28,6 +28,8 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Model (optional) | Gemma 4 E2B (Q4_K_M GGUF, ~3.1 GB) |
 | Build | PyInstaller |
 | Save Storage | SQLite (key-value) |
+| Sound | System sounds (macOS say, Windows winsound, Linux paplay) |
+| User Data | ~/.moonwalker/ (saves, models, config, dev logs) |
 
 ### 1.2.1 System Requirements
 
@@ -57,8 +59,8 @@ Adds project root to `sys.path`, imports and calls `src.game.main()`.
 ### `src/game.py` — `main()`
 1. Show title screen
 2. Check for existing saves → offer "New Game" / "Load Game"
-3. If new game: prompt game length, detect GPU, prompt CPU/GPU mode, load LLM, init world, run boot sequence, start game loop
-4. If load game: detect GPU, prompt CPU/GPU mode, load LLM, restore state, start game loop
+3. If new game: prompt game length, auto-detect GPU from config (`~/.moonwalker/config.json`), load LLM, init world, run boot sequence (skipped if tutorial_completed), start game loop
+4. If load game: auto-detect GPU from config, load LLM, restore state, sync sound/voice settings, start game loop
 
 ---
 
@@ -107,15 +109,18 @@ class Location:
 | crash_site | — | — | — | No | No |
 | plains | 3 | ice_crystal, metal_shard | — | No | No |
 | ridge | 2 | metal_shard | thruster_pack | No | No |
-| cave | 2 | bio_gel, ice_crystal | battery_cell | 50% chance | No |
-| geyser_field | 2 | bio_gel | — | No | 50% chance |
-| ice_lake | 1 | ice_crystal | — | No | 50% chance |
-| ruins | 2 | circuit_board | range_module, translator_chip | No | No |
+| cave | 2 | bio_gel, ice_crystal | battery_cell, voice_module, thruster_pack | 50% chance | No |
+| geyser_field | 2 | bio_gel | voice_module | No | 50% chance |
+| ice_lake | 1 | ice_crystal | autopilot_chip | No | 50% chance |
+| ruins | 2 | circuit_board | range_module, translator_chip, voice_module | No | No |
 | forest | 2 | bio_gel, ice_crystal | — | 50% chance | No |
-| canyon | 2 | metal_shard | range_module | No | No |
-| settlement | 1 | — | cargo_rack, translator_chip | No | No |
+| canyon | 2 | metal_shard | range_module, autopilot_chip, battery_cell | No | No |
+| settlement | 1 | — | cargo_rack, translator_chip, autopilot_chip | No | No |
 
-**Note:** World item drops are reduced. Creatures are the primary source of repair materials. Locations provide only survival items (ice_crystal, bio_gel for cooking) and rare finds. Each location gets 0-1 items.
+**Notes:**
+- World item drops are reduced. Creatures are the primary source of repair materials.
+- Each location gets 0-1 items.
+- A post-generation pass guarantees at least one food source and one water source exist in every world.
 
 ### 4.3 Generation Algorithm
 
@@ -191,7 +196,8 @@ class Creature:
     location_name: str              # Where creature lives
     trust: int = 0                  # 0-100
     knowledge: list[str]            # 1-3 from KNOWLEDGE_POOL (15 entries)
-    conversation_history: list[dict] # Last 20 messages (10 exchanges)
+    conversation_history: list[dict] # Unlimited — all messages preserved
+    memory: str                      # Structured markdown memory of player/world
     has_helped_repair: bool = False
     can_give_materials: list[str]   # Legacy field, kept for backwards compat
     knows_food_source: str|None     # Location name or None (40% chance)
@@ -288,6 +294,19 @@ Rare metal deposits, geyser eruption patterns, safe ice paths, old settlement lo
 
 ice_crystal, metal_shard, bio_gel, circuit_board, power_cell, thermal_paste, hull_patch, antenna_array
 
+### 6.12 NPC Memory System
+
+Each creature maintains a `memory` field — structured markdown bullet points summarizing what they know about the player and world. Memory is:
+
+- **Updated after each conversation** via LLM (or template fallback when LLM unavailable)
+- **Updated on gifts** via `extra_context` parameter (no fake messages injected into chat history)
+- **Injected into the system prompt** so the creature "remembers" without needing full chat history
+- **Stored in SQLite** (`creature_memory` table) alongside chat history
+- **Categories tracked:** Player info, relationship, world facts, trades/gifts
+- **Max 20 bullet points** per creature (LLM manages pruning)
+
+The LLM receives: system prompt (~500 tokens) + memory (~200-400 tokens) + last 20 messages (~2000 tokens). This is much more efficient than sending full conversation history.
+
 ---
 
 ## 7. Drone Companion (`src/drone.py`)
@@ -301,6 +320,8 @@ class Drone:
     speed_boost: int = 0            # km/h
     battery: float = 100.0          # percentage
     battery_max: float = 100.0
+    voice_enabled: bool = False     # Unlocked by voice_module upgrade
+    autopilot_enabled: bool = False # Unlocked by autopilot_chip upgrade
     upgrades_installed: list[str]
 ```
 
@@ -312,7 +333,7 @@ class Drone:
 | Travel | 0.5% per km |
 | Suit Repair | 1% per 2% suit restored |
 
-### 7.2 Upgrades (5)
+### 7.2 Upgrades (7)
 
 | Upgrade | Effect |
 |---------|--------|
@@ -321,6 +342,8 @@ class Drone:
 | cargo_rack | +5 cargo slots |
 | thruster_pack | +5 km/h travel speed |
 | battery_cell | +25% battery max (also adds charge) |
+| voice_module | Enables spoken voice announcements for game events (macOS: `say`) |
+| autopilot_chip | Auto-runs `look` and `scan` when arriving at new locations |
 
 ### 7.3 Speech System
 
@@ -384,7 +407,7 @@ All four resource types use `THRESHOLDS = [50, 30, 15, 5]`. Each threshold fires
 
 ### 8.3 Post-Travel Summary
 
-Shows: location name, food%, water%, suit%, battery% after each travel.
+Shows: location name, food%, water%, suit%, battery% with signed deltas (e.g. `Food: 100% (+20)` when arriving at food source, `Suit: 82% (-10)` after hazard damage).
 
 ### 8.4 Objective Reminder
 
@@ -484,18 +507,20 @@ load_model(callback=None, gpu_mode="cpu")
 
 | Parameter | CPU Mode | GPU Mode |
 |-----------|----------|----------|
-| n_ctx | 4096 | 4096 |
+| n_ctx | 8192 (configurable) | 8192 (configurable) |
 | n_threads | 4 | 4 |
 | n_gpu_layers | 0 | -1 (all layers) |
 | verbose | False | False |
 
-If GPU loading fails, automatically retries with CPU.
+If GPU loading fails, automatically retries with CPU. When GPU mode is selected, a smoke test (tiny inference) runs to catch segfaults early.
+
+GPU mode is configurable via `config gpu auto|gpu|cpu` (persisted in `~/.moonwalker/config.json`). Default: `auto` (use GPU if available).
 
 ### 10.3 Model Search Path
 
-1. Any `.gguf` in `models/` directory
-2. `models/Qwen3.5-2B-Q4_K_M.gguf` (default)
-3. `models/gemma-4-E2B-it-Q4_K_M.gguf` (optional)
+1. `~/.moonwalker/models/` — any `.gguf` file (primary)
+2. `models/` (project root) — legacy backward compatibility
+3. Known filenames: `Qwen3.5-2B-Q4_K_M.gguf`, `gemma-4-E2B-it-Q4_K_M.gguf`
 
 ### 10.4 Response Generation
 
@@ -509,7 +534,7 @@ generate_response(creature, player_message, translation_quality="low")
 | temperature | 0.8 |
 | top_p | 0.9 |
 | stop sequences | "Human:", "Player:", "\n\n\n" |
-| context window | Last 10 messages from conversation_history |
+| context window | Last 20 messages from conversation_history + structured memory |
 
 ### 10.5 System Prompt Structure
 
@@ -519,6 +544,7 @@ You are a {archetype} by nature. {personality_detail}
 {disposition_instruction}
 Knowledge: {knowledge_list}
 Rules: stay in character, 2-4 sentences, no AI breaking
+{creature_memory}  ← structured recall of player/world facts
 {trust_instruction}
 {translation_quality_modifier}
 ```
@@ -560,7 +586,9 @@ Rules: stay in character, 2-4 sentences, no AI breaking
 | ship | repair | Interactive ship bays at Crash Site |
 | save | — | Save game to named slot (default: "manual") |
 | load | — | Load game from slot |
-| config | — | View/change save directory |
+| config | — | View/change settings (save dir, GPU mode, context size) |
+| sound | — | Toggle sound effects on/off (persisted) |
+| tutorial | — | Replay ARIA boot sequence and tutorial |
 | dev | devmode | Toggle developer diagnostics panel |
 | help | — | Show command list |
 | clear | cls | Clear terminal screen |
@@ -678,9 +706,10 @@ Non-blocking: wrong commands don't nag.
 
 ### 13.3 Boot Sequence
 
-1. Title screen + crash art
-2. **Skip tutorial prompt**: `Skip tutorial? (y/n)` — if yes, prints "Systems online. You know the drill, Commander." and jumps to gameplay
-3. `ARIA SYSTEM v4.2.1 — INITIALIZING`
+1. Title screen
+2. **Auto-skip for returning players**: if `tutorial_completed` is true in config, shows "Welcome back, Commander." and skips to gameplay. No prompt.
+3. First-time players see crash art + full boot sequence:
+4. `ARIA SYSTEM v4.2.1 — INITIALIZING`
 3. Ship Diagnostics: hull 23%, life support degraded, propulsion/nav/comms offline, power backup
 4. Environment Scan: temp -201C, gravity 0.0113g, atmosphere trace, radiation low
 5. Crew Vitals: food%, water%, suit%
@@ -696,7 +725,7 @@ Non-blocking: wrong commands don't nag.
 
 ### 14.1 Storage
 
-- Directory: `saves/` (configurable via `config` command)
+- Directory: `~/.moonwalker/saves/` (configurable via `config savedir`)
 - Format: SQLite database (key-value pairs)
 - Save version: 4
 
@@ -705,12 +734,13 @@ Non-blocking: wrong commands don't nag.
 - `saves` table: `(slot, key, value)` — game state as JSON key-value pairs
 - `save_meta` table: `(slot, save_version, updated_at)` — metadata
 - `chat_history` table: `(slot, creature_id, seq, role, content)` — persists conversations
+- `creature_memory` table: `(slot, creature_id, memory)` — NPC structured memory
 
 Keys stored: `world_seed`, `world_mode`, `player`, `drone`, `locations`, `creatures`, `repair_checklist`, `ship_ai`, `tutorial`
 
 ### 14.3 Auto-save
 
-Triggered after travel, conversation, give, and trade. Slot: `"autosave"`. Silent (no UI output).
+Triggered after travel, conversation, give, trade, and quit. Slot: `"autosave"`. Silent (no UI output).
 
 ### 14.4 Error Handling
 
@@ -719,8 +749,9 @@ Triggered after travel, conversation, give, and trade. Slot: `"autosave"`. Silen
 ### 14.5 Backwards Compatibility
 
 - v1/v2 JSON saves: loaded via legacy path
-- v3 SQLite saves: new creature fields (`role_inventory`, `given_items`, `backstory`, `trade_wants`) default to empty
+- v3 SQLite saves: new creature fields (`role_inventory`, `given_items`, `backstory`, `trade_wants`, `memory`) default to empty
 - `ShipAI.from_dict` merges loaded warnings into defaults (missing keys don't crash)
+- Save version is validated on load — warns about incompatible saves (too new or too old)
 
 ---
 
@@ -752,17 +783,20 @@ Location in bold cyan, prompt in bold.
 
 ## 16. Developer Mode (`src/dev_mode.py`)
 
-Session-only (not saved). Toggle with `dev` command.
+Session-only (not saved). Toggle with `dev` command. Logs to `~/.moonwalker/dev/dev_diagnostics.jsonl` (JSON Lines format).
 
-### 16.1 Panel Contents
+### 16.1 Diagnostic Snapshots (per turn)
 
-- System: RAM (RSS via psutil), CPU%
-- Game: mode, seed, location, food/water%, hours, inventory count
-- World: known/total locations, drone battery
-- Creatures: name, disposition tag (F/N/H), trust/100, helped-repair marker (*)
-- Repair: done/total
-- Tutorial: current step name
-- LLM: loaded/unavailable
+- **system:** RAM (RSS/VMS), CPU%, model file size, model RAM estimate, model loaded status
+- **game:** mode, seed, location, food/water/suit/battery%, hours, inventory count, locations known/total, repair progress, tutorial step, LLM availability
+- **locations:** all locations sorted by distance — name, type, coordinates, discovered/visited, items, food/water sources, creature present
+- **creatures:** all creatures — name, species, archetype, disposition, trust, following, inventory, given items, materials, trade wants, conversation count
+- **scan_tree:** scanner reachability from current position (depth-2 lookahead)
+- **chat_history:** full conversation history for all creatures
+
+### 16.2 Event-Level Logging
+
+Events: scan, travel_start, travel_arrive, item_pickup, trust_change, llm_actions, trade, repair_install
 
 ---
 
@@ -878,13 +912,21 @@ src/
   ship_ai.py               ARIA warnings, summaries, reminders
   ui.py                    Rich console output, panels, animations
   tutorial.py              Boot sequence, tutorial progression
-  save_load.py             JSON save/load, versioning
+  save_load.py             SQLite save/load, versioning, creature memory
   input_handler.py         prompt_toolkit autocomplete
-  dev_mode.py              Developer diagnostics panel
+  config.py                User config (save dir, GPU mode, context size, sound, tutorial)
+  sound.py                 Cross-platform sound effects (beeps + voice)
+  dev_mode.py              Developer diagnostics (JSON log to ~/.moonwalker/dev/)
   data/
     __init__.py             Package marker
     names.py                Name pools (28 prefixes, 20 species, 30 creature names)
     prompts.py              LLM prompts, fallbacks, drone message pools
+install.sh                 Cross-platform installer (macOS/Linux)
+install.ps1                Windows PowerShell installer
+docs/
+  index.html               Landing page (GitHub Pages)
+  story.html               Story/lore page
+  how-to-play.html         Interactive game guide
 tests/
   __init__.py               Package marker
   test_ship_ai.py           ARIA warnings, summary, serialization (16 tests)
@@ -894,3 +936,59 @@ tests/
 ```
 
 **Total test count:** 195
+
+---
+
+## 21. Sound System (`src/sound.py`)
+
+Cross-platform system sounds. No external dependencies.
+
+### 21.1 Platform Support
+
+| Platform | Method | Fallback |
+|----------|--------|----------|
+| macOS | Terminal bell (beep patterns) + `say` command (voice mode) | Beep patterns |
+| Windows | `winsound` module + Windows Media .wav files | `MessageBeep` → beep patterns |
+| Linux | `paplay`/`aplay` with freedesktop sounds | Beep patterns |
+
+### 21.2 Sound Events (22)
+
+error, warning, success, info, discovery, damage, trust, chat_open, chat_close, pickup, repair, victory, game_over, aria_warning, boot, scan, trade, escort, upgrade, hazard_geyser, hazard_ice, hazard_storm
+
+### 21.3 Beep Patterns
+
+Different bell rhythms per event (1 beep = info, 2 = success, 3 rapid = warning, 4 = alarm, fanfare pattern for victory). Written to stderr to avoid Rich console conflicts.
+
+### 21.4 Voice Mode
+
+Activated by the `voice_module` drone upgrade. On macOS, uses the `say` command with the Samantha voice at varying speeds per event. Thread-safe with lock-based async (only one sound plays at a time).
+
+### 21.5 Configuration
+
+`sound` command toggles on/off (persisted in config). `sound.set_voice(True)` activates when voice_module is installed. State synced on game load.
+
+---
+
+## 22. Configuration (`src/config.py`)
+
+User preferences stored in `~/.moonwalker/config.json`.
+
+### 22.1 Settings
+
+| Key | Type | Default | Command |
+|-----|------|---------|---------|
+| `save_dir` | path | `~/.moonwalker/saves` | `config savedir /path` |
+| `gpu_mode` | "auto"\|"gpu"\|"cpu" | "auto" | `config gpu auto\|gpu\|cpu` |
+| `context_size` | int (2048-131072) | 8192 | `config context 16384` |
+| `sound_enabled` | bool | true | `sound` command |
+| `tutorial_completed` | bool | false | Set automatically on first completion |
+
+### 22.2 Data Directory Layout
+
+```
+~/.moonwalker/
+  config.json       # User preferences
+  saves/            # Save files (SQLite)
+  models/           # Downloaded AI models (.gguf)
+  dev/              # Dev mode diagnostic logs
+```
