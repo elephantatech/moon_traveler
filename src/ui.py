@@ -7,7 +7,45 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-console = Console()
+_real_console = Console()
+_bridge = None  # Set by tui_app when Textual mode is active
+
+
+def set_bridge(bridge):
+    """Wire up the Textual UIBridge. Called once by tui_app on startup."""
+    global _bridge, console
+    _bridge = bridge
+    console = _BridgeConsoleShim()
+
+
+class _BridgeConsoleShim:
+    """Drop-in replacement for Rich Console that routes through UIBridge.
+
+    When the bridge is set (Textual mode), print() goes to the RichLog widget
+    and input() blocks via the bridge's ask queue. When no bridge is set,
+    falls back to the real Rich Console.
+    """
+
+    def print(self, *args, **kwargs):
+        if _bridge:
+            text = " ".join(str(a) for a in args)
+            _bridge.print(text)
+        else:
+            _real_console.print(*args, **kwargs)
+
+    def input(self, prompt: str = "") -> str:
+        if _bridge:
+            return _bridge.input(prompt)
+        return _real_console.input(prompt)
+
+    def clear(self):
+        if _bridge:
+            _bridge.clear()
+        else:
+            _real_console.clear()
+
+
+console = _real_console  # Default to real console; overridden by set_bridge()
 
 TITLE_ART = r"""
 [bold cyan]
@@ -372,6 +410,42 @@ def _bar(value: float, width: int = 10) -> str:
     return f"[{color}]{'█' * filled}[/{color}][dim]{'░' * empty}[/dim]"
 
 
+def _bar_html(value: float, width: int = 5) -> str:
+    """Build a colored bar as prompt_toolkit HTML."""
+    filled = round(value / 100 * width)
+    empty = width - filled
+    if value > 50:
+        color = "#5caa78"  # green
+    elif value > 20:
+        color = "#c8a844"  # yellow
+    else:
+        color = "#c85050"  # red
+    bar = "█" * filled
+    gap = "░" * empty
+    return f'<style fg="{color}">{bar}</style><style fg="#4a5070">{gap}</style>'
+
+
+def _vital_html(label: str, value: float, color: str) -> str:
+    """Format a single vital stat as colored HTML."""
+    bar = _bar_html(value)
+    return f'<style fg="{color}">{label}</style> {bar} <style fg="#8890b0">{value:.0f}%</style>'
+
+
+# Module-level status bar HTML for prompt_toolkit bottom_toolbar
+_status_bar_html: str = ""
+
+
+def get_toolbar_text() -> str:
+    """Return the current status bar as HTML for prompt_toolkit bottom_toolbar."""
+    return _status_bar_html
+
+
+def _rich_vital(label: str, value: float, label_color: str) -> str:
+    """Format a single vital as Rich markup for Textual status bar."""
+    bar = _bar(value, 5)
+    return f"[{label_color}]{label}[/{label_color}] {bar} [dim]{value:.0f}%[/dim]"
+
+
 def render_status_bar(
     player,
     drone,
@@ -380,96 +454,80 @@ def render_status_bar(
     creature=None,
     followers=None,
 ):
-    """Render a compact status bar above the prompt."""
-    food_bar = _bar(player.food, 5)
-    water_bar = _bar(player.water, 5)
-    suit_bar = _bar(player.suit_integrity, 5)
-    batt_bar = _bar(drone.battery, 5)
+    """Update the fixed bottom status bar (Textual widget or prompt_toolkit toolbar)."""
+    global _status_bar_html
 
-    # Repair progress
     done = sum(1 for v in repair_checklist.values() if v)
     total = len(repair_checklist)
-    repair_color = "green" if done == total else "yellow" if done > 0 else "dim"
 
-    # Location icon
-    env_icon = {
-        "crash_site": "🛸",
-        "plains": "🌊",
-        "ridge": "⛰️",
-        "cave": "🕳️",
-        "geyser_field": "♨️",
-        "ice_lake": "❄️",
-        "ruins": "🏛️",
-        "forest": "🌿",
-        "canyon": "🏜️",
-        "settlement": "🏘️",
-    }.get(location_type, "·")
-
-    # Time display
     hours = player.hours_elapsed
-    if hours < 24:
-        time_str = f"{hours}h"
-    else:
-        days = hours // 24
-        rem = hours % 24
-        time_str = f"{days}d{rem}h"
+    time_str = f"{hours}h" if hours < 24 else f"{hours // 24}d{hours % 24}h"
 
-    # Inventory count
     inv_count = player.total_items
     inv_max = drone.cargo_capacity
 
-    if location_type == "crash_site":
-        # Full vitals at Crash Site
-        line = (
-            f" {env_icon} "
-            f"[dim]Food[/dim] {food_bar} [dim]{player.food:.0f}%[/dim]  "
-            f"[dim]Water[/dim] {water_bar} [dim]{player.water:.0f}%[/dim]  "
-            f"[dim]Suit[/dim] {suit_bar} [dim]{player.suit_integrity:.0f}%[/dim]  "
-            f"[dim]Batt[/dim] {batt_bar} [dim]{drone.battery:.0f}%[/dim]  "
-            f"[{repair_color}]Ship {done}/{total}[/{repair_color}]  "
-            f"[dim]Inv {inv_count}/{inv_max}[/dim]  "
-            f"[dim]⏱ {time_str}[/dim]"
-        )
-        console.print(line)
+    ship_color = "green" if done == total else "yellow" if done > 0 else "red"
 
-        # Ship bay summary
-        stored = sum(player.ship_storage.values()) if player.ship_storage else 0
-        bays = []
-        bays.append(f"Storage:{stored}")
-        bays.append("Kitchen")
-        bays.append("Charging")
-        bays.append("Medical")
-        remaining = sum(1 for v in repair_checklist.values() if not v)
-        if remaining:
-            bays.append(f"[yellow]Repair:{remaining} remaining[/yellow]")
-        else:
-            bays.append("[green]Repair:Done[/green]")
-        console.print(f" [dim]🔧 Ship Bays:[/dim] {' │ '.join(bays)}")
-    else:
-        # Exploring bar — always show all vitals for ambient awareness
-        parts = [f" {env_icon} "]
-        parts.append(f"[dim]Food[/dim] {food_bar} [dim]{player.food:.0f}%[/dim]  ")
-        parts.append(f"[dim]Water[/dim] {water_bar} [dim]{player.water:.0f}%[/dim]  ")
-        parts.append(f"[dim]Suit[/dim] {suit_bar} [dim]{player.suit_integrity:.0f}%[/dim]  ")
-        parts.append(f"[dim]Batt[/dim] {batt_bar} [dim]{drone.battery:.0f}%[/dim]  ")
-        parts.append(f"[dim]Inv {inv_count}/{inv_max}[/dim]  ")
-        parts.append(f"[dim]⏱ {time_str}[/dim]")
-        console.print("".join(parts))
+    # --- Textual mode: Rich markup → StatusBar widget ---
+    if _bridge:
+        parts = [
+            _rich_vital("Food", player.food, "green"),
+            _rich_vital("Water", player.water, "cyan"),
+            _rich_vital("Suit", player.suit_integrity, "#c89450"),
+            _rich_vital("Batt", drone.battery, "#a080d0"),
+            f"[{ship_color}]Ship {done}/{total}[/{ship_color}]",
+            f"[dim]Inv {inv_count}/{inv_max}[/dim]",
+            f"[dim]⏱ {time_str}[/dim]",
+        ]
+        markup = "  ".join(parts)
 
-    # Creature at location
+        if creature and not creature.following:
+            trust_bar = _bar(creature.trust, 5)
+            dc = {"friendly": "green", "neutral": "yellow", "hostile": "red"}.get(creature.disposition, "dim")
+            markup += (
+                f"  [dim]│[/dim]  [{creature.color}]{creature.name}[/{creature.color}] "
+                f"[dim]{creature.archetype}[/dim] [{dc}]{creature.disposition}[/{dc}] "
+                f"Trust {trust_bar} [dim]{creature.trust}[/dim]"
+            )
+
+        if followers:
+            names = " ".join(f"[{c.color}]{c.name}[/{c.color}]" for c in followers)
+            markup += f"  [dim]│[/dim]  [dim]Following:[/dim] {names}"
+
+        _bridge.update_status_bar(markup)
+        return
+
+    # --- CLI mode: prompt_toolkit HTML → bottom_toolbar ---
+    html_ship_color = {"green": "#5caa78", "yellow": "#c8a844", "red": "#c85050"}[ship_color]
+
+    parts = [
+        _vital_html("Food", player.food, "#5caa78"),
+        _vital_html("Water", player.water, "#5ca8c8"),
+        _vital_html("Suit", player.suit_integrity, "#c89450"),
+        _vital_html("Batt", drone.battery, "#a080d0"),
+        f'<style fg="{html_ship_color}">Ship {done}/{total}</style>',
+        f'<style fg="#7880a0">Inv {inv_count}/{inv_max}</style>',
+        f'<style fg="#606888">⏱ {time_str}</style>',
+    ]
+
+    html = "  ".join(parts)
+
     if creature and not creature.following:
-        trust = creature.trust
-        trust_bar = _bar(trust, 5)
-        disp = creature.disposition
-        disp_color = {"friendly": "green", "neutral": "yellow", "hostile": "red"}.get(disp, "dim")
-        console.print(
-            f" [dim]👾[/dim] [{creature.color}]{creature.name}[/{creature.color}] "
-            f"[dim]{creature.species} · {creature.archetype}[/dim]  "
-            f"[{disp_color}]{disp}[/{disp_color}]  "
-            f"[dim]Trust[/dim] {trust_bar} [dim]{trust}/100[/dim]"
+        trust_bar = _bar_html(creature.trust)
+        disp_colors = {"friendly": "#5caa78", "neutral": "#c8a844", "hostile": "#c85050"}
+        dc = disp_colors.get(creature.disposition, "#7880a0")
+        html += (
+            f'  <style fg="#4a5070">│</style>  '
+            f'<style fg="#b4bcd4">{creature.name}</style> '
+            f'<style fg="#7880a0">{creature.archetype}</style> '
+            f'<style fg="{dc}">{creature.disposition}</style> '
+            f'Trust {trust_bar} <style fg="#8890b0">{creature.trust}</style>'
         )
 
-    # Followers
     if followers:
-        names = [f"[{c.color}]{c.name}[/{c.color}]" for c in followers]
-        console.print(f" [dim]🤝 Following:[/dim] {', '.join(names)}")
+        names = " ".join(
+            f'<style fg="#b4bcd4">{c.name}</style>' for c in followers
+        )
+        html += f'  <style fg="#4a5070">│</style>  <style fg="#7880a0">Following:</style> {names}'
+
+    _status_bar_html = html

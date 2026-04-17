@@ -969,7 +969,57 @@ Activated by the `voice_module` drone upgrade. On macOS, uses the `say` command 
 
 ---
 
-## 22. Configuration (`src/config.py`)
+## 22. Textual TUI Migration (v0.4.0 — planned)
+
+### 22.1 Architecture
+
+Worker thread with message bridge. Game logic runs synchronously in a Textual `run_worker(thread=True)`. A `UIBridge` object translates between the worker and Textual's async event loop via thread-safe `queue.Queue`.
+
+### 22.2 Layout
+
+```
+┌─────────────────── Header (title + location) ───────────────────┐
+│                                                                  │
+│                    RichLog (scrollable output)                    │
+│              All panels, tables, dialogue, narration             │
+│                                                                  │
+├─────────── StatusBar (vitals, creature, followers) ──────────────┤
+│  CrashSite >  [input field with autocomplete]                    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### 22.3 Key Design
+
+- `_BridgeConsoleShim` replaces `ui.console` — all existing `console.print()` / `console.input()` calls route through Textual automatically
+- `bridge.ask(prompt)` blocks worker thread on queue; Textual routes input based on command mode vs ask mode
+- `time.sleep` in worker thread (narration, tutorial, travel) stays as-is — doesn't block Textual reactor
+- LLM inference runs in worker thread; UI stays responsive
+- Autocomplete: port `GameCompleter` to Textual's `AutoComplete` widget API
+
+### 22.4 New Files
+
+- `src/tui_app.py` (~200 lines) — Textual App, widget composition, worker dispatch
+- `src/tui_bridge.py` (~150 lines) — UIBridge, console shim, ask/response queues
+- `src/game.tcss` (~40 lines) — Textual CSS layout
+
+### 22.5 Unchanged Files
+
+`commands.py`, `travel.py`, `creatures.py`, `player.py`, `drone.py`, `world.py`, `llm.py`, `save_load.py`, `ship_ai.py`, `tutorial.py`, `sound.py`, `config.py`, `dev_mode.py`
+
+### 22.6 Migration Phases
+
+1. Shell — App layout, widgets, CSS, basic rendering
+2. UI shim — Bridge `ui.console` to Textual
+3. Command wiring — Console shim, verify all commands including cmd_talk conversation loop
+4. Autocomplete — Port GameCompleter to Textual AutoComplete API
+5. Main menu — Pre-game flow as Textual modals
+6. Cleanup — Remove prompt_toolkit, dead code
+
+---
+
+## 23. Configuration (`src/config.py`)
+
+(Renumbered from 22)
 
 User preferences stored in `~/.moonwalker/config.json`.
 
