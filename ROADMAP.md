@@ -85,7 +85,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Screen Reader Mode
+### Screen Reader Mode (#4)
 
 **Description:** A mode that strips all Rich/Textual markup from output and produces plain text compatible with VoiceOver (macOS), NVDA (Windows), and any terminal screen reader. Panels degrade to plain section headers, tables degrade to tab-separated text, colors are removed.
 
@@ -111,7 +111,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Text-to-Speech Output Mode
+### Text-to-Speech Output Mode (#5)
 
 **Description:** All game text is spoken aloud as it appears — narration, ARIA messages, creature dialogue, drone whispers. Builds on the existing voice module architecture. Platform-native TTS: `say` on macOS, `espeak`/`espeak-ng` on Linux, `pyttsx3` or SAPI on Windows.
 
@@ -139,7 +139,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Voice Input via Whisper.cpp
+### Voice Input via Whisper.cpp (#6)
 
 **Description:** Press Space (or a configurable hotkey) to record speech. The recording is transcribed locally by Whisper.cpp (via subprocess call to a locally installed binary) and injected as a typed command. Fully offline — no cloud API. TUI mode only initially.
 
@@ -166,7 +166,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Session Stats Tracker
+### Session Stats Tracker (#7)
 
 **Description:** Tracks per-session gameplay statistics silently throughout play: commands typed, kilometers traveled, unique creatures spoken to, hazards survived, trades completed, gifts given, repair materials collected, and wall-clock time played.
 
@@ -196,7 +196,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Post-Game Stats Screen
+### Post-Game Stats Screen (#8)
 
 **Description:** On win or lose, display a full summary screen: real time survived (wall-clock hours:minutes), in-game hours, commands typed, km traveled, creatures befriended (trust > 50), hazards survived, trades completed, a numerical score, a letter grade (S through D), and an ARIA verdict line per grade.
 
@@ -224,7 +224,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Performance Diagnostics in Dev Mode
+### Performance Diagnostics in Dev Mode (#9)
 
 **Description:** When dev mode is active, each LLM inference call is timed and the results (milliseconds, prompt tokens, completion tokens, RSS memory delta) are logged to the dev diagnostics JSONL file and displayed in the dev panel as a compact last-5-calls table.
 
@@ -251,7 +251,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### ASCII Minimap in GPS View
+### ASCII Minimap in GPS View (#10)
 
 **Description:** The `gps` / `map` command shows a visual dot-map above the distance table. Player position is marked `@`, discovered-unvisited locations with `.`, visited locations with their type initial, crash site with `X`.
 
@@ -272,7 +272,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Weather System Overhaul
+### Weather System Overhaul (#11)
 
 **Description:** Each location has a dynamic weather state (clear, light_frost, ice_storm, geyser_active, whiteout) that transitions over time based on hours elapsed. Weather affects GPS scan range, water source availability, and LLM creature mood framing.
 
@@ -300,7 +300,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Creature Relationships
+### Creature Relationships (#12)
 
 **Description:** Creatures know specific other creatures by name. A creature can mention a neighbor, reveal their location, or vouch for them. Being vouched for by a trusted creature grants a +5 first-meeting trust bonus. Creates an emergent social graph that rewards thorough exploration.
 
@@ -326,7 +326,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Crafting System Expansion
+### Crafting System Expansion (#13)
 
 **Description:** At the Crash Site's ship bays, players can combine raw materials into higher-tier components. Gives junk items a redemption arc (one recipe uses junk), reduces pressure on finding rare materials through NPCs, and adds meaningful choices for surplus items.
 
@@ -355,7 +355,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### New Creature Archetypes: Scholar, Scout, Priest
+### New Creature Archetypes: Scholar, Scout, Priest (#14)
 
 **Description:** Three new archetypes expand the social landscape. The Scholar trades knowledge for knowledge and asks follow-up questions. The Scout reveals multiple locations at once at medium trust. The Priest provides suit repair via a "blessing" ritual with no battery cost.
 
@@ -381,7 +381,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Location Events
+### Location Events (#15)
 
 **Description:** Each location type has a pool of 5 unique one-time narrative scenes that fire on first visit. Scenes add lore, and some provide small bonuses (a free item, a small trust hint for the next NPC, a minor stat restore). Makes exploration feel rewarding beyond finding creatures and items.
 
@@ -404,7 +404,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Day/Night Cycle
+### Day/Night Cycle (#16)
 
 **Description:** Enceladus's 32.9-hour orbital period is modeled as a day/night counter based on `player.hours_elapsed`. Time of day is shown in the status bar, affects hazard probabilities, creature trust modifiers, and LLM mood framing.
 
@@ -436,7 +436,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Leaderboards
+### Leaderboards (#17)
 
 **Description:** A local SQLite leaderboard stores high scores from completed (win) games. Optional cloud leaderboard submits scores to a REST API for a global top-10 view. Local-first; cloud is opt-in.
 
@@ -460,7 +460,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Seed Sharing
+### Seed Sharing (#18)
 
 **Description:** Players can share their world seed as a short Base62 code. Another player enters it at new-game time to play the same world. A curated list of 5 challenge seeds ships with the game.
 
@@ -484,7 +484,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Mod Support
+### Mod Support (#19)
 
 **Description:** YAML/JSON files in `~/.moonwalker/mods/` add custom creature archetypes, location types, and LLM prompt overrides without modifying source code. Malformed mods are skipped with a warning; they never crash the game.
 
@@ -513,7 +513,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Achievement System
+### Achievement System (#20)
 
 **Description:** 30+ achievements covering milestones, social interaction, exploration, and Easter eggs. Stored locally in SQLite. Non-intrusive unlock notification (auto-dismissed panel). Secret achievements show as `???` until earned.
 
@@ -549,7 +549,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 
 ---
 
-### Challenge Modes
+### Challenge Modes (#21)
 
 **Description:** Three structured challenge run variants selectable at new game: Speedrun (real-time countdown display), Ironman/Permadeath (save deleted on game over), and Pacifist (score multiplier for avoiding angering hostile creatures).
 
