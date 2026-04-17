@@ -1,8 +1,8 @@
 # Moon Traveler Terminal — Product Roadmap
 
-**Last updated:** 2026-04-16
-**Current version:** v0.4.0-dev (unreleased)
-**Stable release:** v0.3.2
+**Last updated:** 2026-04-17
+**Current version:** v0.4.0 (released)
+**Next:** v0.4.1 (bug fixes) then v0.5.0 (gameplay + diagnostics)
 
 This roadmap covers planned development from the current dev build through v1.0.0 (full release). Each feature entry includes a description, technical approach grounded in the existing architecture, effort estimate, dependencies, and affected files.
 
@@ -843,37 +843,70 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 
 ---
 
-## Known Issues & Enhancements (post v0.4.0)
+## Prioritized Next Tasks
 
-### Responsive Status Bar (#1)
-The TUI status bar truncates when the terminal window is narrowed. Items are lost off-screen. The bar should detect terminal width and wrap to multiple lines, or prioritize which items to show at narrow widths (vitals first, creature info second, followers third).
-- Effort: M | Priority: v0.5.0
-- Files: `src/ui.py` (render_status_bar), `src/game.tcss` (#status-bar height)
+### v0.4.1 — Bug Fixes (next release, 1-2 days)
 
-### Status Bar Not Updating Live (#3)
-The status bar only refreshes at the top of the main game loop. During conversations, trust gains, creature actions (heal, give food/water), and LLM inference waits, the bar shows stale values. Players can't tell if vitals changed without manually running `status`. Fix: add `ctx.refresh_status_bar()` helper called after each conversation exchange and after creature actions.
-- Effort: S | Priority: v0.5.0
-- Files: `src/commands.py` (cmd_talk inner loop), `src/game.py` (extract helper)
+These are bugs and quick wins that should ship before any new features:
 
-### Game Exits After Win/Lose Instead of Returning to Menu (#27)
-After win or lose, the game exits completely instead of returning to the main menu. Should show "New Game / Load Game / Quit" prompt after the win/lose sequence. Important for TUI mode where app startup is noticeable.
-- Effort: S | Priority: v0.5.0
-- Files: `src/game.py` (wrap session in loop), `src/tui_app.py` (don't exit on normal return)
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #27 Game exits after win/lose — return to menu | S | Players lose the app on every game end |
+| **P0** | #3 Status bar not updating during conversations | S | Players can't see trust/vitals changing |
+| **P1** | #2 Drone service boot messages — immersive loading | S | Polish: feels like debug output currently |
+| **P1** | #1 Responsive status bar — wrap on narrow terminals | M | Truncated on small screens |
+| **P1** | #30 Security fixes — already committed, needs release tag | S | Path traversal, prompt injection |
 
-### Required Creature Escorts for Ship Repair (#28)
-Players must bring creature companions to help with repairs. The game is too easy without this — you can just collect materials and win without building relationships. Required escorts by difficulty: Easy 1, Medium 2, Hard 3, Brutal 4. Some creatures may volunteer to fly with you at high trust. Adds "Crew: 1/3 arrived" to the ship repair panel and status display.
-- Effort: M | Priority: v0.5.0
-- Files: `src/difficulty.py`, `src/game.py` (check_win), `src/commands.py` (_companions_help_at_ship), `src/ui.py`, `src/llm.py` (VOLUNTEER_ESCORT tag)
+### v0.5.0 — Gameplay & Diagnostics (next major, 2-3 weeks)
 
-### Drone Service Boot Messages (#2)
-Replace generic "Loading LLM model... CPU only" messages with immersive drone service boot sequence:
-- "Initializing ARIA drone service..."
-- "Loading AI model: {model_name} ({mode})"
-- "AI service active — ARIA online" / "AI service unavailable — fallback dialogue"
-- Show model name and compute mode as drone status (visible in `drone` command and dev mode)
-- Keep load duration timer
-- Effort: S | Priority: v0.5.0
-- Files: `src/llm.py` (load_model messages), `src/game.py` (boot flow), `src/drone.py` (model info field)
+Core gameplay improvements that make the game harder and more interesting, plus diagnostics:
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #28 Required creature escorts for ship repair | M | Game too easy without forced relationships |
+| **P0** | #7 Session stats tracker | S | Foundation for post-game screen and achievements |
+| **P0** | #8 Post-game stats screen with score | M | Depends on #7. Gives players a goal beyond "win" |
+| **P1** | #9 LLM performance diagnostics in dev mode | S | Needed for optimization work |
+| **P1** | #4 Screen reader mode | M | Accessibility — important for wider audience |
+| **P2** | #5 Text-to-speech output mode | L | Accessibility — depends on #4 |
+| **P2** | #23 Unify GameCompleter and GameSuggester | S | Tech debt — reduces maintenance burden |
+| **P3** | #6 Voice input via Whisper.cpp | XL | Cool but complex — can wait |
+
+### v0.6.0 — World Expansion (6-8 weeks)
+
+New gameplay systems that add depth and replayability:
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #12 Creature relationships | L | Social graph, vouching, location reveals |
+| **P0** | #15 Location events | M | One-time narrative scenes with bonuses |
+| **P1** | #10 ASCII minimap in GPS view | M | Visual navigation aid |
+| **P1** | #29 Animated ASCII intro sequence | M | Polish: replaces static crash art |
+| **P1** | #14 New archetypes: Scholar, Scout, Priest | M | More creature variety |
+| **P2** | #13 Crafting system | M | Combine materials, junk redemption |
+| **P2** | #11 Weather system overhaul | L | Dynamic per-location weather |
+| **P3** | #16 Day/night cycle | M | Affects hazards and creature behavior |
+
+### v0.7.0 — Community (12-16 weeks)
+
+Social and competitive features:
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #20 Achievement system | L | 30+ milestones, unlock notifications |
+| **P1** | #18 Seed sharing | S | Challenge runs, community engagement |
+| **P1** | #21 Challenge modes | M | Speedrun, ironman, pacifist |
+| **P2** | #17 Leaderboards | L | Local + optional cloud |
+| **P3** | #19 Mod support | XL | YAML custom archetypes/locations |
+
+### Infrastructure (ongoing)
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #25 Cross-platform CI test matrix | S | Catch Windows/macOS bugs |
+| **P1** | #26 Test coverage reporting | S | README badge, gate at 80% |
+| **P1** | #24 TUI integration tests | M | Zero coverage on tui_app/tui_bridge |
+| **P2** | #22 Split commands.py into package | M | 1,800 lines is too big |
 
 ---
 
