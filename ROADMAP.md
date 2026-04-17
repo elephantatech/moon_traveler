@@ -850,6 +850,11 @@ The status bar only refreshes at the top of the main game loop. During conversat
 - Effort: S | Priority: v0.5.0
 - Files: `src/commands.py` (cmd_talk inner loop), `src/game.py` (extract helper)
 
+### Game Exits After Win/Lose Instead of Returning to Menu (#27)
+After win or lose, the game exits completely instead of returning to the main menu. Should show "New Game / Load Game / Quit" prompt after the win/lose sequence. Important for TUI mode where app startup is noticeable.
+- Effort: S | Priority: v0.5.0
+- Files: `src/game.py` (wrap session in loop), `src/tui_app.py` (don't exit on normal return)
+
 ### Drone Service Boot Messages (#2)
 Replace generic "Loading LLM model... CPU only" messages with immersive drone service boot sequence:
 - "Initializing ARIA drone service..."
