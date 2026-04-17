@@ -517,7 +517,7 @@ def cmd_talk(ctx: GameContext, args: str):
         if player_input.lower() == "/history":
             if creature.conversation_history:
                 ui.console.print(f"\n[bold]Conversation history with {creature.name}:[/bold]")
-                for msg in creature.conversation_history[-10:]:
+                for msg in creature.conversation_history:
                     if msg["role"] == "user":
                         ui.console.print(f"  [bold]You>[/bold] {msg['content']}")
                     else:
@@ -554,6 +554,8 @@ def cmd_talk(ctx: GameContext, args: str):
 
         # Parse action tags from LLM response (e.g. [GIVE_WATER], [HEAL])
         response, actions = llm.parse_actions(raw_response)
+        if not response.strip():
+            response = "*nods thoughtfully*"
         creature.add_message("assistant", response)
 
         if ctx.dev_mode and actions:
@@ -585,9 +587,12 @@ def cmd_talk(ctx: GameContext, args: str):
             ctx.dev_mode.debug("trust_change",
                 creature=creature.name, old=old_trust, new=creature.trust,
                 source="conversation", exchange=exchange_count)
-        next_tier = 70 if creature.trust < 70 else 100
-        tier_label = "full cooperation" if next_tier == 70 else "max trust"
-        ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — {next_tier} for {tier_label})[/dim]")
+        if creature.trust >= 100:
+            ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — max trust)[/dim]")
+        else:
+            next_tier = 70 if creature.trust < 70 else 100
+            tier_label = "full cooperation" if next_tier == 70 else "max trust"
+            ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — {next_tier} for {tier_label})[/dim]")
         exchange_count += 1
 
         # Drone private advice (NOT added to creature conversation history)
@@ -640,6 +645,13 @@ def cmd_talk(ctx: GameContext, args: str):
                 ui.success(f"{creature.name} revealed a water source: {creature.knows_water_source}")
 
         ui.console.print()
+
+    # Update creature memory with conversation highlights
+    if exchange_count > 0:
+        try:
+            llm.update_creature_memory(creature)
+        except Exception:
+            pass
 
     # ARIA trust commentary after conversation
     if ctx.ship_ai and creature:
@@ -696,6 +708,12 @@ def cmd_give(ctx: GameContext, args: str):
     else:
         ui.info(f"{creature.name}'s trust: {creature.trust}/100 ({creature.trust_level})")
 
+    # Record gift in creature memory (without injecting into chat history)
+    try:
+        llm.update_creature_memory(creature, extra_context=f"Player gave {display} as a gift. Trust is now {creature.trust}.")
+    except Exception:
+        pass
+
     # At high trust, creature acknowledges friendship
     if creature.trust >= 70 and not creature.has_helped_repair:
         creature.has_helped_repair = True
@@ -705,7 +723,7 @@ def cmd_give(ctx: GameContext, args: str):
 def cmd_trade(ctx: GameContext, args: str):
     """Trade items with a Merchant creature."""
     loc = ctx.current_location()
-    creature = ctx.creature_at_location(loc.name)
+    creature = ctx.any_creature_here(loc.name)
 
     if not creature:
         ui.error("There's no creature here to trade with.")
@@ -772,6 +790,7 @@ def cmd_trade(ctx: GameContext, args: str):
     get_item = has_items[idx_get]
     give_item = available_wants[idx_give]
 
+    # Trade is 1-for-1: remove one, add one — net zero inventory change
     ctx.player.remove_item(give_item)
     ctx.player.add_item(get_item)
     creature.role_inventory.remove(get_item)
@@ -924,7 +943,12 @@ def _companions_help_at_ship(ctx: GameContext, companions: list):
         if unoffered and not creature.has_helped_repair:
             creature.has_helped_repair = True
             for mat in list(unoffered):
-                ctx.player.add_item(mat)
+                if ctx.player.total_items >= ctx.drone.cargo_capacity:
+                    # Overflow goes directly to ship storage
+                    ctx.player.ship_storage[mat] = ctx.player.ship_storage.get(mat, 0) + 1
+                    ui.dim(f"  Inventory full — {mat.replace('_', ' ').title()} stashed in ship storage.")
+                else:
+                    ctx.player.add_item(mat)
                 donate_list.remove(mat)
                 creature.given_items.append(mat)
                 # Keep can_give_materials in sync (only if different list)
@@ -964,12 +988,7 @@ def _companions_help_at_ship(ctx: GameContext, companions: list):
             else:
                 ui.dim(f"  {creature.name} stays at the Crash Site.")
 
-    # Check if companions completed the final repair
-    from src.game import check_win, show_win_sequence
-
-    if check_win(ctx):
-        show_win_sequence(ctx)
-        ctx.should_quit = True
+    # Win check is handled by the main game loop — no need to check here
 
 
 def cmd_drone(ctx: GameContext, args: str):
@@ -1382,6 +1401,11 @@ def _bay_medical(ctx: GameContext):
                     f"(Battery: {ctx.drone.battery:.0f}%)"
                 )
             elif key == "rest":
+                # 1 hour of rest costs resources (same rates as travel)
+                ctx.player.food = max(0, ctx.player.food - 2.0)
+                ctx.player.water = max(0, ctx.player.water - 3.0)
+                ctx.player.suit_integrity = max(0, ctx.player.suit_integrity - 0.5)
+                # Then recover
                 ctx.player.food = min(100.0, ctx.player.food + 20.0)
                 ctx.player.water = min(100.0, ctx.player.water + 20.0)
                 ctx.player.food_warning_given = False
@@ -1512,16 +1536,35 @@ def cmd_config(ctx: GameContext, args: str):
             ui.error("Invalid GPU mode. Use: config gpu auto | gpu | cpu")
         return
 
+    if sub.startswith("context "):
+        from src.config import set_context_size
+        try:
+            value = int(args.split(maxsplit=1)[1].strip())
+            if value < 2048:
+                ui.error("Minimum context size is 2048.")
+                return
+            if value > 131072:
+                ui.error("Maximum context size is 131072.")
+                return
+            set_context_size(value)
+            ui.success(f"LLM context size set to: {value}")
+            ui.dim("Takes effect on next game launch.")
+        except ValueError:
+            ui.error("Invalid number. Use: config context 8192")
+        return
+
     # Show current config
-    from src.config import get_gpu_mode
+    from src.config import get_context_size, get_gpu_mode
     ui.console.print("\n[bold]Game Configuration[/bold]")
-    ui.console.print(f"  [cyan]Save directory:[/cyan] {get_save_dir()}")
-    ui.console.print(f"  [cyan]GPU mode:[/cyan]       {get_gpu_mode()}")
-    ui.console.print(f"  [cyan]Sound effects:[/cyan] {'ON' if sound.is_enabled() else 'OFF'}")
-    ui.console.print(f"  [cyan]Config file:[/cyan]   {CONFIG_PATH}")
+    ui.console.print(f"  [cyan]Save directory:[/cyan]  {get_save_dir()}")
+    ui.console.print(f"  [cyan]GPU mode:[/cyan]        {get_gpu_mode()}")
+    ui.console.print(f"  [cyan]Context size:[/cyan]    {get_context_size()}")
+    ui.console.print(f"  [cyan]Sound effects:[/cyan]  {'ON' if sound.is_enabled() else 'OFF'}")
+    ui.console.print(f"  [cyan]Config file:[/cyan]    {CONFIG_PATH}")
     ui.console.print()
     ui.dim("config savedir /path/to/saves   — change save location")
     ui.dim("config gpu auto|gpu|cpu         — change compute mode")
+    ui.dim("config context 8192             — change LLM context window")
     ui.dim("sound                           — toggle sound effects")
 
 
@@ -1541,11 +1584,14 @@ def cmd_tutorial(ctx: GameContext, args: str):
 
 def cmd_sound(ctx: GameContext, args: str):
     """Toggle system sound effects on/off."""
+    from src.config import set_sound_enabled
     if sound.is_enabled():
         sound.disable()
+        set_sound_enabled(False)
         ui.info("Sound effects: OFF")
     else:
         sound.enable()
+        set_sound_enabled(True)
         sound.play("success")
         ui.info("Sound effects: ON")
 

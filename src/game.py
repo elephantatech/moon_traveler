@@ -258,12 +258,22 @@ def game_loop(ctx: GameContext):
             cmd_look(ctx, "")
 
         if ctx.should_quit:
+            ctx.do_auto_save()
             ui.info("Goodbye, traveler.")
             break
 
 
 def main():
     """Entry point."""
+    # Restore sound preference from config
+    try:
+        from src.config import get_sound_enabled
+        if not get_sound_enabled():
+            from src import sound as _snd
+            _snd.disable()
+    except Exception:
+        pass
+
     ui.show_title()
     ui.console.print()
 
@@ -334,6 +344,10 @@ def main():
                 sound.set_voice(ctx.drone.voice_enabled)
             except Exception:
                 pass
+            # Persist tutorial completion if the loaded save had it done
+            if tutorial.completed:
+                from src.config import set_tutorial_completed
+                set_tutorial_completed()
             game_loop(ctx)
             return
         else:

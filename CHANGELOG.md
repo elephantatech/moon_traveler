@@ -2,6 +2,32 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.3.2] - 2026-04-16
+
+### Added
+- **NPC Memory System** — creatures remember facts about the player across conversations (stored as markdown in SQLite)
+- **Configurable LLM context size** — `config context 16384` (default 8192, range 2048–131072)
+- Guaranteed food/water sources in all world seeds (post-generation pass)
+- Auto-save on quit — no more lost progress
+- Save version validation on load — warns about incompatible saves
+
+### Fixed
+- LLM TRADE action: `given_items` not tracked when item was only in `can_give_materials` — caused ValueError on re-offer
+- LLM TRADE action: capacity guard used `<=` instead of `<` — inconsistent with all other guards
+- Companion donations could overflow cargo capacity — overflow now goes to ship storage
+- LLM GIVE_MATERIAL bypassed cargo capacity check
+- Post-travel summary showed `--20` (double-negative) when arriving at food/water source
+- Trust hint showed "100 for max trust" when trust was already 100
+- Tutorial from_dict crashed on invalid step values from corrupted saves
+- Empty LLM response (all action tags, no text) now falls back to `*nods thoughtfully*`
+- macOS `say` subprocess had no timeout — added 5s limit
+
+### Changed
+- Chat history is now unlimited (no pruning) — creatures remember everything
+- LLM receives last 20 messages + structured memory (efficient context usage)
+- Drone upgrades spread across more location types for better availability in short mode
+- Removed dead ChatCompleter code (110 lines)
+
 ## [0.3.1] - 2026-04-16
 
 ### Fixed

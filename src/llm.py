@@ -87,6 +87,15 @@ AVAILABLE_MODELS = [
 DEFAULT_MODEL = AVAILABLE_MODELS[0]
 
 
+def _get_context_size() -> int:
+    """Get configured context size, falling back to 8192."""
+    try:
+        from src.config import get_context_size
+        return get_context_size()
+    except Exception:
+        return 8192
+
+
 def _get_models_dir() -> Path:
     """Get the models directory: ~/.moonwalker/models by default.
 
@@ -264,7 +273,7 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
     try:
         _llm_model = Llama(
             model_path=model_path,
-            n_ctx=4096,
+            n_ctx=_get_context_size(),
             n_threads=4,
             n_gpu_layers=n_gpu_layers,
             verbose=False,
@@ -290,7 +299,7 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
             try:
                 _llm_model = Llama(
                     model_path=model_path,
-                    n_ctx=4096,
+                    n_ctx=_get_context_size(),
                     n_threads=4,
                     n_gpu_layers=0,
                     verbose=False,
@@ -348,6 +357,11 @@ def build_system_prompt(creature) -> str:
         translation_instruction="",
     )
 
+    # Add creature memory (long-term recall of the player and world)
+    if creature.memory:
+        base += f"\n\nYour memories of this player and recent events:\n{creature.memory}\n"
+        base += "Use these memories naturally in conversation — reference things the player told you before.\n"
+
     # Add role-aware action tag instructions
     action_instructions = build_action_instructions(creature)
     return base + action_instructions
@@ -370,8 +384,8 @@ def generate_response(creature, player_message: str, translation_quality: str = 
     # Build messages from conversation history
     messages = [{"role": "system", "content": system_prompt}]
 
-    # Add conversation history (includes the current player message)
-    for msg in creature.conversation_history[-10:]:
+    # Send recent chat history (memory handles long-term recall)
+    for msg in creature.conversation_history[-20:]:
         messages.append(msg)
 
     try:
@@ -389,6 +403,107 @@ def generate_response(creature, player_message: str, translation_quality: str = 
     except Exception as e:
         ui.dim(f"(LLM error: {e})")
         return fallback_response(creature)
+
+
+# --- Creature memory system ---
+
+_MEMORY_UPDATE_PROMPT = """You are a memory manager for {name}, a {archetype} creature in a game.
+Below is {name}'s current memory about the player and world, followed by the last few conversation messages.
+Update the memory with any new facts learned. Keep it concise markdown — bullet points only.
+
+Categories to track:
+- **Player**: name, origin, goals, personality traits, what they've shared about themselves
+- **Relationship**: how {name} feels about the player, key moments, promises made
+- **World**: facts about other creatures, locations, events the player mentioned
+- **Trades/Gifts**: items exchanged, what the player needs, what {name} has given
+
+Rules:
+- Keep existing facts unless contradicted
+- Add new facts from the conversation
+- Remove nothing unless it's clearly wrong
+- Max 20 bullet points total
+- Output ONLY the updated markdown, no explanation
+
+Current memory:
+{current_memory}
+
+Recent conversation:
+{recent_messages}
+
+Updated memory:"""
+
+
+def update_creature_memory(creature, recent_count: int = 6, extra_context: str = "") -> str | None:
+    """Use the LLM to update a creature's structured memory after a conversation.
+
+    Takes the last `recent_count` messages and the current memory, asks the LLM
+    to produce an updated memory. Returns the new memory string, or None on failure.
+    extra_context: additional facts to include (e.g. "Player gave Ice Crystal as a gift")
+    """
+    if not _llm_available or _llm_model is None:
+        return _update_memory_fallback(creature, recent_count, extra_context)
+
+    recent = creature.conversation_history[-recent_count:]
+    if not recent and not extra_context:
+        return None
+
+    recent_text = ""
+    for msg in recent:
+        prefix = "Player" if msg["role"] == "user" else creature.name
+        recent_text += f"{prefix}: {msg['content']}\n"
+    if extra_context:
+        recent_text += f"[Event: {extra_context}]\n"
+
+    current = creature.memory or "No memories yet."
+
+    prompt = _MEMORY_UPDATE_PROMPT.format(
+        name=creature.name,
+        archetype=creature.archetype,
+        current_memory=current,
+        recent_messages=recent_text,
+    )
+
+    try:
+        response = _llm_model.create_chat_completion(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=400,
+            temperature=0.3,
+        )
+        text = response["choices"][0]["message"]["content"].strip()
+        if text:
+            creature.memory = text
+            return text
+    except Exception:
+        pass
+
+    return _update_memory_fallback(creature, recent_count)
+
+
+def _update_memory_fallback(creature, recent_count: int = 6, extra_context: str = "") -> str | None:
+    """Template-based memory update when LLM is unavailable."""
+    recent = creature.conversation_history[-recent_count:]
+
+    lines = []
+    if creature.memory:
+        lines = creature.memory.strip().split("\n")
+
+    # Extract player messages as simple facts
+    player_msgs = [m["content"] for m in recent if m["role"] == "user"]
+    if player_msgs:
+        lines.append(f"- Player spoke about: {player_msgs[-1][:80]}")
+
+    if extra_context:
+        lines.append(f"- {extra_context}")
+
+    if not lines:
+        return None
+
+    # Cap at 20 lines
+    if len(lines) > 20:
+        lines = lines[-20:]
+
+    creature.memory = "\n".join(lines)
+    return creature.memory
 
 
 # --- Action tag parsing ---
@@ -498,7 +613,7 @@ def apply_actions(actions: list[dict], player, drone, creature, repair_checklist
             item = act.get("item", "")
             # Check both role_inventory (new) and can_give_materials (legacy)
             inventory_list = creature.role_inventory if creature.role_inventory else creature.can_give_materials
-            if item and item in inventory_list:
+            if item and item in inventory_list and player.total_items < drone.cargo_capacity:
                 player.add_item(item)
                 inventory_list.remove(item)
                 creature.given_items.append(item)
@@ -516,13 +631,13 @@ def apply_actions(actions: list[dict], player, drone, creature, repair_checklist
                 continue
             offered = act.get("offered", "")
             wanted = act.get("wanted", "")
-            if offered and wanted and player.has_item(wanted):
+            if offered and wanted and player.has_item(wanted) and player.total_items < drone.cargo_capacity:
                 player.remove_item(wanted)
                 player.add_item(offered)
-                # Remove from creature's inventory
+                # Track as given and remove from creature's inventories
+                creature.given_items.append(offered)
                 if offered in creature.role_inventory:
                     creature.role_inventory.remove(offered)
-                    creature.given_items.append(offered)
                 if offered in creature.can_give_materials:
                     creature.can_give_materials.remove(offered)
                 off_display = offered.replace("_", " ").title()

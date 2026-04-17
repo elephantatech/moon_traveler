@@ -99,8 +99,13 @@ _BEEP_PATTERNS = {
 
 
 def _play_beep_pattern(event):
-    """No-op in default mode. Beeps disabled to avoid terminal conflicts."""
-    pass
+    """Play a terminal bell pattern via stderr (avoids Rich console conflicts)."""
+    pattern = _BEEP_PATTERNS.get(event, [0])
+    for delay in pattern:
+        if delay > 0:
+            time.sleep(delay)
+        sys.stderr.write("\a")
+        sys.stderr.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -144,9 +149,10 @@ def _play_macos(event):
                     ["say", "-v", voice, "-r", str(rate), word],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
+                    timeout=5,
                 )
                 return
-            except (OSError, subprocess.SubprocessError):
+            except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
                 pass
     # Default: beep pattern
     _play_beep_pattern(event)
@@ -284,6 +290,7 @@ def _play_linux(event):
                         [_linux_player, path],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
+                        timeout=3,
                     )
                     return
                 except (OSError, subprocess.SubprocessError):

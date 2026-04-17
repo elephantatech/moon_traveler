@@ -85,6 +85,32 @@ def reset_tutorial():
     _save()
 
 
+def get_sound_enabled() -> bool:
+    """Get whether sound effects are enabled (default True)."""
+    cfg = _load()
+    return cfg.get("sound_enabled", True)
+
+
+def set_sound_enabled(enabled: bool):
+    """Persist sound on/off preference."""
+    cfg = _load()
+    cfg["sound_enabled"] = enabled
+    _save()
+
+
+def get_context_size() -> int:
+    """Get LLM context window size (default 8192)."""
+    cfg = _load()
+    return cfg.get("context_size", 8192)
+
+
+def set_context_size(size: int):
+    """Set and persist LLM context window size."""
+    cfg = _load()
+    cfg["context_size"] = size
+    _save()
+
+
 def get_gpu_mode() -> str:
     """Get the configured GPU mode: 'gpu', 'cpu', or 'auto' (default)."""
     cfg = _load()

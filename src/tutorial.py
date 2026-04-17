@@ -183,7 +183,10 @@ class TutorialManager:
     @classmethod
     def from_dict(cls, d: dict) -> "TutorialManager":
         t = cls()
-        t.step = TutorialStep(d.get("step", TutorialStep.COMPLETED))
+        try:
+            t.step = TutorialStep(d.get("step", TutorialStep.COMPLETED))
+        except ValueError:
+            t.step = TutorialStep.COMPLETED
         return t
 
 

@@ -95,16 +95,22 @@ class ShipAI:
         food_before: float = 0, water_before: float = 0,
         suit_before: float = 0, batt_before: float = 0,
     ) -> str:
-        food_lost = food_before - player.food
-        water_lost = water_before - player.water
-        suit_lost = suit_before - player.suit_integrity
-        batt_lost = batt_before - drone.battery
+        food_delta = player.food - food_before
+        water_delta = player.water - water_before
+        suit_delta = player.suit_integrity - suit_before
+        batt_delta = drone.battery - batt_before
+
+        def _fmt(val: float, delta: float) -> str:
+            if delta >= 0:
+                return f"{val:.0f}% (+{delta:.0f})"
+            return f"{val:.0f}% ({delta:.0f})"
+
         return self.speak(
             f"Arrived at {player.location_name}. "
-            f"Food: {player.food:.0f}% (-{food_lost:.0f}) | "
-            f"Water: {player.water:.0f}% (-{water_lost:.0f}) | "
-            f"Suit: {player.suit_integrity:.0f}% (-{suit_lost:.0f}) | "
-            f"Battery: {drone.battery:.0f}% (-{batt_lost:.0f})"
+            f"Food: {_fmt(player.food, food_delta)} | "
+            f"Water: {_fmt(player.water, water_delta)} | "
+            f"Suit: {_fmt(player.suit_integrity, suit_delta)} | "
+            f"Battery: {_fmt(drone.battery, batt_delta)}"
         )
 
     # --- Objective reminder (periodic) ---
