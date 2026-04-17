@@ -855,6 +855,11 @@ After win or lose, the game exits completely instead of returning to the main me
 - Effort: S | Priority: v0.5.0
 - Files: `src/game.py` (wrap session in loop), `src/tui_app.py` (don't exit on normal return)
 
+### Required Creature Escorts for Ship Repair (#28)
+Players must bring creature companions to help with repairs. The game is too easy without this — you can just collect materials and win without building relationships. Required escorts by difficulty: Easy 1, Medium 2, Hard 3, Brutal 4. Some creatures may volunteer to fly with you at high trust. Adds "Crew: 1/3 arrived" to the ship repair panel and status display.
+- Effort: M | Priority: v0.5.0
+- Files: `src/difficulty.py`, `src/game.py` (check_win), `src/commands.py` (_companions_help_at_ship), `src/ui.py`, `src/llm.py` (VOLUNTEER_ESCORT tag)
+
 ### Drone Service Boot Messages (#2)
 Replace generic "Loading LLM model... CPU only" messages with immersive drone service boot sequence:
 - "Initializing ARIA drone service..."
