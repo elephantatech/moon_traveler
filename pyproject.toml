@@ -30,6 +30,7 @@ select = ["E", "F", "W", "I"]
 "src/data/*" = ["E501"]
 "src/world.py" = ["E501"]
 "src/difficulty.py" = ["E501"]
+"scripts/*" = ["E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

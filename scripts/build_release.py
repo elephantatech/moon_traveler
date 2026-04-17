@@ -67,9 +67,9 @@ def check_pyinstaller():
 
 def build_executable(target_platform: str):
     """Build the executable for the given platform."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Building {APP_NAME} v{VERSION} for {target_platform}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     current = detect_platform()
     if target_platform != current:
@@ -93,27 +93,42 @@ def build_executable(target_platform: str):
         exe_name += ".exe"
 
     cmd = [
-        sys.executable, "-m", "PyInstaller",
+        sys.executable,
+        "-m",
+        "PyInstaller",
         "--noconfirm",
         "--clean",
-        "--name", APP_NAME,
+        "--name",
+        APP_NAME,
         "--onedir",
         "--console",
         # Include source packages
-        "--add-data", f"{PROJECT_ROOT / 'src'}{os.pathsep}src",
+        "--add-data",
+        f"{PROJECT_ROOT / 'src'}{os.pathsep}src",
         # Hidden imports that PyInstaller might miss
-        "--hidden-import", "rich",
-        "--hidden-import", "prompt_toolkit",
-        "--hidden-import", "psutil",
-        "--hidden-import", "llama_cpp",
-        "--hidden-import", "jinja2",
-        "--hidden-import", "markupsafe",
-        "--collect-all", "textual",
-        "--add-data", f"play_tui.py{os.pathsep}.",
+        "--hidden-import",
+        "rich",
+        "--hidden-import",
+        "prompt_toolkit",
+        "--hidden-import",
+        "psutil",
+        "--hidden-import",
+        "llama_cpp",
+        "--hidden-import",
+        "jinja2",
+        "--hidden-import",
+        "markupsafe",
+        "--collect-all",
+        "textual",
+        "--add-data",
+        f"{PROJECT_ROOT / 'play_tui.py'}{os.pathsep}.",
         # Output directories
-        "--distpath", str(DIST_DIR / output_name),
-        "--workpath", str(BUILD_DIR / output_name),
-        "--specpath", str(BUILD_DIR),
+        "--distpath",
+        str(DIST_DIR / output_name),
+        "--workpath",
+        str(BUILD_DIR / output_name),
+        "--specpath",
+        str(BUILD_DIR),
         # Entry point
         str(ENTRY_POINT),
     ]
@@ -220,9 +235,9 @@ def main():
             create_release_archive(target)
 
     # Summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Build Summary")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     for target, success in results.items():
         status = "OK" if success else "SKIPPED (wrong platform)" if target != detect_platform() else "FAILED"
         print(f"  {target:10s}  {status}")

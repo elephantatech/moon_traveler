@@ -68,6 +68,7 @@ def show_status_bar(ctx, console):
     followers = [c for c in ctx.creatures if c.following]
     # Render directly to the given console
     from src.ui import render_status_bar
+
     original = ui.console
     ui.console = console
     render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers)
@@ -88,6 +89,7 @@ def main():
     cap = ScreenshotCapture()
     ctx = init_game("short", seed=42)
     from src.tutorial import TutorialStep
+
     ctx.tutorial.step = TutorialStep.COMPLETED
 
     # 1. Title Screen
@@ -95,6 +97,7 @@ def main():
         c.print(ui.TITLE_ART)
         c.print()
         c.print("[dim]  Choose: 1. New Game  2. Load Game[/dim]")
+
     cap.capture("Title Screen", render_title)
 
     # 2. Crash Site — First Look
@@ -102,6 +105,7 @@ def main():
         show_status_bar(ctx, c)
         show_prompt(ctx, c, "look")
         cmd_look(ctx, "")
+
     cap.capture("Crash Site — First Look", render_crash_look)
 
     # 3. Scanning
@@ -109,6 +113,7 @@ def main():
         show_status_bar(ctx, c)
         show_prompt(ctx, c, "scan")
         cmd_scan(ctx, "")
+
     cap.capture("Scanning for Locations", render_scan)
 
     # 4. GPS
@@ -116,6 +121,7 @@ def main():
         show_status_bar(ctx, c)
         show_prompt(ctx, c, "gps")
         cmd_gps(ctx, "")
+
     cap.capture("GPS Map View", render_gps)
 
     # 5. Drone Status
@@ -125,6 +131,7 @@ def main():
         drone_dict = ctx.drone.to_dict()
         drone_dict["cargo_used"] = ctx.player.total_items
         ui.show_drone_status(drone_dict, title="ARIA Scout Drone")
+
     cap.capture("Drone Status", render_drone)
 
     # 6. Travel — find nearest discovered location with a creature
@@ -136,19 +143,24 @@ def main():
             break
     if not travel_dest:
         # Fallback: just pick the nearest non-crash location
-        travel_dest = next(
-            loc for loc in ctx.locations if loc.loc_type != "crash_site" and loc.discovered
-        )
+        travel_dest = next(loc for loc in ctx.locations if loc.loc_type != "crash_site" and loc.discovered)
 
     def render_travel(c):
         show_prompt(ctx, c, f"travel {travel_dest.name}")
         cur = ctx.current_location()
         messages = execute_travel(
-            ctx.player, ctx.drone, travel_dest, cur, ctx.rng,
-            ctx.ship_ai, ctx.locations, ctx.world_mode,
+            ctx.player,
+            ctx.drone,
+            travel_dest,
+            cur,
+            ctx.rng,
+            ctx.ship_ai,
+            ctx.locations,
+            ctx.world_mode,
         )
         for msg in messages:
             c.print(msg)
+
     cap.capture("Traveling to a Location", render_travel)
 
     # 7. Location with Creature
@@ -156,11 +168,13 @@ def main():
         show_status_bar(ctx, c)
         show_prompt(ctx, c, "look")
         cmd_look(ctx, "")
+
     cap.capture("Location with Creature and Items", render_location)
 
     # 8. Taking Items — pick up whatever is at this location
     loc_here = ctx.current_location()
     take_items = list(loc_here.items)[:2]  # up to 2 items
+
     def render_take(c):
         show_status_bar(ctx, c)
         for item in take_items:
@@ -169,6 +183,7 @@ def main():
         c.print()
         show_prompt(ctx, c, "inventory")
         cmd_inventory(ctx, "")
+
     cap.capture("Taking Items and Inventory", render_take)
 
     # 9. Player Status
@@ -176,11 +191,13 @@ def main():
         show_status_bar(ctx, c)
         show_prompt(ctx, c, "status")
         cmd_status(ctx, "")
+
     cap.capture("Player Status", render_status)
 
     # 10. Giving Gifts — give the first item we have
     creature = ctx.creature_at_location(ctx.player.location_name)
     give_item = next(iter(ctx.player.inventory.keys()), None) if ctx.player.inventory else None
+
     def render_give(c):
         show_status_bar(ctx, c)
         if give_item and creature:
@@ -189,11 +206,13 @@ def main():
         else:
             show_prompt(ctx, c, "give ice_crystal to Kael")
             c.print("[red]No items to give or no creature here.[/red]")
+
     cap.capture("Giving a Gift to Build Trust", render_give)
 
     # 11. Conversation
     if not creature:
         creature = next((cr for cr in ctx.creatures), None)
+
     def render_talk(c):
         show_status_bar(ctx, c)
         show_prompt(ctx, c, f"talk {creature.name}")
@@ -221,6 +240,7 @@ def main():
         c.print()
         c.print("[bold]You>[/bold] bye")
         c.print(f"[cyan]You step away from {creature.name}.[/cyan]")
+
     cap.capture("Creature Conversation", render_talk)
 
     # 12. Escort
@@ -228,23 +248,22 @@ def main():
         creature.trust = 55
         show_status_bar(ctx, c)
         show_prompt(ctx, c, "escort")
-        c.print(
-            f"\n[bold]Ask [{creature.color}]{creature.name}[/{creature.color}]"
-            " to travel with you?[/bold]"
-        )
+        c.print(f"\n[bold]Ask [{creature.color}]{creature.name}[/{creature.color}] to travel with you?[/bold]")
         c.print("[bold](y/n) > [/bold]y")
         creature.following = True
         creature.home_location = creature.location_name
         c.print(f"[green]{creature.name} agrees to travel with you![/green]")
-        c.print(ctx.ship_ai.speak(
-            f"Excellent, Commander. {creature.name} may be able to assist with repairs at the ship."
-        ))
+        c.print(
+            ctx.ship_ai.speak(f"Excellent, Commander. {creature.name} may be able to assist with repairs at the ship.")
+        )
+
     cap.capture("Escort System", render_escort)
 
     # 13. Status Bar with Follower
     def render_follower(c):
         show_status_bar(ctx, c)
         show_prompt(ctx, c)
+
     cap.capture("Status Bar with Follower", render_follower)
 
     # 14. Ship Bays
@@ -262,6 +281,7 @@ def main():
         ui.show_ship_repair(ctx.repair_checklist)
         c.print()
         _show_bay_menu(ctx)
+
     cap.capture("Ship Bays Menu", render_ship)
 
     # 15. Repair Progress
@@ -271,6 +291,7 @@ def main():
         c.print("[green]Installed Ice Crystal into ship repairs![/green]")
         c.print()
         ui.show_ship_repair(ctx.repair_checklist)
+
     cap.capture("Ship Repair Progress", render_repair)
 
     # 16. Victory Screen
@@ -305,6 +326,7 @@ def main():
             c.print(f"  [italic]{line}[/italic]")
         c.print("[bold green]" + "=" * 60 + "[/bold green]")
         c.print("\n[bold]MISSION COMPLETE[/bold]\n")
+
     cap.capture("Victory", render_victory)
 
     # 17. Game Over Screen
@@ -326,6 +348,7 @@ def main():
             c.print(f"  [italic]{line}[/italic]")
         c.print("[bold red]" + "=" * 60 + "[/bold red]")
         c.print("\n[bold]GAME OVER[/bold]\n")
+
     cap.capture("Game Over", render_gameover)
 
     # 18. Dev Mode — now logs to file, show the toggle message
@@ -336,11 +359,13 @@ def main():
         c.print("[dim]Diagnostics are written as JSON lines to the log file.[/dim]")
         c.print("[dim]Each game action appends a snapshot of system, game state,[/dim]")
         c.print("[dim]locations, creatures, scan tree, and chat history.[/dim]")
+
     cap.capture("Dev Mode Logging", render_dev)
 
     # 19. Help
     def render_help(c):
         c.print(HELP_TEXT)
+
     cap.capture("Help Screen", render_help)
 
     # Summary
