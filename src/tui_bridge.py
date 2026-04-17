@@ -21,7 +21,7 @@ class UIBridge:
         self._status = status_bar
         self._label = prompt_label
         self._command_queue = command_queue
-        self._ask_queue: queue.Queue[str] = queue.Queue()
+        self._ask_queue: queue.Queue[str | None] = queue.Queue()
         self._current_location = ""
 
     # --- Output (worker thread → Textual main thread) ---
@@ -93,7 +93,7 @@ class UIBridge:
             raise KeyboardInterrupt
         return result
 
-    def push_response(self, text: str):
+    def push_response(self, text: str | None):
         """Called from Textual main thread when user submits during ask mode."""
         self._ask_queue.put(text)
 

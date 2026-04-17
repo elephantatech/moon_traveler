@@ -399,7 +399,7 @@ def prompt_choice(prompt_text: str, choices: list[str]) -> str:
                 return choices[idx]
         except KeyboardInterrupt:
             console.print()
-            raise SystemExit(0)
+            raise
         except (ValueError, EOFError):
             pass
         error(f"Please enter a number 1-{len(choices)}.")
