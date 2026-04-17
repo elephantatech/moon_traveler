@@ -1,0 +1,55 @@
+Screen {
+    layout: vertical;
+    background: #0a0d18;
+}
+
+#header {
+    height: 1;
+    background: #111525;
+    color: #c89450;
+    padding: 0 2;
+    text-style: bold;
+}
+
+#game-log {
+    height: 1fr;
+    background: #0a0d18;
+    padding: 0 1;
+    scrollbar-background: #111525;
+    scrollbar-color: #2a3050;
+    scrollbar-color-hover: #3a4060;
+    scrollbar-color-active: #4a5070;
+}
+
+#status-bar {
+    height: 1;
+    background: #111525;
+    color: #8890b0;
+    padding: 0 2;
+}
+
+#input-area {
+    height: 3;
+    background: #0e1122;
+    padding: 0 1;
+    layout: horizontal;
+    align: left middle;
+}
+
+#prompt-label {
+    width: auto;
+    color: #5ca8c8;
+    text-style: bold;
+    padding: 0 1 0 0;
+}
+
+#game-input {
+    width: 1fr;
+    background: #0e1122;
+    border: none;
+    color: #b4bcd4;
+}
+
+#game-input:focus {
+    border: none;
+}

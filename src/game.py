@@ -153,8 +153,9 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
 
 def game_loop(ctx: GameContext):
     """Main game loop."""
-    # Create prompt_toolkit session for autocomplete
-    session = input_handler.create_prompt_session(ctx)
+    # Create prompt session — prompt_toolkit for CLI, bridge for Textual
+    use_bridge = ui._bridge is not None
+    session = None if use_bridge else input_handler.create_prompt_session(ctx)
 
     # Initial look
     cmd_look(ctx, "")
@@ -184,9 +185,12 @@ def game_loop(ctx: GameContext):
             ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers
         )
 
-        # Prompt with autocomplete
+        # Prompt with autocomplete (CLI) or bridge (Textual)
         location = ctx.player.location_name
-        raw = input_handler.get_input(session, location)
+        if use_bridge:
+            raw = ui._bridge.get_command(location)
+        else:
+            raw = input_handler.get_input(session, location)
 
         if raw is None:
             ui.console.print()
@@ -250,8 +254,9 @@ def game_loop(ctx: GameContext):
                 ctx.tutorial = state["tutorial"]
             ctx.should_load = False
             ctx.loaded_state = None
-            # Rebuild autocomplete session with new state
-            session = input_handler.create_prompt_session(ctx)
+            # Rebuild autocomplete session with new state (CLI mode only)
+            if not use_bridge:
+                session = input_handler.create_prompt_session(ctx)
             # Sync sound voice state with drone
             from src import sound
             sound.set_voice(ctx.drone.voice_enabled)
@@ -348,6 +353,12 @@ def main():
             if tutorial.completed:
                 from src.config import set_tutorial_completed
                 set_tutorial_completed()
+            # Wire Textual autocomplete if in TUI mode
+            if ui._bridge:
+                try:
+                    ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
+                except Exception:
+                    pass
             game_loop(ctx)
             return
         else:
@@ -375,6 +386,13 @@ def main():
     llm.load_model(gpu_mode=gpu_mode)
 
     ctx = init_game(mode_key)
+
+    # Wire Textual autocomplete if in TUI mode
+    if ui._bridge:
+        try:
+            ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
+        except Exception:
+            pass
 
     # Run ARIA boot sequence (replaces old show_intro)
     ctx.tutorial.run_boot_sequence(

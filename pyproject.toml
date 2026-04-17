@@ -9,6 +9,7 @@ dependencies = [
     "prompt_toolkit",
     "llama-cpp-python",
     "psutil",
+    "textual>=8.2.3",
 ]
 
 [dependency-groups]
