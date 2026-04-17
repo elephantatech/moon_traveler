@@ -82,8 +82,12 @@ class MoonTravelerApp(App):
             game_main()
         except Exception as e:
             import traceback
+            from rich.markup import escape as _esc
             tb = traceback.format_exc()
-            self.call_from_thread(game_log.write, f"[red]CRASH: {e}[/red]\n[dim]{tb}[/dim]")
+            self.call_from_thread(
+                game_log.write,
+                f"[red]CRASH: {_esc(str(e))}[/red]\n[dim]{_esc(tb)}[/dim]",
+            )
             import time
             time.sleep(10)  # Keep visible before exit
         finally:
