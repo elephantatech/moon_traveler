@@ -36,6 +36,7 @@ class MoonTravelerApp(App):
     def on_mount(self) -> None:
         """Start the game worker thread when the app mounts."""
         # Query widgets on main thread (thread-safe) and store references
+        self._header = self.query_one("#header", Static)
         self._game_log = self.query_one("#game-log", RichLog)
         self._status_bar = self.query_one("#status-bar", Static)
         self._prompt_label = self.query_one("#prompt-label", Label)
@@ -48,8 +49,11 @@ class MoonTravelerApp(App):
         from src.input_handler import GameSuggester
         try:
             self._game_input.suggester = GameSuggester(ctx)
-        except Exception:
-            pass  # Autocomplete not critical
+        except Exception as e:
+            try:
+                self._game_log.write(f"[dim]Autocomplete init: {e}[/dim]")
+            except Exception:
+                pass
 
     def _game_worker(self) -> None:
         """Run the full game in a worker thread."""
@@ -86,6 +90,12 @@ class MoonTravelerApp(App):
             # Game ended — exit the app
             self.call_from_thread(self.exit)
 
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """Reset tab cycling when the user types a new character."""
+        if self._tab_candidates and event.value not in self._tab_candidates:
+            self._tab_candidates = []
+            self._tab_index = -1
+
     def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle Enter key in the input field."""
         text = event.value.strip()
@@ -110,7 +120,7 @@ class MoonTravelerApp(App):
     def enter_ask_mode(self, prompt: str) -> None:
         """Switch input to ask mode (sub-prompts, confirmations)."""
         self._ask_mode = True
-        self.query_one("#prompt-label", Label).update(prompt)
+        self._prompt_label.update(prompt)
 
     def exit_ask_mode(self) -> None:
         """Restore normal command input mode."""
@@ -118,26 +128,45 @@ class MoonTravelerApp(App):
 
     def update_prompt_label(self, text: str) -> None:
         """Update the prompt label (e.g., location name)."""
-        self.query_one("#prompt-label", Label).update(text)
+        self._prompt_label.update(text)
 
     def update_status_bar(self, markup: str) -> None:
         """Update the fixed status bar."""
-        self.query_one("#status-bar", Static).update(markup)
+        self._status_bar.update(markup)
+
+    def take_screenshot(self) -> str:
+        """Save an SVG screenshot and return the file path."""
+        from pathlib import Path
+        from datetime import datetime
+        filename = f"screenshot-{datetime.now().strftime('%Y%m%d-%H%M%S')}.svg"
+        path = Path("assets") / filename
+        path.parent.mkdir(exist_ok=True)
+        svg = self.export_screenshot()
+        path.write_text(svg)
+        return str(path)
 
     def update_header(self, text: str) -> None:
         """Update the header bar."""
-        self.query_one("#header", Static).update(text)
+        self._header = getattr(self, '_header', None) or self.query_one("#header", Static)
+        self._header.update(text)
 
     def clear_log(self) -> None:
         """Clear the game log."""
-        self.query_one("#game-log", RichLog).clear()
+        self._game_log.clear()
 
     def on_key(self, event) -> None:
-        """Handle Tab for autocomplete cycling and Ctrl+C for quit."""
+        """Handle Tab for autocomplete, F12 for screenshot, Ctrl+C for quit."""
         if event.key == "tab":
             event.prevent_default()
             event.stop()
             self._handle_tab()
+        elif event.key == "f12":
+            event.prevent_default()
+            try:
+                path = self.take_screenshot()
+                self._game_log.write(f"[green]Screenshot saved: {path}[/green]")
+            except Exception as e:
+                self._game_log.write(f"[red]Screenshot failed: {e}[/red]")
         elif event.key == "ctrl+c":
             if self._ask_mode and self._bridge:
                 self._bridge.push_response(None)

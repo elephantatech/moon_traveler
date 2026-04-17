@@ -99,13 +99,19 @@ _BEEP_PATTERNS = {
 
 
 def _play_beep_pattern(event):
-    """Play a terminal bell pattern via stderr (avoids Rich console conflicts)."""
+    """Play a terminal bell pattern via fd 2 directly.
+
+    Uses os.write(2, ...) instead of sys.stderr.write() to bypass
+    Textual's stderr capture in TUI mode.
+    """
     pattern = _BEEP_PATTERNS.get(event, [0])
     for delay in pattern:
         if delay > 0:
             time.sleep(delay)
-        sys.stderr.write("\a")
-        sys.stderr.flush()
+        try:
+            os.write(2, b"\a")
+        except OSError:
+            pass
 
 
 # ---------------------------------------------------------------------------
