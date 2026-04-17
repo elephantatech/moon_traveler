@@ -105,6 +105,7 @@ class Drone:
 
         # Try LLM-powered hint first
         from src import llm
+
         if llm.is_available():
             hint = llm.generate_drone_hint(creature, player, repair_checklist)
             if hint:
@@ -112,6 +113,7 @@ class Drone:
 
         # Smart template fallback based on context
         from src.creatures import ROLE_CAPABILITIES
+
         caps = ROLE_CAPABILITIES.get(creature.archetype, {})
         thresholds = caps.get("trust_threshold", {})
 

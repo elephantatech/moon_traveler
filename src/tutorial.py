@@ -53,8 +53,7 @@ class TutorialManager:
     def completed(self) -> bool:
         return self.step >= TutorialStep.COMPLETED
 
-    def run_boot_sequence(self, ship_ai, player, drone, locations, repair_checklist, mode: str,
-                          replay: bool = False):
+    def run_boot_sequence(self, ship_ai, player, drone, locations, repair_checklist, mode: str, replay: bool = False):
         """Print the ARIA boot diagnostics and begin the tutorial.
 
         Runs the full boot sequence on first play. On subsequent launches,
@@ -62,7 +61,7 @@ class TutorialManager:
         Set replay=True when called from the 'tutorial' command mid-game.
         """
         from src import ui
-        from src.config import is_tutorial_completed, set_tutorial_completed
+        from src.config import is_tutorial_completed
 
         if not replay:
             ui.show_title()
@@ -171,6 +170,7 @@ class TutorialManager:
             if next_step >= TutorialStep.COMPLETED:
                 self.step = TutorialStep.COMPLETED
                 from src.config import set_tutorial_completed
+
                 set_tutorial_completed()
             return hint
         return None

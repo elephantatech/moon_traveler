@@ -8,9 +8,6 @@ block the worker until the user provides input.
 import queue
 import time
 
-from rich.panel import Panel
-from rich.text import Text
-
 
 class UIBridge:
     """Thread-safe bridge between game worker and Textual app."""
@@ -45,7 +42,9 @@ class UIBridge:
             return
         # Multiple args or kwargs: render through a temporary Console
         import io
+
         from rich.console import Console as _TmpConsole
+
         buf = io.StringIO()
         tmp = _TmpConsole(file=buf, highlight=False, markup=True)
         tmp.print(*args, **kwargs)
@@ -65,16 +64,20 @@ class UIBridge:
         """
         # Strip Rich markup tags from prompt for the label display
         import re
+
         clean_prompt = re.sub(r"\[/?[a-z_ ]+\]", "", prompt)
 
         # Enter ask mode and wait for it to execute on the main thread
         # before blocking, to prevent the race where user submits before
         # ask_mode is set.
         import threading
+
         done = threading.Event()
+
         def _enter():
             self._app.enter_ask_mode(clean_prompt)
             done.set()
+
         self._app.call_from_thread(_enter)
         done.wait(timeout=5)
 
@@ -82,9 +85,11 @@ class UIBridge:
 
         # Exit ask mode synchronously to prevent TOCTOU race
         exit_done = threading.Event()
+
         def _exit():
             self._app.exit_ask_mode()
             exit_done.set()
+
         self._app.call_from_thread(_exit)
         exit_done.wait(timeout=5)
 
@@ -124,11 +129,14 @@ class UIBridge:
     def take_screenshot(self) -> str:
         """Take a screenshot from the worker thread. Blocks until done."""
         import threading
+
         result = []
         done = threading.Event()
+
         def _do():
             result.append(self._app.take_screenshot())
             done.set()
+
         self._app.call_from_thread(_do)
         done.wait()
         return result[0] if result else ""

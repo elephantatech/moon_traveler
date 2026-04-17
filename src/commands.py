@@ -2,7 +2,13 @@
 
 import random
 
-from src import input_handler, llm, ui
+from src import llm, ui
+from src.creatures import Creature
+from src.drone import UPGRADE_EFFECTS, Drone
+from src.player import Player
+from src.save_load import list_saves, load_game, save_game
+from src.travel import execute_travel
+from src.world import Location
 
 try:
     from src import sound as _sound_mod
@@ -12,6 +18,7 @@ except Exception:
 
 class _SafeSound:
     """Proxy that never crashes the game."""
+
     @staticmethod
     def play(event):
         if _sound_mod:
@@ -19,29 +26,28 @@ class _SafeSound:
                 _sound_mod.play(event)
             except Exception:
                 pass
+
     @staticmethod
     def is_enabled():
         return _sound_mod.is_enabled() if _sound_mod else False
+
     @staticmethod
     def set_voice(v):
         if _sound_mod:
             _sound_mod.set_voice(v)
+
     @staticmethod
     def enable():
         if _sound_mod:
             _sound_mod.enable()
+
     @staticmethod
     def disable():
         if _sound_mod:
             _sound_mod.disable()
 
+
 sound = _SafeSound()
-from src.creatures import Creature
-from src.drone import UPGRADE_EFFECTS, Drone
-from src.player import Player
-from src.save_load import list_saves, load_game, save_game
-from src.travel import execute_travel
-from src.world import Location
 
 HELP_TEXT = """
 [bold yellow]Goal:[/bold yellow] Collect repair materials and install them at the Crash Site to fix your ship.
@@ -256,8 +262,9 @@ def cmd_scan(ctx: GameContext, args: str):
     ui.loading_spinner("Scanning surroundings...", 1.0)
 
     if ctx.dev_mode:
-        ctx.dev_mode.debug("scan", location=ctx.player.location_name,
-            discovered=len(discovered), battery_after=round(drone.battery, 1))
+        ctx.dev_mode.debug(
+            "scan", location=ctx.player.location_name, discovered=len(discovered), battery_after=round(drone.battery, 1)
+        )
 
     if discovered:
         sound.play("scan")
@@ -321,6 +328,7 @@ def cmd_travel(ctx: GameContext, args: str):
 
     # Estimate travel cost and warn if dangerous
     from src.travel import calculate_travel_time
+
     distance = cur.distance_to(dest.x, dest.y)
     hours = calculate_travel_time(distance, ctx.drone)
     hours_int = max(1, round(hours))
@@ -329,6 +337,7 @@ def cmd_travel(ctx: GameContext, args: str):
 
     # Account for late-game extra water drain in estimate
     from src.travel import LATE_GAME_THRESHOLDS
+
     late_threshold = LATE_GAME_THRESHOLDS.get(ctx.world_mode, 40)
     # Use pre-trip hours to match what execute_travel computes
     hours_past = max(0, ctx.player.hours_elapsed - late_threshold)
@@ -341,9 +350,7 @@ def cmd_travel(ctx: GameContext, args: str):
     needs_confirm = hours_int >= 3
     if food_after <= 10 or water_after <= 10:
         needs_confirm = True
-        ui.error(
-            f"Dangerous trip! After travel: food ~{max(0, food_after):.0f}%, water ~{max(0, water_after):.0f}%"
-        )
+        ui.error(f"Dangerous trip! After travel: food ~{max(0, food_after):.0f}%, water ~{max(0, water_after):.0f}%")
     if needs_confirm:
         ui.warn(
             f"Travel to {dest.name} will take ~{hours_int}h "
@@ -361,11 +368,16 @@ def cmd_travel(ctx: GameContext, args: str):
 
     # Log travel start
     if ctx.dev_mode:
-        ctx.dev_mode.debug("travel_start",
-            origin=cur.name, destination=dest.name,
+        ctx.dev_mode.debug(
+            "travel_start",
+            origin=cur.name,
+            destination=dest.name,
             distance_km=round(cur.distance_to(dest.x, dest.y), 1),
-            food_before=round(ctx.player.food, 1), water_before=round(ctx.player.water, 1),
-            suit_before=round(ctx.player.suit_integrity, 1), battery_before=round(ctx.drone.battery, 1))
+            food_before=round(ctx.player.food, 1),
+            water_before=round(ctx.player.water, 1),
+            suit_before=round(ctx.player.suit_integrity, 1),
+            battery_before=round(ctx.drone.battery, 1),
+        )
 
     messages = execute_travel(ctx.player, ctx.drone, dest, cur, ctx.rng, ctx.ship_ai, ctx.locations, ctx.world_mode)
     for msg in messages:
@@ -373,11 +385,15 @@ def cmd_travel(ctx: GameContext, args: str):
 
     # Log travel result
     if ctx.dev_mode:
-        ctx.dev_mode.debug("travel_arrive",
+        ctx.dev_mode.debug(
+            "travel_arrive",
             destination=dest.name,
-            food_after=round(ctx.player.food, 1), water_after=round(ctx.player.water, 1),
-            suit_after=round(ctx.player.suit_integrity, 1), battery_after=round(ctx.drone.battery, 1),
-            hours_elapsed=ctx.player.hours_elapsed)
+            food_after=round(ctx.player.food, 1),
+            water_after=round(ctx.player.water, 1),
+            suit_after=round(ctx.player.suit_integrity, 1),
+            battery_after=round(ctx.drone.battery, 1),
+            hours_elapsed=ctx.player.hours_elapsed,
+        )
 
     ui.console.print()
 
@@ -434,8 +450,7 @@ def cmd_take(ctx: GameContext, args: str):
         display = item_name.replace("_", " ").title()
         ui.success(f"Picked up: {display}")
         if ctx.dev_mode:
-            ctx.dev_mode.debug("item_pickup", item=item_name, location=loc.name,
-                inventory_count=ctx.player.total_items)
+            ctx.dev_mode.debug("item_pickup", item=item_name, location=loc.name, inventory_count=ctx.player.total_items)
         # Hint if this is a needed repair material
         key = f"material_{item_name}"
         if key in ctx.repair_checklist and not ctx.repair_checklist[key]:
@@ -559,9 +574,13 @@ def cmd_talk(ctx: GameContext, args: str):
         creature.add_message("assistant", response)
 
         if ctx.dev_mode and actions:
-            ctx.dev_mode.debug("llm_actions",
-                creature=creature.name, actions=[a["action"] for a in actions],
-                trust=creature.trust, archetype=creature.archetype)
+            ctx.dev_mode.debug(
+                "llm_actions",
+                creature=creature.name,
+                actions=[a["action"] for a in actions],
+                trust=creature.trust,
+                archetype=creature.archetype,
+            )
 
         # Drone translation frame (always on first exchange, ~40% after)
         show_frame = exchange_count == 0 or ctx.rng.random() < 0.4
@@ -574,9 +593,7 @@ def cmd_talk(ctx: GameContext, args: str):
 
         # Apply any creature actions (give water/food/materials, heal, repair suit)
         if actions:
-            action_msgs = llm.apply_actions(
-                actions, ctx.player, ctx.drone, creature, ctx.repair_checklist
-            )
+            action_msgs = llm.apply_actions(actions, ctx.player, ctx.drone, creature, ctx.repair_checklist)
             for msg in action_msgs:
                 ui.console.print(msg)
 
@@ -584,9 +601,14 @@ def cmd_talk(ctx: GameContext, args: str):
         old_trust = creature.trust
         creature.add_trust(3)
         if ctx.dev_mode:
-            ctx.dev_mode.debug("trust_change",
-                creature=creature.name, old=old_trust, new=creature.trust,
-                source="conversation", exchange=exchange_count)
+            ctx.dev_mode.debug(
+                "trust_change",
+                creature=creature.name,
+                old=old_trust,
+                new=creature.trust,
+                source="conversation",
+                exchange=exchange_count,
+            )
         if creature.trust >= 100:
             ui.console.print(f"[dim]+3 trust ({creature.trust}/100 — max trust)[/dim]")
         else:
@@ -605,6 +627,7 @@ def cmd_talk(ctx: GameContext, args: str):
         # Fallback material offering (when LLM is unavailable)
         if not llm.is_available():
             from src.creatures import ROLE_CAPABILITIES
+
             caps = ROLE_CAPABILITIES.get(creature.archetype, {})
             thresholds = caps.get("trust_threshold", {})
             mat_threshold = thresholds.get("materials", thresholds.get("trade", 50))
@@ -697,9 +720,9 @@ def cmd_give(ctx: GameContext, args: str):
     old_trust = creature.trust
     creature.add_trust(trust_gain)
     if ctx.dev_mode:
-        ctx.dev_mode.debug("trust_change",
-            creature=creature.name, old=old_trust, new=creature.trust,
-            source="gift", item=item_part)
+        ctx.dev_mode.debug(
+            "trust_change", creature=creature.name, old=old_trust, new=creature.trust, source="gift", item=item_part
+        )
     next_tier = 70 if creature.trust < 70 else 100
     tier_label = "full cooperation" if next_tier == 70 else "max trust"
     remaining = next_tier - creature.trust
@@ -710,7 +733,8 @@ def cmd_give(ctx: GameContext, args: str):
 
     # Record gift in creature memory (without injecting into chat history)
     try:
-        llm.update_creature_memory(creature, extra_context=f"Player gave {display} as a gift. Trust is now {creature.trust}.")
+        gift_ctx = f"Player gave {display} as a gift. Trust is now {creature.trust}."
+        llm.update_creature_memory(creature, extra_context=gift_ctx)
     except Exception:
         pass
 
@@ -736,13 +760,13 @@ def cmd_trade(ctx: GameContext, args: str):
         return
 
     from src.creatures import ROLE_CAPABILITIES
+
     caps = ROLE_CAPABILITIES.get("Merchant", {})
     required_trust = caps.get("trust_threshold", {}).get("trade", 20)
 
     if creature.trust < required_trust:
         ui.warn(
-            f"{creature.name} doesn't trust you enough to trade. "
-            f"(Trust: {creature.trust}/100, need {required_trust}+)"
+            f"{creature.name} doesn't trust you enough to trade. (Trust: {creature.trust}/100, need {required_trust}+)"
         )
         return
 
@@ -804,9 +828,9 @@ def cmd_trade(ctx: GameContext, args: str):
     ui.success(f"Traded! You gave {give_display} and received {get_display}.")
 
     if ctx.dev_mode:
-        ctx.dev_mode.debug("trade",
-            creature=creature.name, gave=give_item, received=get_item,
-            trust_before=creature.trust)
+        ctx.dev_mode.debug(
+            "trade", creature=creature.name, gave=give_item, received=get_item, trust_before=creature.trust
+        )
 
     # Trust bonus for trading
     creature.add_trust(5)
@@ -877,10 +901,7 @@ def cmd_escort(ctx: GameContext, args: str):
         return
 
     # Ask creature
-    ui.console.print(
-        f"\n[bold]Ask [{creature.color}]{creature.name}[/{creature.color}]"
-        " to travel with you?[/bold]"
-    )
+    ui.console.print(f"\n[bold]Ask [{creature.color}]{creature.name}[/{creature.color}] to travel with you?[/bold]")
     ui.dim("  Companions help with repairs at the Crash Site.")
     try:
         confirm = ui.console.input("[bold](y/n) > [/bold]").strip().lower()
@@ -895,9 +916,9 @@ def cmd_escort(ctx: GameContext, args: str):
     sound.play("escort")
     ui.success(f"{creature.name} agrees to travel with you!")
     if ctx.ship_ai:
-        ui.console.print(ctx.ship_ai.speak(
-            f"Excellent, Commander. {creature.name} may be able to assist with repairs at the ship."
-        ))
+        ui.console.print(
+            ctx.ship_ai.speak(f"Excellent, Commander. {creature.name} may be able to assist with repairs at the ship.")
+        )
 
 
 def _companions_help_at_ship(ctx: GameContext, companions: list):
@@ -1085,9 +1106,7 @@ def _show_bay_menu(ctx: GameContext):
         if not ctx.repair_checklist.get(f"material_{mat}", False) and ctx.player.has_item(mat)
     )
     repair_status = (
-        f"[yellow]{installable} materials ready[/yellow]"
-        if installable
-        else "[dim]No materials to install[/dim]"
+        f"[yellow]{installable} materials ready[/yellow]" if installable else "[dim]No materials to install[/dim]"
     )
     table.add_row("ship repair", "Install repair materials", repair_status)
 
@@ -1342,10 +1361,7 @@ def _bay_charging(ctx: GameContext):
         ctx.drone.recharge()
         if ctx.ship_ai:
             ctx.ship_ai.reset_warnings("battery")
-        ui.success(
-            f"Power Cell consumed! Battery max: {ctx.drone.battery_max:.0f}%. "
-            f"Battery: {ctx.drone.battery:.0f}%"
-        )
+        ui.success(f"Power Cell consumed! Battery max: {ctx.drone.battery_max:.0f}%. Battery: {ctx.drone.battery:.0f}%")
 
 
 def _bay_medical(ctx: GameContext):
@@ -1399,10 +1415,7 @@ def _bay_medical(ctx: GameContext):
                 ctx.player.suit_integrity = min(100.0, ctx.player.suit_integrity + repair_amount)
                 if ctx.ship_ai:
                     ctx.ship_ai.reset_warnings("suit")
-                ui.success(
-                    f"Suit repaired to {ctx.player.suit_integrity:.0f}%! "
-                    f"(Battery: {ctx.drone.battery:.0f}%)"
-                )
+                ui.success(f"Suit repaired to {ctx.player.suit_integrity:.0f}%! (Battery: {ctx.drone.battery:.0f}%)")
             elif key == "rest":
                 # 1 hour of rest costs resources (same rates as travel)
                 ctx.player.food = max(0, ctx.player.food - 2.0)
@@ -1417,10 +1430,7 @@ def _bay_medical(ctx: GameContext):
                 if ctx.ship_ai:
                     ctx.ship_ai.reset_warnings("food")
                     ctx.ship_ai.reset_warnings("water")
-                ui.success(
-                    f"Rested for 1 hour. Food: {ctx.player.food:.0f}%, "
-                    f"Water: {ctx.player.water:.0f}%"
-                )
+                ui.success(f"Rested for 1 hour. Food: {ctx.player.food:.0f}%, Water: {ctx.player.water:.0f}%")
     except (ValueError, EOFError, KeyboardInterrupt):
         return
 
@@ -1530,6 +1540,7 @@ def cmd_config(ctx: GameContext, args: str):
 
     if sub.startswith("gpu "):
         from src.config import set_gpu_mode
+
         value = args.split(maxsplit=1)[1].strip().lower()
         if value in ("auto", "gpu", "cpu"):
             set_gpu_mode(value)
@@ -1541,6 +1552,7 @@ def cmd_config(ctx: GameContext, args: str):
 
     if sub.startswith("context "):
         from src.config import set_context_size
+
         try:
             value = int(args.split(maxsplit=1)[1].strip())
             if value < 2048:
@@ -1558,6 +1570,7 @@ def cmd_config(ctx: GameContext, args: str):
 
     # Show current config
     from src.config import get_context_size, get_gpu_mode
+
     ui.console.print("\n[bold]Game Configuration[/bold]")
     ui.console.print(f"  [cyan]Save directory:[/cyan]  {get_save_dir()}")
     ui.console.print(f"  [cyan]GPU mode:[/cyan]        {get_gpu_mode()}")
@@ -1574,10 +1587,15 @@ def cmd_config(ctx: GameContext, args: str):
 def cmd_tutorial(ctx: GameContext, args: str):
     """Replay the ARIA boot sequence and tutorial."""
     from src.tutorial import TutorialManager, TutorialStep
+
     ctx.tutorial = TutorialManager()
     ctx.tutorial.run_boot_sequence(
-        ctx.ship_ai, ctx.player, ctx.drone,
-        ctx.locations, ctx.repair_checklist, ctx.world_mode,
+        ctx.ship_ai,
+        ctx.player,
+        ctx.drone,
+        ctx.locations,
+        ctx.repair_checklist,
+        ctx.world_mode,
         replay=True,
     )
     if ctx.tutorial.step < TutorialStep.COMPLETED:
@@ -1588,6 +1606,7 @@ def cmd_tutorial(ctx: GameContext, args: str):
 def cmd_sound(ctx: GameContext, args: str):
     """Toggle system sound effects on/off."""
     from src.config import set_sound_enabled
+
     if sound.is_enabled():
         sound.disable()
         set_sound_enabled(False)

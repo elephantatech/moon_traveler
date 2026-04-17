@@ -28,6 +28,7 @@ REPAIR_MATERIALS = {
     ],
 }
 
+
 def build_repair_checklist(mode: str, creatures: list | None = None) -> dict:
     """Build the repair checklist: materials only."""
     checklist = {}
@@ -48,6 +49,7 @@ def show_win_sequence(ctx: GameContext):
     """Show the victory sequence."""
     try:
         from src import sound
+
         sound.play("victory")
     except Exception:
         pass
@@ -103,6 +105,7 @@ def show_lose_sequence(ctx: GameContext):
     """Show the game over sequence."""
     try:
         from src import sound
+
         sound.play("game_over")
     except Exception:
         pass
@@ -171,9 +174,13 @@ def game_loop(ctx: GameContext):
 
         if check_lose(ctx):
             if ctx.dev_mode:
-                ctx.dev_mode.debug("game_lose",
-                    food=ctx.player.food, water=ctx.player.water,
-                    suit=ctx.player.suit_integrity, hours=ctx.player.hours_elapsed)
+                ctx.dev_mode.debug(
+                    "game_lose",
+                    food=ctx.player.food,
+                    water=ctx.player.water,
+                    suit=ctx.player.suit_integrity,
+                    hours=ctx.player.hours_elapsed,
+                )
             show_lose_sequence(ctx)
             break
 
@@ -181,9 +188,7 @@ def game_loop(ctx: GameContext):
         loc = ctx.current_location()
         creature_here = ctx.creature_at_location(loc.name)
         followers = [c for c in ctx.creatures if c.following]
-        ui.render_status_bar(
-            ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers
-        )
+        ui.render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers)
 
         # Prompt with autocomplete (CLI) or bridge (Textual)
         location = ctx.player.location_name
@@ -247,6 +252,7 @@ def game_loop(ctx: GameContext):
             ctx.world_mode = state["world_mode"]
             ctx.repair_checklist = state["repair_checklist"]
             import time as _time
+
             ctx.rng = random.Random(state["world_seed"] ^ int(_time.time()))
             if "ship_ai" in state:
                 ctx.ship_ai = state["ship_ai"]
@@ -259,6 +265,7 @@ def game_loop(ctx: GameContext):
                 session = input_handler.create_prompt_session(ctx)
             # Sync sound voice state with drone
             from src import sound
+
             sound.set_voice(ctx.drone.voice_enabled)
             cmd_look(ctx, "")
 
@@ -273,8 +280,10 @@ def main():
     # Restore sound preference from config
     try:
         from src.config import get_sound_enabled
+
         if not get_sound_enabled():
             from src import sound as _snd
+
             _snd.disable()
     except Exception:
         pass
@@ -313,6 +322,7 @@ def main():
         if state:
             # GPU/CPU mode — auto-detect from config
             from src.config import get_gpu_mode
+
             gpu_setting = get_gpu_mode()
             if gpu_setting == "auto":
                 gpu_info = llm.detect_gpu()
@@ -348,12 +358,14 @@ def main():
             # Sync sound voice state with loaded drone
             try:
                 from src import sound
+
                 sound.set_voice(ctx.drone.voice_enabled)
             except Exception:
                 pass
             # Persist tutorial completion if the loaded save had it done
             if tutorial.completed:
                 from src.config import set_tutorial_completed
+
                 set_tutorial_completed()
             # Wire Textual autocomplete if in TUI mode
             if ui._bridge:
@@ -375,13 +387,15 @@ def main():
 
     # GPU/CPU mode — auto-detect from config, no prompt
     from src.config import get_gpu_mode
+
     gpu_setting = get_gpu_mode()
     if gpu_setting == "auto":
         gpu_info = llm.detect_gpu()
         gpu_mode = "gpu" if gpu_info["available"] else "cpu"
     else:
         gpu_mode = gpu_setting
-    ui.dim(f"Compute mode: {'CPU + GPU' if gpu_mode == 'gpu' else 'CPU only'} (change with 'config gpu cpu' or 'config gpu auto')")
+    mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
+    ui.dim(f"Compute mode: {mode_label} (change with 'config gpu cpu' or 'config gpu auto')")
 
     # Download model if needed, then load LLM
     llm.maybe_download_model()

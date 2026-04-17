@@ -125,6 +125,7 @@ def _safe_sound(event: str):
     """Play a sound, never crash the game."""
     try:
         from src import sound
+
         sound.play(event)
     except Exception:
         pass
@@ -274,7 +275,7 @@ def show_status(
         for key, done in repair_checklist.items():
             display = key.replace("_", " ").title()
             if key.startswith("material_"):
-                item_key = key[len("material_"):]
+                item_key = key[len("material_") :]
                 held = inventory.get(item_key, 0) if inventory else 0
                 if done:
                     material_lines.append(f"  [green]{display} — DONE[/green]")
@@ -341,6 +342,7 @@ def show_ship_repair(checklist: dict):
 
 def creature_speak(name: str, text: str, color: str = "green"):
     from rich.markup import escape
+
     console.print(f"  [{color}]{escape(name)}:[/{color}] {escape(text)}")
 
 
@@ -495,6 +497,7 @@ def render_status_bar(
 
         if creature and not creature.following:
             from rich.markup import escape
+
             trust_bar = _bar(creature.trust, 5)
             dc = {"friendly": "green", "neutral": "yellow", "hostile": "red"}.get(creature.disposition, "dim")
             markup += (
@@ -505,6 +508,7 @@ def render_status_bar(
 
         if followers:
             from rich.markup import escape
+
             names = " ".join(f"[bold]{escape(c.name)}[/bold]" for c in followers)
             markup += f"  [dim]│[/dim]  [dim]Following:[/dim] {names}"
 
@@ -539,9 +543,7 @@ def render_status_bar(
         )
 
     if followers:
-        names = " ".join(
-            f'<style fg="#b4bcd4">{c.name}</style>' for c in followers
-        )
+        names = " ".join(f'<style fg="#b4bcd4">{c.name}</style>' for c in followers)
         html += f'  <style fg="#4a5070">│</style>  <style fg="#7880a0">Following:</style> {names}'
 
     _status_bar_html = html

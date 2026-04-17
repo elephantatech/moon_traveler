@@ -78,6 +78,7 @@ class ShipAI:
                 self.warnings_given[key].add(threshold)
                 try:
                     from src import sound
+
                     sound.play("aria_warning")
                 except Exception:
                     pass
@@ -91,9 +92,13 @@ class ShipAI:
     # --- Post-travel summary ---
 
     def post_travel_summary(
-        self, player, drone,
-        food_before: float = 0, water_before: float = 0,
-        suit_before: float = 0, batt_before: float = 0,
+        self,
+        player,
+        drone,
+        food_before: float = 0,
+        water_before: float = 0,
+        suit_before: float = 0,
+        batt_before: float = 0,
     ) -> str:
         food_delta = player.food - food_before
         water_delta = player.water - water_before
@@ -124,9 +129,7 @@ class ShipAI:
         total = len(repair_checklist)
         if done == total:
             return self.speak("All repairs complete. You should be able to launch, Commander.")
-        return self.speak(
-            f"Repair progress: {done}/{total}. Materials and crew assistance are still needed."
-        )
+        return self.speak(f"Repair progress: {done}/{total}. Materials and crew assistance are still needed.")
 
     # --- Serialization ---
 

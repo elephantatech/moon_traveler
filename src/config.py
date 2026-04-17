@@ -1,7 +1,6 @@
 """User configuration: save path and preferences. Persisted as config.json."""
 
 import json
-import sys
 from pathlib import Path
 
 from src import ui
@@ -139,9 +138,7 @@ def prompt_save_location():
     ui.console.print()
 
     try:
-        answer = ui.console.input(
-            "[bold]Save location (press Enter for default) > [/bold]"
-        ).strip()
+        answer = ui.console.input("[bold]Save location (press Enter for default) > [/bold]").strip()
     except (EOFError, KeyboardInterrupt):
         answer = ""
 

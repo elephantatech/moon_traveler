@@ -130,8 +130,13 @@ def calculate_travel_time(distance: float, drone: Drone) -> float:
 
 
 def _build_travel_narration(
-    hours_int: int, rng: random.Random, ship_ai, locations,
-    destination, drone=None, current=None,
+    hours_int: int,
+    rng: random.Random,
+    ship_ai,
+    locations,
+    destination,
+    drone=None,
+    current=None,
 ) -> list[str]:
     """Build flavor messages for the journey. Longer trips get more events."""
     narration = []
@@ -203,7 +208,9 @@ def _build_travel_narration(
 
 
 def _find_closer_alternative(
-    locations: list[Location], destination: Location, current: Location | None = None,
+    locations: list[Location],
+    destination: Location,
+    current: Location | None = None,
 ) -> str | None:
     """Find a known location that's close to the destination (potential waypoint)."""
     best_name = None
@@ -289,6 +296,7 @@ def execute_travel(
             if rng.random() < effective_prob:
                 try:
                     from src import sound
+
                     if "storm" in hazard["message"].lower():
                         sound.play("hazard_storm")
                     elif "geyser" in hazard["message"].lower():
@@ -311,17 +319,20 @@ def execute_travel(
                     # Actionable advice based on what was damaged
                     effects = hazard["effect"]
                     if "suit_integrity" in effects and player.suit_integrity < 50:
-                        messages.append(ship_ai.speak(
+                        suit_msg = (
                             "Suit damage critical. Return to the Crash Site for medical bay repairs, or find a Healer."
-                        ))
+                        )
+                        messages.append(ship_ai.speak(suit_msg))
                     elif "water" in effects and player.water < 30:
-                        messages.append(ship_ai.speak(
-                            "Water reserves dangerously low. Find a water source or ask a creature for help."
-                        ))
+                        messages.append(
+                            ship_ai.speak(
+                                "Water reserves dangerously low. Find a water source or ask a creature for help."
+                            )
+                        )
                     elif "food" in effects and player.food < 30:
-                        messages.append(ship_ai.speak(
-                            "Food supplies running low. Find a food source or visit the ship kitchen."
-                        ))
+                        messages.append(
+                            ship_ai.speak("Food supplies running low. Find a food source or visit the ship kitchen.")
+                        )
                     else:
                         messages.append(ship_ai.speak("Damage sustained. Check your status, Commander."))
                 break  # max 1 hazard per roll
@@ -360,9 +371,16 @@ def execute_travel(
 
     # ARIA post-travel summary
     if ship_ai:
-        messages.append(ship_ai.post_travel_summary(
-            player, drone, food_before, water_before, suit_before, batt_before,
-        ))
+        messages.append(
+            ship_ai.post_travel_summary(
+                player,
+                drone,
+                food_before,
+                water_before,
+                suit_before,
+                batt_before,
+            )
+        )
 
     # Recharge drone at crash site
     if destination.loc_type == "crash_site":

@@ -17,7 +17,6 @@ Sound can be disabled globally via disable().
 import os
 import platform
 import subprocess
-import sys
 import threading
 import time
 
@@ -57,11 +56,13 @@ def _play_async(func, *args):
         return
     if not _lock.acquire(blocking=False):
         return  # Another sound is playing — skip
+
     def _run():
         try:
             func(*args)
         finally:
             _lock.release()
+
     t = threading.Thread(target=_run, daemon=True)
     t.start()
 
@@ -73,28 +74,28 @@ def _play_async(func, *args):
 # Each pattern is a list of (delay_before_beep,) tuples
 # Single beep = notification, double = success, triple = warning, etc.
 _BEEP_PATTERNS = {
-    "error":          [0, 0.08, 0.08],       # 3 rapid beeps
-    "warning":        [0, 0.12],              # 2 beeps
-    "success":        [0, 0.15],              # 2 spaced beeps
-    "info":           [0],                    # 1 beep
-    "discovery":      [0, 0.1, 0.1],         # 3 quick beeps
-    "damage":         [0, 0.06, 0.06, 0.06], # 4 rapid beeps (alarm)
-    "trust":          [0],                    # 1 beep
-    "chat_open":      [0, 0.2],              # 2 slow beeps
-    "chat_close":     [0],                    # 1 beep
-    "pickup":         [0],                    # 1 beep
-    "repair":         [0, 0.15, 0.15],       # 3 spaced beeps
-    "victory":        [0, 0.1, 0.1, 0.2, 0.1, 0.1], # fanfare pattern
-    "game_over":      [0, 0.3, 0.3],         # 3 slow beeps
-    "aria_warning":   [0, 0.1, 0.1],         # 3 beeps
-    "boot":           [0, 0.2, 0.2],         # 3 spaced beeps
-    "scan":           [0, 0.12],             # 2 beeps
-    "trade":          [0, 0.15],             # 2 beeps
-    "escort":         [0, 0.1, 0.1, 0.1],   # 4 quick beeps
-    "upgrade":        [0, 0.1, 0.2],         # 3 ascending feel
-    "hazard_geyser":  [0, 0.06, 0.06, 0.06], # 4 rapid
-    "hazard_ice":     [0, 0.06, 0.06, 0.06], # 4 rapid
-    "hazard_storm":   [0, 0.08, 0.08],       # 3 rapid
+    "error": [0, 0.08, 0.08],  # 3 rapid beeps
+    "warning": [0, 0.12],  # 2 beeps
+    "success": [0, 0.15],  # 2 spaced beeps
+    "info": [0],  # 1 beep
+    "discovery": [0, 0.1, 0.1],  # 3 quick beeps
+    "damage": [0, 0.06, 0.06, 0.06],  # 4 rapid beeps (alarm)
+    "trust": [0],  # 1 beep
+    "chat_open": [0, 0.2],  # 2 slow beeps
+    "chat_close": [0],  # 1 beep
+    "pickup": [0],  # 1 beep
+    "repair": [0, 0.15, 0.15],  # 3 spaced beeps
+    "victory": [0, 0.1, 0.1, 0.2, 0.1, 0.1],  # fanfare pattern
+    "game_over": [0, 0.3, 0.3],  # 3 slow beeps
+    "aria_warning": [0, 0.1, 0.1],  # 3 beeps
+    "boot": [0, 0.2, 0.2],  # 3 spaced beeps
+    "scan": [0, 0.12],  # 2 beeps
+    "trade": [0, 0.15],  # 2 beeps
+    "escort": [0, 0.1, 0.1, 0.1],  # 4 quick beeps
+    "upgrade": [0, 0.1, 0.2],  # 3 ascending feel
+    "hazard_geyser": [0, 0.06, 0.06, 0.06],  # 4 rapid
+    "hazard_ice": [0, 0.06, 0.06, 0.06],  # 4 rapid
+    "hazard_storm": [0, 0.08, 0.08],  # 3 rapid
 }
 
 
@@ -193,14 +194,14 @@ _WINDOWS_WAV_MAP = {
 }
 
 _WINDOWS_BEEP_MAP = {
-    "error": 0x10,        # MB_ICONHAND
-    "warning": 0x30,      # MB_ICONEXCLAMATION
-    "success": 0x40,      # MB_ICONASTERISK
-    "info": 0x40,         # MB_ICONASTERISK
-    "damage": 0x10,       # MB_ICONHAND
-    "victory": 0x40,      # MB_ICONASTERISK
-    "game_over": 0x10,    # MB_ICONHAND
-    "aria_warning": 0x30, # MB_ICONEXCLAMATION
+    "error": 0x10,  # MB_ICONHAND
+    "warning": 0x30,  # MB_ICONEXCLAMATION
+    "success": 0x40,  # MB_ICONASTERISK
+    "info": 0x40,  # MB_ICONASTERISK
+    "damage": 0x10,  # MB_ICONHAND
+    "victory": 0x40,  # MB_ICONASTERISK
+    "game_over": 0x10,  # MB_ICONHAND
+    "aria_warning": 0x30,  # MB_ICONEXCLAMATION
 }
 
 
@@ -308,6 +309,7 @@ def _play_linux(event):
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def play(event: str):
     """Play a system sound for the given game event. Non-blocking.

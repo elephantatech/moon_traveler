@@ -108,9 +108,14 @@ _BACKSTORY_OPINION = [
 
 # Items Merchants want in trade
 TRADE_WANTS_POOL = [
-    "ice_crystal", "bio_gel", "metal_shard",
-    "range_module", "translator_chip", "cargo_rack",
-    "thruster_pack", "battery_cell",
+    "ice_crystal",
+    "bio_gel",
+    "metal_shard",
+    "range_module",
+    "translator_chip",
+    "cargo_rack",
+    "thruster_pack",
+    "battery_cell",
 ]
 
 
@@ -270,9 +275,7 @@ def _ensure_guaranteed_archetypes(archetypes: list[str], num_creatures: int, rng
     archetypes[:num_creatures] = assigned
 
 
-def _ensure_material_coverage(
-    creatures: list["Creature"], required_materials: list[str], rng: random.Random
-):
+def _ensure_material_coverage(creatures: list["Creature"], required_materials: list[str], rng: random.Random):
     """Ensure every required material is available from at least one creature."""
     covered = set()
     for c in creatures:
@@ -283,9 +286,9 @@ def _ensure_material_coverage(
             continue
         # Find a creature whose archetype can naturally provide this material
         candidates = [
-            c for c in creatures
-            if mat in ROLE_CAPABILITIES.get(c.archetype, {}).get("materials", [])
-            and mat not in c.role_inventory
+            c
+            for c in creatures
+            if mat in ROLE_CAPABILITIES.get(c.archetype, {}).get("materials", []) and mat not in c.role_inventory
         ]
         if candidates:
             chosen = rng.choice(candidates)
@@ -299,7 +302,9 @@ def _ensure_material_coverage(
 
 
 def generate_creatures(
-    world: dict, rng: random.Random, required_materials: list[str] | None = None,
+    world: dict,
+    rng: random.Random,
+    required_materials: list[str] | None = None,
 ) -> list[Creature]:
     """Generate creatures and place them in the world."""
     config = world["config"]
