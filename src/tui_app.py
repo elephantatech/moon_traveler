@@ -109,14 +109,16 @@ class MoonTravelerApp(App):
         self._tab_candidates = []
         self._tab_index = -1
 
-        # Echo the player's input in the game log
+        # Echo the player's input in the game log (escaped to prevent markup injection)
         if text and self._bridge:
+            from rich.markup import escape as _esc
+            safe = _esc(text)
             if self._ask_mode:
-                self._game_log.write(f"[bold]> {text}[/bold]")
+                self._game_log.write(f"[bold]> {safe}[/bold]")
             elif self._bridge._current_location:
-                self._game_log.write(f"[bold cyan]{self._bridge._current_location}>[/bold cyan] {text}")
+                self._game_log.write(f"[bold cyan]{self._bridge._current_location}>[/bold cyan] {safe}")
             else:
-                self._game_log.write(f"[bold]> {text}[/bold]")
+                self._game_log.write(f"[bold]> {safe}[/bold]")
 
         if self._ask_mode and self._bridge:
             self._bridge.push_response(text)
