@@ -719,6 +719,8 @@ def cmd_give(ctx: GameContext, args: str):
         creature.has_helped_repair = True
         ui.success(f"{creature.name} considers you a true friend. They may share what they have in conversation.")
 
+    ctx.do_auto_save()
+
 
 def cmd_trade(ctx: GameContext, args: str):
     """Trade items with a Merchant creature."""

@@ -27,7 +27,7 @@ class MoonTravelerApp(App):
 
     def compose(self) -> ComposeResult:
         yield Static("Moon Traveler Terminal", id="header")
-        yield RichLog(id="game-log", wrap=True, markup=True, auto_scroll=True)
+        yield RichLog(id="game-log", wrap=True, markup=True, auto_scroll=True, max_lines=2000)
         yield Static("", id="status-bar")
         with Horizontal(id="input-area"):
             yield Label("", id="prompt-label")
@@ -87,8 +87,14 @@ class MoonTravelerApp(App):
             import time
             time.sleep(10)  # Keep visible before exit
         finally:
-            # Game ended — exit the app
-            self.call_from_thread(self.exit)
+            # Game ended — wait for exit to process on main thread
+            import threading
+            exit_done = threading.Event()
+            def _do_exit():
+                self.exit()
+                exit_done.set()
+            self.call_from_thread(_do_exit)
+            exit_done.wait(timeout=5)
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Reset tab cycling when the user types a new character."""

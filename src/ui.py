@@ -340,7 +340,8 @@ def show_ship_repair(checklist: dict):
 
 
 def creature_speak(name: str, text: str, color: str = "green"):
-    console.print(f"  [{color}]{name}:[/{color}] {text}")
+    from rich.markup import escape
+    console.print(f"  [{color}]{escape(name)}:[/{color}] {escape(text)}")
 
 
 def travel_progress(destination: str, duration: float):
