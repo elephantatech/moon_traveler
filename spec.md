@@ -56,32 +56,46 @@ psutil
 
 ## 2. Entry Point
 
-### `play.py`
+### `play.py` — CLI mode
 Adds project root to `sys.path`, imports and calls `src.game.main()`.
 
+### `play_tui.py` — Textual TUI mode
+Launches the Textual `MoonTravelerApp` which runs `game.main()` in a worker thread with the UIBridge console shim active.
+
+### CLI Flags
+
+Both entry points support:
+- `--dev` — Start with dev mode enabled (diagnostic logging)
+- `--super` — Start with max trust, all repair materials, full drone upgrades (testing)
+- `--dev --super` — Both
+
 ### `src/game.py` — `main()`
-1. Show title screen
-2. Check for existing saves → offer "New Game" / "Load Game"
-3. If new game: prompt game length, auto-detect GPU from config (`~/.moonwalker/config.json`), load LLM, init world, run boot sequence (skipped if tutorial_completed), start game loop
-4. If load game: auto-detect GPU from config, load LLM, restore state, sync sound/voice settings, start game loop
+1. Parse `--dev` and `--super` flags
+2. Show title screen (CLI only — TUI boot sequence handles it)
+3. Check for existing saves → offer "New Game" / "Load Game"
+4. If new game: prompt difficulty (Easy/Medium/Hard/Brutal), auto-detect GPU from config, load LLM, init world, apply `--super` if flagged, run boot sequence (skipped if tutorial_completed), start game loop
+5. If load game: auto-detect GPU from config, load LLM, restore state, sync sound/voice settings, derive easter egg state, apply flags, start game loop
 
 ---
 
 ## 3. Game Modes
 
-| Parameter | Short | Medium | Long |
-|-----------|-------|--------|------|
-| Locations | 8 | 16 | 30 |
-| Creatures | 5 | 12 | 20 |
-| World Radius | 20 km | 40 km | 60 km |
-| Hostile Creatures | 0 | 4 | 6 |
-| Repair Materials Required | 3 | 5 | 8 |
+| Parameter | Easy (short) | Medium | Hard (long) | Brutal |
+|-----------|-------------|--------|------------|--------|
+| Locations | 8 | 16 | 30 | 40 |
+| Creatures | 5 | 12 | 20 | 25 |
+| World Radius | 20 km | 40 km | 60 km | 80 km |
+| Hostile Creatures | 0 | 4 | 6 | 12 |
+| Repair Materials | 3 | 5 | 8 | 8 |
+| Resource Drain | 1x | 1x | 1x | 1.5x |
+| Late-Game Weather | 30h | 40h | 60h | 25h |
+| Est. Time | ~30 min | ~1-2 hr | ~3+ hr | ~5+ hr |
 
 ### 3.1 Repair Materials by Mode
 
-- **Short:** ice_crystal, metal_shard, bio_gel
+- **Easy:** ice_crystal, metal_shard, bio_gel
 - **Medium:** + circuit_board, power_cell
-- **Long:** + thermal_paste, hull_patch, antenna_array
+- **Hard / Brutal:** + thermal_paste, hull_patch, antenna_array
 
 ---
 
@@ -310,6 +324,31 @@ Each creature maintains a `memory` field — structured markdown bullet points s
 
 The LLM receives: system prompt (~500 tokens) + memory (~200-400 tokens) + last 20 messages (~2000 tokens). This is much more efficient than sending full conversation history.
 
+### 6.13 Difficulty Scaling (`src/difficulty.py`)
+
+Per-mode scaling affects trust gain, item drops, resource drain, and hazard probability:
+
+| Setting | Easy | Medium | Hard | Brutal |
+|---------|------|--------|------|--------|
+| Trust / chat exchange | +5 | +4 | +3 | +2 |
+| Trust / gift (friendly) | +20 | +15 | +15 | +10 |
+| Trust / gift (hostile) | +15 | +10 | +10 | +5 |
+| Item find chance / trip | 30% | 20% | 15% | 8% |
+| Extra drops at locations | +2 | +1 | 0 | 0 |
+| Food/water/suit drain | 1x | 1x | 1x | 1.5x |
+| Hazard probability bonus | 0 | 0 | 0 | +5% |
+| Junk find chance | 10% | 10% | 10% | 3% |
+
+### 6.14 Junk Items & Easter Egg
+
+**Junk items** (10): old_transistor, baseball, rubber_duck, broken_compass, alien_coin, fossilized_tooth, faded_photograph, rusty_key, empty_canister, cracked_lens.
+
+- Found during travel (10% chance, 3% in Brutal). Each can only be found once (checks both inventory and ship_storage).
+- Creatures mock the player when given junk and hand it back. Reactions hint to keep collecting and stash them safely.
+- `is_junk_item()` prevents junk from being used in trades or consumed.
+
+**Easter egg**: Stash 5+ unique junk items in ship storage (7 in Brutal) to activate a 2x trust gain multiplier for the rest of the game. Message: "Something shifts in the air... The creatures seem friendlier somehow." Fires once per session. State derived from storage on game load. Not documented in HOW_TO_PLAY — intentionally hidden.
+
 ---
 
 ## 7. Drone Companion (`src/drone.py`)
@@ -485,9 +524,21 @@ After `hours_elapsed >= 40` (60 in long mode), weather deteriorates:
 
 On trips >= 3 hours, drone suggests closer alternative locations within 15 km of destination.
 
-### 9.9 Screen Behavior
+### 9.9 Auto-Charge Recovery
 
-Screen clears before travel. On arrival, player is prompted to `look`.
+When the Charge Module drone upgrade is installed and `auto_charge_enabled` is toggled on, the drone recovers +5% battery per hour of travel. Capped at `battery_max`. Skipped when destination is the crash site (full recharge supersedes). Message: "Auto-charge: +X% battery recovered during travel."
+
+### 9.10 Junk Item Discovery
+
+10% chance per trip (3% in Brutal) to find a junk collectible. Each junk item can only be found once — checks both inventory and `ship_storage`. See Section 6.14 for the full junk item list and easter egg.
+
+### 9.11 Brutal Mode Drain
+
+In Brutal mode, resource drain rates are multiplied by 1.5x: food costs 3%/hr (vs 2%), water 4.5%/hr (vs 3%), suit 0.75%/hr (vs 0.5%). Applied via `difficulty.get_difficulty(mode)` multipliers.
+
+### 9.12 Screen Behavior
+
+Screen clears before travel. On arrival: if Autopilot Chip is installed and drone has battery, auto-runs `look` and `scan`. Otherwise, player is prompted to `look`.
 
 ---
 
@@ -620,12 +671,14 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | take | get, pick | Pick up an item |
 | inventory | inv, i | Show inventory |
 | talk | speak | Talk to creature at location (LLM chat) |
-| give | — | Give item to creature (trust +10/+15) |
+| give | — | Give item to creature (trust scaled by difficulty: +5 to +20) |
 | trade | — | Trade with a Merchant creature |
 | escort | — | Ask creature to follow or dismiss followers |
 | rest | — | Rest to recover vitals (+10%, +20% at Crash Site) |
 | drone | — | Show drone status panel |
 | upgrade | — | Install drone upgrade from inventory |
+| inspect | examine | Examine item to see description and repair status |
+| charge | — | Toggle drone auto-charge on/off (requires Charge Module) |
 | status | — | Show food/water/suit/repair progress |
 | ship | repair | Interactive ship bays at Crash Site |
 | save | — | Save game to named slot (default: "manual") |
@@ -633,6 +686,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | config | — | View/change settings (save dir, GPU mode, context size) |
 | sound | — | Toggle sound effects on/off (persisted) |
 | tutorial | — | Replay ARIA boot sequence and tutorial |
+| screenshot | — | Save TUI screenshot as SVG (also F12 hotkey) |
 | dev | devmode | Toggle developer diagnostics panel |
 | help | — | Show command list |
 | clear | cls | Clear terminal screen |
@@ -934,32 +988,40 @@ All entries in `repair_checklist` are `True` (all materials installed at Crash S
 ## 20. File Manifest
 
 ```
-play.py                    Entry point (12 lines)
+play.py                    CLI entry point
+play_tui.py                Textual TUI entry point
 pyproject.toml             Project config, dependencies
 requirements.txt           Minimal pip requirements
 README.md                  User-facing documentation
 CHANGELOG.md               Version history
+ROADMAP.md                 Product roadmap (v0.5.0 through v1.0.0)
+CONTRIBUTING.md            Contributor guide
 spec.md                    This document
 scripts/
-  build_release.py         Cross-platform build script
+  build_release.py         Cross-platform build script (PyInstaller)
+  tui_screenshots.py       Automated TUI screenshot capture
 src/
   __init__.py              Package marker
   __main__.py              Module entry point
-  game.py                  Main loop, init, win/lose, GPU prompt
-  world.py                 World generation, Location dataclass
-  player.py                Player dataclass, resource management
-  creatures.py             Creature dataclass, trust, generation
-  drone.py                 Drone dataclass, speech, advice, upgrades
-  travel.py                Travel mechanics, narration, events
-  commands.py              Command registry, handlers, chat system
-  llm.py                   LLM loading, GPU detection, generation
-  ship_ai.py               ARIA warnings, summaries, reminders
-  ui.py                    Rich console output, panels, animations
-  tutorial.py              Boot sequence, tutorial progression
-  save_load.py             SQLite save/load, versioning, creature memory
-  input_handler.py         prompt_toolkit autocomplete
-  config.py                User config (save dir, GPU mode, context size, sound, tutorial)
-  sound.py                 Cross-platform sound effects (beeps + voice)
+  game.py                  Main loop, init, win/lose, --dev/--super flags
+  world.py                 World generation, Location dataclass, MODE_CONFIG
+  player.py                Player dataclass, resource management, ship_storage
+  creatures.py             Creature dataclass, trust, generation, memory field
+  drone.py                 9 upgrades, battery, speech, advice, auto-charge
+  travel.py                Movement, hazards, auto-charge, junk finds, drain multipliers
+  commands.py              25+ command handlers, GameContext, conversation loop
+  difficulty.py            MODE_DIFFICULTY scaling, junk items, easter egg
+  llm.py                   LLM loading, inference, NPC memory, action tags, prompt injection defense
+  ship_ai.py               ARIA warnings, summaries, +/- delta display
+  ui.py                    Rich output, _BridgeConsoleShim, status bar (dual mode)
+  tui_app.py               Textual App, widgets, worker thread, tab cycling, command history
+  tui_bridge.py            Queue bridge, ask mode, console shim connector
+  game.tcss                Textual CSS layout
+  tutorial.py              Boot sequence, auto-skip, replay command
+  save_load.py             SQLite save/load, creature_memory table, version validation
+  input_handler.py         GameCompleter (prompt_toolkit) + GameSuggester (Textual)
+  config.py                ~/.moonwalker/ config (save_dir, gpu, context, sound, tutorial)
+  sound.py                 Cross-platform sound (22 events, beeps + voice via say)
   dev_mode.py              Developer diagnostics (JSON log to ~/.moonwalker/dev/)
   data/
     __init__.py             Package marker
@@ -973,10 +1035,19 @@ docs/
   how-to-play.html         Interactive game guide
 tests/
   __init__.py               Package marker
-  test_ship_ai.py           ARIA warnings, summary, serialization (16 tests)
-  test_tutorial.py          Tutorial progression, serialization (13 tests)
-  test_dev_mode.py          Dev panel toggle, system metrics (5 tests)
-  test_input_handler.py     Autocomplete for all command types (11 tests)
+  test_creatures.py         Creature generation, trust, history, serialization
+  test_difficulty.py        Difficulty scaling, junk items, easter egg
+  test_drone.py             Battery, upgrades (9 types), serialization
+  test_game.py              Repair checklist, win/lose, super mode
+  test_input_handler.py     Autocomplete for all command types
+  test_llm_actions.py       Action tag parsing, apply_actions
+  test_player.py            Inventory, resources, stash/retrieve
+  test_save_load.py         Save/load round-trip, version handling
+  test_ship_ai.py           ARIA warnings, summary, serialization
+  test_super_mode.py        apply_super_mode, easter egg flag
+  test_travel.py            Travel time, hazards, auto-charge, brutal drain
+  test_tutorial.py          Tutorial progression, serialization
+  test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
 **Total test count:** 231
