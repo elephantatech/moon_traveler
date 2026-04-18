@@ -179,9 +179,10 @@ Build trust with creatures to obtain repair materials through conversation and t
 
 | Mode | Locations | Creatures | Radius | Duration |
 |------|-----------|-----------|--------|----------|
-| Short | ~8 | 5 | ~20 km | ~30 min |
+| Easy | ~8 | 5 | ~20 km | ~30 min |
 | Medium | ~16 | 12 | ~40 km | ~1-2 hours |
-| Long | ~30 | 20 | ~60 km | ~3+ hours |
+| Hard | ~30 | 20 | ~60 km | ~3+ hours |
+| Brutal | ~40 | 25 | ~80 km | ~5+ hours |
 
 ## Troubleshooting
 

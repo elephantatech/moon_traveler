@@ -163,6 +163,13 @@ class TestDroneCompletion:
         names = [r.split(" ", 1)[1] for r in results]
         assert "Range Module" in names
 
+    def test_drone_upgrade_shows_upgrade_items(self):
+        ctx = FakeCtx()
+        ctx.player.inventory["range_module"] = 1
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "drone upgrade ")
+        assert any("Range Module" in r for r in results)
+
     def test_ship_shows_bays(self):
         ctx = FakeCtx()
         s = GameSuggester(ctx)

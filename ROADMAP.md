@@ -93,7 +93,7 @@ This release delivers a fully interactive Textual-based TUI (`play_tui.py`), plu
 - Add `screen_reader_enabled: bool` to `src/config.py` (persisted in `~/.moonwalker/config.json`)
 - Add `config screenreader on|off` subcommand to `cmd_config()` in `src/commands.py`
 - Add `strip_markup(text: str) -> str` in `src/ui.py` using `rich.markup.strip()` to remove `[bold cyan]...[/bold cyan]` tags
-- Gate all `console.print()` calls: when enabled, strip markup before handing to `_real_console`
+- Gate all `console.print()` calls: when enabled, strip markup before output
 - In the TUI path (`_BridgeConsoleShim`), render through `Console(no_color=True, highlight=False)` before writing to `RichLog`
 - `rich.panel.Panel` degrades to `"--- {TITLE} ---\n{content}\n---"` via a wrapper `sr_panel(title, content)` in `src/ui.py`
 - Tables degrade to header row + data rows joined with `\t`, one row per line
@@ -252,7 +252,7 @@ This release delivers a fully interactive Textual-based TUI (`play_tui.py`), plu
 ---
 
 ### Animated ASCII Intro Sequence (#29)
-Frame-by-frame ASCII animation during TUI boot: ship flying past Saturn → asteroid impact → crash on ice → astronaut + drone emerge → title card. Uses Textual `set_interval` to cycle through ~10 frames over 2-3 seconds. Falls back to static art in CLI mode.
+Frame-by-frame ASCII animation during TUI boot: ship flying past Saturn → asteroid impact → crash on ice → astronaut + drone emerge → title card. Uses Textual `set_interval` to cycle through ~10 frames over 2-3 seconds.
 - Effort: M | Priority: v0.6.0
 - Files: `src/intro_animation.py` (new), `src/tutorial.py`, `src/game.tcss`
 
