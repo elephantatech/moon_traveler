@@ -14,12 +14,14 @@ repos:
       - id: markdownlint-cli2
         args: [--fix]
 
-  # Shell script lint
-  - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+  # Shell script lint (uses locally installed shellcheck)
+  - repo: local
     hooks:
       - id: shellcheck
-        args: [--severity=warning]
+        name: shellcheck
+        entry: shellcheck --severity=warning
+        language: system
+        types: [shell]
 
   # YAML lint
   - repo: https://github.com/adrienverge/yamllint

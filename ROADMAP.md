@@ -866,10 +866,10 @@ Add `pytest-cov` to CI. Report coverage percentage as a README badge. Gate PRs o
 
 - Effort: S | Priority: v0.5.0
 
-**Pre-commit hooks.**
-Add `.pre-commit-config.yaml` with `ruff` (lint), `ruff format` (formatting), and a `pytest --collect-only` sanity hook. Catches failures before they reach CI. The repo already uses ruff in CI lint — pre-commit makes it local.
+**Pre-commit hooks — Done (v0.5.0).**
+Added `.pre-commit-config.yaml` with 12 hooks: ruff, markdownlint, shellcheck, yamllint, file hygiene. CI pipeline has 6 jobs: test, lint, markdown, shellcheck, powershell-lint, actionlint.
 
-- Effort: S | Priority: immediately
+- Effort: S | ~~Priority: immediately~~ Shipped
 
 **Changelog automation.**
 Add `scripts/check_changelog.py` that verifies `CHANGELOG.md` has an entry matching the current version in `pyproject.toml`. Runs as a required CI check on release-candidate branches. Prevents shipping versions without documented changes.

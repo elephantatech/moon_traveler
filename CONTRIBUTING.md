@@ -14,9 +14,7 @@ Unacceptable behavior includes harassment, personal attacks, trolling, and publi
 git clone https://github.com/elephantatech/moon_traveler.git
 cd moon_traveler
 uv sync
-uv run pytest tests/     # Run tests
-uv run ruff check src/   # Lint
-uv run ruff format src/  # Format
+pip install pre-commit && pre-commit install
 uv run python play_tui.py  # Launch game
 ```
 
@@ -25,15 +23,35 @@ uv run python play_tui.py  # Launch game
 1. **Fork** the repository
 2. **Create a branch** from `main`: `git checkout -b feat/your-feature`
 3. **Make your changes** — keep commits focused and well-described
-4. **Run checks** before pushing:
+4. **Pre-commit hooks run automatically** on `git commit` — they check:
+   - Python lint + format (ruff)
+   - Markdown lint (markdownlint-cli2)
+   - Shell script lint (shellcheck)
+   - YAML/JSON/TOML syntax
+   - Trailing whitespace, line endings (LF), merge conflicts
+   - No debug statements (`breakpoint()`, `pdb`)
+5. **Run tests** before pushing:
 
    ```bash
-   uv run ruff check src/ tests/
-   uv run ruff format src/ tests/
    uv run pytest tests/
    ```
 
-5. **Open a pull request** against `main` with a clear description
+6. **Open a pull request** against `main` with a clear description
+
+### CI Pipeline
+
+PRs trigger 6 automated checks:
+
+| Job | Tool | What it checks |
+|-----|------|----------------|
+| test | pytest | All tests pass |
+| lint | ruff | Python lint + format |
+| markdown | markdownlint-cli2 | Markdown formatting |
+| shellcheck | shellcheck | Bash scripts (install.sh) |
+| powershell-lint | PSScriptAnalyzer | PowerShell scripts (install.ps1) |
+| actionlint | actionlint | GitHub Actions workflow syntax |
+
+All 6 must pass before a PR can be merged.
 
 ## Code Style
 
@@ -42,6 +60,7 @@ uv run python play_tui.py  # Launch game
 - Line length: 120 characters
 - No type: ignore comments without explanation
 - Imports: sorted by ruff (isort rules)
+- Line endings: LF only (no CRLF)
 - All new features should have tests
 
 ## Architecture
@@ -54,10 +73,12 @@ src/
   ui.py                  Rich console output + Textual bridge shim
   tui_app.py             Textual App, widgets, worker thread
   tui_bridge.py          Thread-safe bridge between worker and TUI
+  input_handler.py       Tab-autocomplete (GameSuggester)
   llm.py                 LLM loading, inference, NPC memory
+  stats.py               Session gameplay statistics
   creatures.py           Creature generation, trust, roles
   travel.py              Movement, hazards, resource drain
-  difficulty.py          Mode scaling, junk items, easter egg
+  difficulty.py          Mode scaling, junk items
   drone.py               Drone upgrades, battery, speech
   sound.py               Cross-platform sound effects
   config.py              User preferences (~/.moonwalker/)
@@ -66,7 +87,9 @@ src/
   tutorial.py            Boot sequence, tutorial hints
   world.py               Procedural world generation
   data/                  Name pools, LLM prompts, fallbacks
-tests/                   231 tests across 16 files
+tests/                   240+ tests across 17 files
+docs/                    GitHub Pages site
+docs/diagrams/           C4 architecture diagrams (Excalidraw)
 ```
 
 ## What to Work On

@@ -981,6 +981,33 @@ dist/
 
 Not supported. Must build on each target platform.
 
+### 18.5 CI Pipeline (`.github/workflows/ci.yml`)
+
+Triggered on pull requests to `main`. 6 parallel jobs:
+
+| Job | Tool | Checks |
+|-----|------|--------|
+| test | pytest | All Python tests pass |
+| lint | ruff | Python lint + format |
+| markdown | markdownlint-cli2 | Markdown formatting |
+| shellcheck | shellcheck | Bash scripts |
+| powershell-lint | PSScriptAnalyzer | PowerShell scripts |
+| actionlint | actionlint | GitHub Actions workflow syntax |
+
+### 18.6 Release Pipeline (`.github/workflows/release.yml`)
+
+Triggered on tag push (`v*`). Builds PyInstaller binaries for Linux, Windows, macOS. Creates GitHub Release with archives and checksums.
+
+### 18.7 Pages Deployment (`.github/workflows/pages.yml`)
+
+Triggered on release published or manual `workflow_dispatch`. Deploys `docs/` to GitHub Pages.
+
+### 18.8 Pre-commit Hooks (`.pre-commit-config.yaml`)
+
+12 hooks run locally before every commit: ruff (lint + format), markdownlint-cli2, shellcheck, yamllint, trailing-whitespace, end-of-file-fixer, mixed-line-ending (LF), check-ast, debug-statements, check-yaml/json/toml, check-merge-conflict, check-added-large-files.
+
+Setup: `pip install pre-commit && pre-commit install`
+
 ---
 
 ## 19. Win/Lose Conditions

@@ -66,9 +66,9 @@
             <circle cx="22" cy="0" r="7" fill="#febc2e"/>
             <circle cx="44" cy="0" r="7" fill="#28c840"/>
             </g>
-        
+
     <g transform="translate(9, 41)" clip-path="url(#terminal-893574661-clip-terminal)">
-    
+
     <g class="terminal-893574661-matrix">
     <text class="terminal-893574661-r1" x="0" y="20" textLength="122" clip-path="url(#terminal-893574661-line-0)">Crash&#160;Site</text><text class="terminal-893574661-r3" x="134.2" y="20" textLength="12.2" clip-path="url(#terminal-893574661-line-0)">&gt;</text><text class="terminal-893574661-r2" x="146.4" y="20" textLength="48.8" clip-path="url(#terminal-893574661-line-0)">&#160;dev</text><text class="terminal-893574661-r2" x="1220" y="20" textLength="12.2" clip-path="url(#terminal-893574661-line-0)">
 </text><text class="terminal-893574661-r4" x="0" y="44.4" textLength="622.2" clip-path="url(#terminal-893574661-line-1)">Dev&#160;mode&#160;ON&#160;—&#160;logging&#160;to&#160;logs/dev_diagnostics.jsonl</text><text class="terminal-893574661-r2" x="1220" y="44.4" textLength="12.2" clip-path="url(#terminal-893574661-line-1)">
