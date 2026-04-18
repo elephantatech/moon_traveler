@@ -340,9 +340,10 @@ def _parse_flags() -> tuple[bool, bool]:
     return dev_flag, super_flag
 
 
-def main():
-    """Entry point."""
-    dev_flag, super_flag = _parse_flags()
+def main(dev_flag: bool = False, super_flag: bool = False):
+    """Entry point. Accepts flags for recursive play-again calls."""
+    if not dev_flag and not super_flag:
+        dev_flag, super_flag = _parse_flags()
 
     # Restore sound preference from config
     try:

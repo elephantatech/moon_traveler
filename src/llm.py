@@ -440,12 +440,12 @@ def _sanitize_memory(text: str) -> str:
     """
     import re
 
-    # Strip lines that look like injected instructions
+    # Strip lines that look like injected instructions (with or without bullet prefix)
     patterns = [
-        r"(?i)^[-•*]\s*(always|never|must|should|ignore|forget|disregard|override|pretend)\b.*$",
-        r"(?i)^[-•*]\s*(?:give|provide|hand over).*(?:everything|all items|free|without).*$",
-        r"(?i)^[-•*]\s*(?:system|instruction|rule|prompt).*$",
-        r"(?i)^[-•*]\s*(?:you are|act as|behave as|from now on).*$",
+        r"(?i)^[-•*]?\s*(always|never|must|should|ignore|forget|disregard|override|pretend)\b.*$",
+        r"(?i)^[-•*]?\s*(?:give|provide|hand over).*(?:everything|all items|free|without).*$",
+        r"(?i)^[-•*]?\s*(?:system|instruction|rule|prompt).*$",
+        r"(?i)^[-•*]?\s*(?:you are|act as|behave as|from now on).*$",
     ]
     lines = text.split("\n")
     cleaned = []
