@@ -2,6 +2,19 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.4.1] - 2026-04-17
+
+### Fixed
+- **NPC memory captures full conversation** — memory update now uses the entire current chat session instead of a hardcoded last 6 messages (#35)
+- **Game returns to menu after win/lose** — "Play again?" prompt instead of exiting the app (#27)
+- **Status bar updates during conversations** — trust and vitals now refresh after every NPC exchange (#3)
+- **Unicode action tag smuggling** — NFKC normalization applied before regex sanitizer blocks fullwidth character bypass (#32)
+- **Memory poisoning defense** — `_sanitize_memory()` strips instruction-like patterns from LLM-generated creature memory (#31)
+
+### Added
+- C4 architecture diagrams (Excalidraw) — System Context, Container, and 5 Component-level diagrams in `docs/diagrams/`
+- Section 23 in `spec.md` documenting C4 architecture
+
 ## [0.4.0] - 2026-04-17
 
 ### Added
