@@ -515,6 +515,7 @@ def cmd_talk(ctx: GameContext, args: str):
         ui.console.print()
 
     exchange_count = 0
+    conversation_start_idx = len(creature.conversation_history)
 
     while True:
         try:
@@ -569,8 +570,11 @@ def cmd_talk(ctx: GameContext, args: str):
 
         # Sanitize player input — strip action tag patterns to prevent injection
         import re
+        import unicodedata
 
-        clean_input = re.sub(r"\[/?[A-Z_]+(?::[^\]]*)?\]", "", player_input).strip()
+        # Normalize Unicode to catch fullwidth/variant chars that bypass regex
+        normalized_input = unicodedata.normalize("NFKC", player_input)
+        clean_input = re.sub(r"\[/?[A-Z_]+(?::[^\]]*)?\]", "", normalized_input).strip()
         if not clean_input:
             clean_input = player_input  # Fallback if everything was stripped
 
@@ -633,6 +637,11 @@ def cmd_talk(ctx: GameContext, args: str):
             ui.console.print(f"[dim]+{trust_gain} trust ({creature.trust}/100 — {next_tier} for {tier_label})[/dim]")
         exchange_count += 1
 
+        # Update status bar so player sees trust/vitals change live
+        loc = ctx.current_location()
+        followers = [c for c in ctx.creatures if c.following]
+        ui.render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature, followers)
+
         # Drone private advice (NOT added to creature conversation history)
         interjection_chance = _interjection_probability(creature, exchange_count)
         if ctx.rng.random() < interjection_chance:
@@ -685,10 +694,11 @@ def cmd_talk(ctx: GameContext, args: str):
 
         ui.console.print()
 
-    # Update creature memory with conversation highlights
+    # Update creature memory with full current conversation
     if exchange_count > 0:
+        current_convo_len = len(creature.conversation_history) - conversation_start_idx
         try:
-            llm.update_creature_memory(creature)
+            llm.update_creature_memory(creature, recent_count=max(current_convo_len, 1))
         except Exception:
             pass
 

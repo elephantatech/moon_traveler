@@ -1,0 +1,27 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "moon-traveler",
+  "elements": [
+    {"type": "text", "id": "title", "x": 280, "y": 10, "width": 400, "height": 30, "text": "C4 Component — Player & Companions", "fontSize": 22, "fontFamily": 1, "textAlign": "center", "strokeColor": "#dce0ee"},
+    {"type": "rectangle", "id": "boundary", "x": 30, "y": 50, "width": 840, "height": 410, "strokeColor": "#a080d0", "backgroundColor": "transparent", "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "dashed", "roundness": {"type": 3}},
+    {"type": "text", "id": "boundary_t", "x": 50, "y": 55, "width": 500, "height": 20, "text": "Player & Companions Container [player.py + drone.py + ship_ai.py]", "fontSize": 12, "fontFamily": 1, "strokeColor": "#a080d0"},
+    {"type": "rectangle", "id": "player", "x": 50, "y": 85, "width": 250, "height": 120, "strokeColor": "#a080d0", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "player_t", "x": 60, "y": 90, "width": 230, "height": 110, "text": "Player\n[player.py — survival state]\nfood: 0-100% · water: 0-100%\nsuit_integrity: 0-100%\ninventory: list[str] (cargo limited)\nship_storage: list[str] (unlimited)\nknown_locations, hours_elapsed", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#a080d0"},
+    {"type": "rectangle", "id": "drone", "x": 330, "y": 85, "width": 250, "height": 120, "strokeColor": "#a080d0", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "drone_t", "x": 340, "y": 90, "width": 230, "height": 110, "text": "Drone\n[drone.py — player companion]\nbattery: 0-100% (scan costs 10%)\ntranslation_quality: low/medium/high\nupgrades_installed: list[str]\nauto_charge_enabled: bool\nvoice_enabled: bool", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#a080d0"},
+    {"type": "rectangle", "id": "aria", "x": 610, "y": 85, "width": 240, "height": 120, "strokeColor": "#a080d0", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "aria_t", "x": 620, "y": 90, "width": 220, "height": 110, "text": "ShipAI (ARIA)\n[ship_ai.py — proactive advisor]\nstatus_report() → threshold warnings\nat 50%/25%/10% for each vital\nobjective_reminder() → periodic\nrepair checklist guidance\nspeak() → [dim]ARIA:[/dim] prefix", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#a080d0"},
+    {"type": "rectangle", "id": "pmethods", "x": 50, "y": 225, "width": 250, "height": 60, "strokeColor": "#a080d0", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "pmethods_t", "x": 60, "y": 230, "width": 230, "height": 50, "text": "Player Methods\nconsume_resources(hours) — drain food/water/suit\nadd_item() / remove_item() — inventory mgmt", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#a080d0"},
+    {"type": "rectangle", "id": "dmethods", "x": 330, "y": 225, "width": 250, "height": 60, "strokeColor": "#a080d0", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "dmethods_t", "x": 340, "y": 230, "width": 230, "height": 50, "text": "Drone Methods\nget_smart_advice(creature, player) — coaching\nget_translation_frame() — comms flavor text", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#a080d0"},
+    {"type": "rectangle", "id": "vitals", "x": 610, "y": 225, "width": 240, "height": 60, "strokeColor": "#a080d0", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "vitals_t", "x": 620, "y": 230, "width": 220, "height": 50, "text": "Vital Tracking\ncheck_vitals() → whisper at 10% brackets\n_already_warned dict → no repeat alerts", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#a080d0"},
+    {"type": "rectangle", "id": "upgrades", "x": 50, "y": 310, "width": 800, "height": 55, "strokeColor": "#a080d0", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "upgrades_t", "x": 60, "y": 315, "width": 780, "height": 45, "text": "9 Drone Upgrades\nrange_module · translator_chip · cargo_rack · thruster_pack · battery_cell\nvoice_module · autopilot_chip · charge_module · antenna_array", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#a080d0"},
+    {"type": "rectangle", "id": "persist", "x": 50, "y": 390, "width": 800, "height": 35, "strokeColor": "#8ca4be", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "persist_t", "x": 60, "y": 395, "width": 780, "height": 25, "text": "All state serialized via to_dict()/from_dict() → SQLite saves table (JSON blob) → survives save/load/restart", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#8ca4be"}
+  ],
+  "appState": {"viewBackgroundColor": "#0a0d18", "gridSize": null}
+}

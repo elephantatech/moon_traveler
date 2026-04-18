@@ -1,0 +1,10 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "moon-traveler",
+  "elements": [
+    {"type": "text", "id": "title", "x": 400, "y": 10, "width": 300, "height": 30, "text": "C4 Level 2 — Container Diagram", "fontSize": 20, "fontFamily": 1, "textAlign": "center", "strokeColor": "#dce0ee"},
+    {"type": "text", "id": "note", "x": 50, "y": 750, "width": 600, "height": 20, "text": "See c4-container.svg for rendered version. Edit here, export SVG from excalidraw.com", "fontSize": 12, "fontFamily": 1, "strokeColor": "#7c84a4"}
+  ],
+  "appState": {"viewBackgroundColor": "#0a0d18", "gridSize": null}
+}
