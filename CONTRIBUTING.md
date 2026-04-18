@@ -26,11 +26,13 @@ uv run python play_tui.py  # Launch game
 2. **Create a branch** from `main`: `git checkout -b feat/your-feature`
 3. **Make your changes** — keep commits focused and well-described
 4. **Run checks** before pushing:
+
    ```bash
    uv run ruff check src/ tests/
    uv run ruff format src/ tests/
    uv run pytest tests/
    ```
+
 5. **Open a pull request** against `main` with a clear description
 
 ## Code Style
