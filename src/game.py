@@ -210,8 +210,8 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
     )
 
 
-def game_loop(ctx: GameContext):
-    """Main game loop."""
+def game_loop(ctx: GameContext) -> bool:
+    """Main game loop. Returns True if game ended (win/lose), False if player quit."""
     # Create prompt session — prompt_toolkit for CLI, bridge for Textual
     use_bridge = ui._bridge is not None
     session = None if use_bridge else input_handler.create_prompt_session(ctx)
@@ -226,7 +226,7 @@ def game_loop(ctx: GameContext):
             if ctx.dev_mode:
                 ctx.dev_mode.debug("game_win", hours=ctx.player.hours_elapsed)
             show_win_sequence(ctx)
-            break
+            return True
 
         if check_lose(ctx):
             if ctx.dev_mode:
@@ -238,7 +238,7 @@ def game_loop(ctx: GameContext):
                     hours=ctx.player.hours_elapsed,
                 )
             show_lose_sequence(ctx)
-            break
+            return True
 
         # Status bar
         loc = ctx.current_location()
@@ -328,7 +328,7 @@ def game_loop(ctx: GameContext):
         if ctx.should_quit:
             ctx.do_auto_save()
             ui.info("Goodbye, traveler.")
-            break
+            return False
 
 
 def _parse_flags() -> tuple[bool, bool]:
@@ -450,8 +450,8 @@ def main(dev_flag: bool = False, super_flag: bool = False):
                     ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
                 except Exception:
                     pass
-            game_loop(ctx)
-            if _prompt_play_again():
+            game_ended = game_loop(ctx)
+            if game_ended and _prompt_play_again():
                 main(dev_flag=dev_flag, super_flag=super_flag)
             return
         else:
@@ -507,6 +507,6 @@ def main(dev_flag: bool = False, super_flag: bool = False):
         mode_key,
     )
 
-    game_loop(ctx)
-    if _prompt_play_again():
+    game_ended = game_loop(ctx)
+    if game_ended and _prompt_play_again():
         main(dev_flag=dev_flag, super_flag=super_flag)
