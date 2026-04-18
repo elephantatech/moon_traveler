@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-moon-traveler = "src.game:main"
+moon-traveler = "src.tui_app:run_tui"
 
 [dependency-groups]
 dev = [
