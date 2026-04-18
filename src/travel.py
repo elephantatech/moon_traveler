@@ -420,11 +420,8 @@ def execute_travel(
         if gained > 0:
             messages.append(f"[magenta]Auto-charge: +{gained:.0f}% battery recovered during travel.[/magenta]")
 
-    # Recharge drone at crash site
-    if destination.loc_type == "crash_site":
-        drone.recharge()
-        if ship_ai:
-            ship_ai.reset_warnings("battery")
-        messages.append("[magenta]Drone recharged at crash site.[/magenta]")
+    # Remind player to recharge at crash site (no auto-recharge — use ship charging bay)
+    if destination.loc_type == "crash_site" and drone.battery < drone.battery_max:
+        messages.append("[dim]Tip: Use 'ship charging' to recharge your drone.[/dim]")
 
     return messages
