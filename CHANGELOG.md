@@ -2,26 +2,30 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
-## [0.4.2] - 2026-04-18
+## [0.5.0] - 2026-04-18
 
 ### Removed
 - **CLI mode** — `play.py` deleted; `play_tui.py` is now the sole entry point
 - **prompt_toolkit** dependency removed (GameCompleter, bottom toolbar, CLI input handler)
 - All CLI fallback paths in `ui.py`, `game.py`, `commands.py` stripped
+- Renamed package `moon-traveler-cli` → `moon-traveler`
 
 ### Changed
 - **Drone subcommands** — `drone status`, `drone upgrade <part>`, `drone charge` (upgrade/charge still work as top-level shortcuts)
 - **Help text reorganized** — categorized sections (Navigation, Items, Creatures, Drone, Player, Ship, System)
 - **Ship bays context-aware** — ship sub-commands shown in help only at Crash Site
 - **Rest consistency** — medical bay rest now uses same location-based recovery as standalone rest (+10% away, +20% at ship)
+- Added `[build-system]` and `[project.scripts]` to pyproject.toml — `moon-traveler` command available after `pip install`
 
 ### Added
 - Escort hint shown after talk when trust reaches 50+
 - `tutorial` and `screenshot` commands now visible in help text
-- 4 new autocomplete tests for drone sub-commands and ship bays
+- 240 tests (was 236) — inspect, examine, go, repair alias autocomplete coverage
 
 ### Fixed
 - Screenshot command guard for missing bridge
+- Autocomplete wiring now logs errors instead of silently swallowing
+- Screenshot script victory capture loop handles companion repair prompts
 - Closes #23 (unify completers — resolved by CLI removal)
 
 ## [0.4.1] - 2026-04-18

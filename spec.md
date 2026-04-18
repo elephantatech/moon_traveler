@@ -1,6 +1,6 @@
 # Moon Traveler Terminal - Technical Specification
 
-**Version:** 0.4.2
+**Version:** 0.5.0
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -1113,7 +1113,7 @@ Worker thread with message bridge. Game logic runs synchronously in a Textual `r
 - `bridge.ask(prompt)` blocks worker thread on queue; Textual routes input based on command mode vs ask mode
 - `time.sleep` in worker thread (narration, tutorial, travel) stays as-is — doesn't block Textual reactor
 - LLM inference runs in worker thread; UI stays responsive
-- Autocomplete: `GameSuggester` provides inline tab-completion (CLI GameCompleter removed in v0.4.2)
+- Autocomplete: `GameSuggester` provides inline tab-completion (CLI GameCompleter removed in v0.5.0)
 
 ### 22.4 New Files
 
@@ -1130,9 +1130,9 @@ Worker thread with message bridge. Game logic runs synchronously in a Textual `r
 1. Shell — App layout, widgets, CSS, basic rendering
 2. UI shim — Bridge `ui.console` to Textual
 3. Command wiring — Console shim, verify all commands including cmd_talk conversation loop
-4. Autocomplete — ~~Port GameCompleter~~ Done: GameSuggester (v0.4.2)
+4. Autocomplete — ~~Port GameCompleter~~ Done: GameSuggester (v0.5.0)
 5. Main menu — Pre-game flow as Textual modals
-6. ~~Cleanup — Remove prompt_toolkit, dead code~~ Done (v0.4.2)
+6. ~~Cleanup — Remove prompt_toolkit, dead code~~ Done (v0.5.0)
 
 ---
 
