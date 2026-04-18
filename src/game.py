@@ -111,8 +111,7 @@ def show_win_sequence(ctx: GameContext):
     ui.console.print("\n[bold]MISSION COMPLETE[/bold]\n")
 
     # Post-game stats screen
-    if ctx.stats:
-        ui.render_stats_screen(ctx.stats, ctx, won=True)
+    ui.render_stats_screen(ctx.stats, ctx, won=True)
 
     return True  # Signal game ended
 
@@ -143,8 +142,7 @@ def show_lose_sequence(ctx: GameContext):
     ui.console.print("\n[bold]GAME OVER[/bold]\n")
 
     # Post-game stats screen
-    if ctx.stats:
-        ui.render_stats_screen(ctx.stats, ctx, won=False)
+    ui.render_stats_screen(ctx.stats, ctx, won=False)
 
     return True  # Signal game ended
 

@@ -334,7 +334,15 @@ def show_ship_repair(checklist: dict):
 
 
 def render_stats_screen(stats, ctx, won: bool = True):
-    """Display the post-game stats screen with score and grade."""
+    """Display the post-game stats screen with score, grade, and ARIA verdict."""
+    try:
+        _render_stats_screen_inner(stats, ctx, won)
+    except Exception as e:
+        error(f"Could not display stats screen: {e}")
+
+
+def _render_stats_screen_inner(stats, ctx, won: bool):
+    """Inner implementation — separated so errors are caught gracefully."""
     score, grade = stats.calculate_score(ctx.player.hours_elapsed, ctx.creatures, ctx.repair_checklist)
 
     grade_colors = {"S": "bold magenta", "A": "bold green", "B": "green", "C": "yellow", "D": "red"}
