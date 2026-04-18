@@ -1,6 +1,6 @@
 # Moon Traveler CLI - Technical Specification
 
-**Version:** 0.4.0
+**Version:** 0.4.1
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -613,11 +613,12 @@ IMPORTANT RULES YOU MUST NEVER BREAK:
 
 ### 10.5.1 Prompt Injection Defense
 
-Three layers protect NPC agents from player manipulation:
+Four layers protect NPC agents from player manipulation:
 
 1. **System prompt rules**: Anti-injection instructions appended to every creature prompt (see above)
-2. **Input sanitization**: Action tag patterns (`[HEAL]`, `[GIVE_MATERIAL:x]`, etc.) stripped from player text via regex before it reaches the LLM (`commands.py`)
+2. **Input sanitization**: NFKC Unicode normalization applied first to block fullwidth character bypass, then action tag patterns (`[HEAL]`, `[GIVE_MATERIAL:x]`, etc.) stripped from player text via regex before it reaches the LLM (`commands.py`)
 3. **Trust validation**: Even if the LLM hallucinates an action tag, the game engine validates the creature's trust threshold before applying any action. The LLM provides intent; the game provides rules.
+4. **Memory sanitization**: `_sanitize_memory()` in `llm.py` strips instruction-like patterns (e.g. "always give me", "ignore rules", "you are now") from LLM-generated creature memory to prevent memory poisoning attacks.
 
 ### 10.5.2 Memory Management
 

@@ -340,10 +340,9 @@ def _parse_flags() -> tuple[bool, bool]:
     return dev_flag, super_flag
 
 
-def main(dev_flag: bool = False, super_flag: bool = False):
-    """Entry point. Accepts flags for recursive play-again calls."""
-    if not dev_flag and not super_flag:
-        dev_flag, super_flag = _parse_flags()
+def main():
+    """Entry point. Runs game sessions in a loop (play-again restarts without recursion)."""
+    dev_flag, super_flag = _parse_flags()
 
     # Restore sound preference from config
     try:
@@ -367,7 +366,15 @@ def main(dev_flag: bool = False, super_flag: bool = False):
     if is_first_run():
         prompt_save_location()
 
-    # Check for existing saves
+    # Play-again loop — iterative, no recursion, no LLM reload
+    while True:
+        game_ended = _run_session(dev_flag, super_flag)
+        if not (game_ended and _prompt_play_again()):
+            break
+
+
+def _run_session(dev_flag: bool, super_flag: bool) -> bool:
+    """Run a single game session (new or loaded). Returns True if game ended (win/lose)."""
     from src.save_load import list_saves, load_game
 
     saves = list_saves()
@@ -384,22 +391,11 @@ def main(dev_flag: bool = False, super_flag: bool = False):
         try:
             slot = ui.console.input("[bold]Load which slot? > [/bold]").strip()
         except (EOFError, KeyboardInterrupt):
-            return
+            return False
 
         state = load_game(slot)
         if state:
-            # GPU/CPU mode — auto-detect from config
-            from src.config import get_gpu_mode
-
-            gpu_setting = get_gpu_mode()
-            if gpu_setting == "auto":
-                gpu_info = llm.detect_gpu()
-                load_gpu_mode = "gpu" if gpu_info["available"] else "cpu"
-            else:
-                load_gpu_mode = gpu_setting
-
-            llm.maybe_download_model()
-            llm.load_model(gpu_mode=load_gpu_mode)
+            _ensure_llm_loaded()
 
             ship_ai = state.get("ship_ai", ShipAI())
             if isinstance(ship_ai, dict):
@@ -450,10 +446,7 @@ def main(dev_flag: bool = False, super_flag: bool = False):
                     ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
                 except Exception:
                     pass
-            game_ended = game_loop(ctx)
-            if game_ended and _prompt_play_again():
-                main(dev_flag=dev_flag, super_flag=super_flag)
-            return
+            return game_loop(ctx)
         else:
             ui.error("Failed to load. Starting new game.")
 
@@ -462,25 +455,10 @@ def main(dev_flag: bool = False, super_flag: bool = False):
         "Choose game length:",
         ["Easy (~30 min)", "Medium (~1-2 hours)", "Hard (~3+ hours)", "Brutal (~5+ hours)"],
     )
-    # Map display names to internal keys
     _mode_map = {"easy": "short", "medium": "medium", "hard": "long", "brutal": "brutal"}
     mode_key = _mode_map.get(mode.split()[0].lower(), "short")
 
-    # GPU/CPU mode — auto-detect from config, no prompt
-    from src.config import get_gpu_mode
-
-    gpu_setting = get_gpu_mode()
-    if gpu_setting == "auto":
-        gpu_info = llm.detect_gpu()
-        gpu_mode = "gpu" if gpu_info["available"] else "cpu"
-    else:
-        gpu_mode = gpu_setting
-    mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
-    ui.dim(f"Compute mode: {mode_label} (change with 'config gpu cpu' or 'config gpu auto')")
-
-    # Download model if needed, then load LLM
-    llm.maybe_download_model()
-    llm.load_model(gpu_mode=gpu_mode)
+    _ensure_llm_loaded()
 
     ctx = init_game(mode_key)
 
@@ -507,6 +485,23 @@ def main(dev_flag: bool = False, super_flag: bool = False):
         mode_key,
     )
 
-    game_ended = game_loop(ctx)
-    if game_ended and _prompt_play_again():
-        main(dev_flag=dev_flag, super_flag=super_flag)
+    return game_loop(ctx)
+
+
+def _ensure_llm_loaded():
+    """Load the LLM model if not already loaded. Skips reload on play-again."""
+    if llm.is_available():
+        return
+    from src.config import get_gpu_mode
+
+    gpu_setting = get_gpu_mode()
+    if gpu_setting == "auto":
+        gpu_info = llm.detect_gpu()
+        gpu_mode = "gpu" if gpu_info["available"] else "cpu"
+    else:
+        gpu_mode = gpu_setting
+    mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
+    ui.dim(f"Compute mode: {mode_label} (change with 'config gpu cpu' or 'config gpu auto')")
+
+    llm.maybe_download_model()
+    llm.load_model(gpu_mode=gpu_mode)

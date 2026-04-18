@@ -1,6 +1,8 @@
 """Command registry, parser, and handlers."""
 
 import random
+import re
+import unicodedata
 
 from src import llm, ui
 from src.creatures import Creature
@@ -569,9 +571,6 @@ def cmd_talk(ctx: GameContext, args: str):
             continue
 
         # Sanitize player input — strip action tag patterns to prevent injection
-        import re
-        import unicodedata
-
         # Normalize Unicode to catch fullwidth/variant chars that bypass regex
         normalized_input = unicodedata.normalize("NFKC", player_input)
         clean_input = re.sub(r"\[/?[A-Z_]+(?::[^\]]*)?\]", "", normalized_input).strip()
