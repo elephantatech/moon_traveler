@@ -137,16 +137,21 @@ async def screenshot_pilot(pilot):
     await send("scan", wait=3.0)
     await take("tui-scan-2", "Second scan")
 
-    # Find a creature to talk to
+    # Scan a few times to discover locations with creatures
+    await send("scan", wait=3.0)
+    await send("scan", wait=3.0)
+
+    # Find a creature at a KNOWN location
     creature_loc = None
     creature_name = None
+    known = ctx.player.known_locations
     for c in ctx.creatures:
-        if not c.following:
+        if not c.following and c.location_name in known and c.location_name != ctx.player.location_name:
             creature_loc = c.location_name
             creature_name = c.name
             break
 
-    if creature_loc and creature_loc != ctx.player.location_name:
+    if creature_loc:
         # Travel to the creature's location
         await send(f"travel {creature_loc}", wait=3.0)
         # Travel may ask for confirmation if dangerous
