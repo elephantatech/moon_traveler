@@ -1,4 +1,4 @@
-class MoonTravelerCli < Formula
+class MoonTraveler < Formula
   desc "Text-based survival game set on Saturn's moon Enceladus with LLM-powered alien conversations"
   homepage "https://github.com/elephantatech/moon_traveler"
   url "https://github.com/elephantatech/moon_traveler/archive/refs/tags/v0.3.0.tar.gz"
@@ -12,14 +12,14 @@ class MoonTravelerCli < Formula
     virtualenv_install_with_resources
 
     # Create model and save directories
-    (var/"moon-traveler-cli/models").mkpath
-    (var/"moon-traveler-cli/saves").mkpath
+    (var/"moon-traveler/models").mkpath
+    (var/"moon-traveler/saves").mkpath
   end
 
   def caveats
     <<~EOS
       Moon Traveler CLI stores models and saves in:
-        #{var}/moon-traveler-cli/
+        #{var}/moon-traveler/
 
       On first launch, the game offers to download an AI model (~1.3 GB).
       The game also works without a model using pre-written dialogue.
@@ -27,6 +27,6 @@ class MoonTravelerCli < Formula
   end
 
   test do
-    assert_predicate bin/"moon-traveler-cli", :exist?
+    assert_predicate bin/"moon-traveler", :exist?
   end
 end
