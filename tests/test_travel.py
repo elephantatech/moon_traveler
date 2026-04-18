@@ -90,7 +90,7 @@ class TestHazardEvents:
         for seed in range(100):
             p = Player(suit_integrity=92.0)
             rng = random.Random(seed)
-            execute_travel(p, Drone(), dest, current, rng)[0]
+            execute_travel(p, Drone(), dest, current, rng)  # side effects only
             if p.suit_integrity < 92.0:
                 damage_occurred = True
                 break

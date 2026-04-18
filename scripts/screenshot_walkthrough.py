@@ -148,7 +148,7 @@ def main():
     def render_travel(c):
         show_prompt(ctx, c, f"travel {travel_dest.name}")
         cur = ctx.current_location()
-        messages = execute_travel(
+        messages, _, _ = execute_travel(
             ctx.player,
             ctx.drone,
             travel_dest,

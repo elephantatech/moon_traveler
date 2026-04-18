@@ -11,7 +11,7 @@ class SessionStats:
     session_start: float = field(default_factory=time.time)
     commands: int = 0
     km_traveled: float = 0.0
-    creatures_talked: set = field(default_factory=set)
+    creatures_talked: set[str] = field(default_factory=set)
     hazards_survived: int = 0
     trades: int = 0
     gifts_given: int = 0
