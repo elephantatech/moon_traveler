@@ -30,7 +30,7 @@ class SessionStats:
         repairs_done = sum(1 for v in repair_checklist.values() if v)
         bonus = allies * 50 + repairs_done * 50
 
-        # Efficiency: reward fewer commands and less distance (did more with less)
+        # Efficiency: reward fewer commands (did more with less)
         efficiency = 0
         if self.commands > 0:
             efficiency = min(200, max(0, 200 - self.commands))
