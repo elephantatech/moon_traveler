@@ -270,9 +270,6 @@ async def screenshot_pilot(pilot):
     if not victory_captured:
         log("  WARN: victory not captured — taking current state")
         await take("tui-victory", "Victory (may be incomplete)")
-    else:
-        log("  WARN: repair prompt not detected — materials may not be in inventory")
-        await take("tui-ship-repair", "Ship repair status")
 
     log(f"Done! Screenshots saved to {ASSETS_DIR}/")
     # Give the worker time to finish, then force exit
