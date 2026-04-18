@@ -35,8 +35,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 DIST_DIR = PROJECT_ROOT / "dist"
 BUILD_DIR = PROJECT_ROOT / "build"
-APP_NAME = "moon-traveler-cli"
-ENTRY_POINT = PROJECT_ROOT / "play.py"
+APP_NAME = "moon-traveler"
+ENTRY_POINT = PROJECT_ROOT / "play_tui.py"
 
 with open(PROJECT_ROOT / "pyproject.toml", "rb") as _f:
     VERSION = tomllib.load(_f)["project"]["version"]
@@ -109,7 +109,7 @@ def build_executable(target_platform: str):
         "--hidden-import",
         "rich",
         "--hidden-import",
-        "prompt_toolkit",
+        "textual",
         "--hidden-import",
         "psutil",
         "--hidden-import",

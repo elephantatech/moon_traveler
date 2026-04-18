@@ -2,7 +2,7 @@
 
 import random
 
-from src import input_handler, llm, ui
+from src import llm, ui
 from src.commands import GameContext, cmd_look, dispatch
 from src.creatures import generate_creatures
 from src.dev_mode import DevMode
@@ -212,10 +212,6 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
 
 def game_loop(ctx: GameContext) -> bool:
     """Main game loop. Returns True if game ended (win/lose), False if player quit."""
-    # Create prompt session — prompt_toolkit for CLI, bridge for Textual
-    use_bridge = ui._bridge is not None
-    session = None if use_bridge else input_handler.create_prompt_session(ctx)
-
     # Initial look
     cmd_look(ctx, "")
     ui.console.print()
@@ -246,12 +242,9 @@ def game_loop(ctx: GameContext) -> bool:
         followers = [c for c in ctx.creatures if c.following]
         ui.render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers)
 
-        # Prompt with autocomplete (CLI) or bridge (Textual)
+        # Get player command via TUI bridge
         location = ctx.player.location_name
-        if use_bridge:
-            raw = ui._bridge.get_command(location)
-        else:
-            raw = input_handler.get_input(session, location)
+        raw = ui._bridge.get_command(location)
 
         if raw is None:
             ui.console.print()
@@ -316,9 +309,6 @@ def game_loop(ctx: GameContext) -> bool:
                 ctx.tutorial = state["tutorial"]
             ctx.should_load = False
             ctx.loaded_state = None
-            # Rebuild autocomplete session with new state (CLI mode only)
-            if not use_bridge:
-                session = input_handler.create_prompt_session(ctx)
             # Sync sound voice state with drone
             from src import sound
 
@@ -354,11 +344,6 @@ def main():
             _snd.disable()
     except Exception:
         pass
-
-    # Show title only in CLI mode — boot sequence handles it in TUI
-    if not ui._bridge:
-        ui.show_title()
-        ui.console.print()
 
     # First-run: prompt for save location
     from src.config import is_first_run, prompt_save_location
@@ -440,12 +425,11 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             from src.difficulty import check_junk_easter_egg
 
             ctx.easter_egg_announced = check_junk_easter_egg(ctx.player, ctx.world_mode)
-            # Wire Textual autocomplete if in TUI mode
-            if ui._bridge:
-                try:
-                    ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
-                except Exception:
-                    pass
+            # Wire Textual autocomplete
+            try:
+                ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
+            except Exception:
+                pass
             return game_loop(ctx)
         else:
             ui.error("Failed to load. Starting new game.")
@@ -468,12 +452,11 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     if super_flag:
         apply_super_mode(ctx)
 
-    # Wire Textual autocomplete if in TUI mode
-    if ui._bridge:
-        try:
-            ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
-        except Exception:
-            pass
+    # Wire Textual autocomplete
+    try:
+        ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
+    except Exception:
+        pass
 
     # Run ARIA boot sequence (replaces old show_intro)
     ctx.tutorial.run_boot_sequence(

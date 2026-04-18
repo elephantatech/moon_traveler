@@ -78,7 +78,7 @@ This downloads the latest release, extracts it, and adds `moon-traveler-cli` to 
 git clone https://github.com/elephantatech/moon_traveler.git
 cd moon_traveler
 uv sync            # or: pip install -r requirements.txt
-python play.py
+python play_tui.py
 ```
 
 ### 3. LLM Model (optional)
@@ -95,11 +95,10 @@ You can also place any `.gguf` model file manually in `~/.moonwalker/models/`. A
 ## Running
 
 ```bash
-python play.py          # Classic CLI mode
-python play_tui.py      # Textual TUI mode (recommended)
+python play_tui.py
 ```
 
-**TUI mode** features a fixed status bar, scrollable game log, tab-autocomplete with cycling, command history (Up/Down arrows), and F12 screenshots.
+Features a fixed status bar, scrollable game log, tab-autocomplete with cycling, command history (Up/Down arrows), and F12 screenshots.
 
 **Flags:**
 ```bash
@@ -241,8 +240,8 @@ ruff check src/ tests/
 ## Project Structure
 
 ```
-moon-traveler-cli/
-  play.py              Entry point
+moon-traveler/
+  play_tui.py          Entry point (Textual TUI)
   src/
     game.py            Main game loop, init, win/lose
     world.py           Procedural world generation

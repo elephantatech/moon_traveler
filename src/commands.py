@@ -1767,15 +1767,12 @@ def cmd_charge(ctx: GameContext, args: str):
 
 
 def cmd_screenshot(ctx: GameContext, args: str):
-    """Save a screenshot (TUI mode only)."""
-    if ui._bridge:
-        try:
-            path = ui._bridge.take_screenshot()
-            ui.success(f"Screenshot saved: {path}")
-        except Exception as e:
-            ui.error(f"Screenshot failed: {e}")
-    else:
-        ui.info("Screenshots are only available in TUI mode (play_tui.py).")
+    """Save a screenshot."""
+    try:
+        path = ui._bridge.take_screenshot()
+        ui.success(f"Screenshot saved: {path}")
+    except Exception as e:
+        ui.error(f"Screenshot failed: {e}")
 
 
 def cmd_quit(ctx: GameContext, args: str):
