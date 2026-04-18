@@ -233,30 +233,43 @@ async def screenshot_pilot(pilot):
     await pilot.pause(1.0)
 
     # Wait for the "Install all? (y/n)" prompt
-    if await wait_for_ask_mode(timeout=15.0):
-        await take("tui-repair-prompt", "Repair install prompt")
-        await respond("y", wait=1.0)
-
-        # Wait for ask_mode to go FALSE (repair prompt dismissed)
-        log("  ... waiting for ask_mode to clear...")
-        for _ in range(30):
-            if not app._ask_mode:
-                log("  ... ask_mode cleared")
+    # The repair flow may have multiple ask_mode cycles:
+    # 1. Companion may trigger repair prompts (accept companion help)
+    # 2. The actual "Install all? (y/n)" prompt
+    # 3. The play-again prompt after victory
+    # Keep answering "y" until we see the game has been won (check_win)
+    victory_captured = False
+    for attempt in range(10):
+        if await wait_for_ask_mode(timeout=20.0):
+            # Check if all materials are installed (game won)
+            if all(ctx.repair_checklist.values()):
+                log(f"  ... all materials installed! Taking victory screenshot (attempt {attempt})")
+                await pilot.pause(3.0)
+                app.refresh()
+                await pilot.pause(1.0)
+                await take("tui-victory", "Victory — mission complete")
+                await respond("n", wait=2.0)  # Decline play-again
+                victory_captured = True
                 break
-            await pilot.pause(0.5)
 
-        # Now wait for ask_mode to go TRUE again (play-again prompt after victory)
-        log("  ... waiting for play-again prompt...")
-        if await wait_for_ask_mode(timeout=45.0):
-            # Let the RichLog finish scrolling the victory sequence
-            await pilot.pause(3.0)
-            app.refresh()
-            await pilot.pause(1.0)
-            await take("tui-victory", "Victory — mission complete")
-            await respond("n", wait=2.0)  # Decline play-again
+            # Not won yet — take repair prompt on first attempt, then keep answering "y"
+            if attempt == 0:
+                await take("tui-repair-prompt", "Repair install prompt")
+            log(f"  ... answering 'y' to prompt (attempt {attempt}, checklist: {ctx.repair_checklist})")
+            await respond("y", wait=2.0)
+
+            # Wait for ask_mode to clear before polling again
+            for _ in range(20):
+                if not app._ask_mode:
+                    break
+                await pilot.pause(0.3)
         else:
-            log("  WARN: play-again prompt not detected, taking screenshot anyway")
-            await take("tui-victory", "Victory (may be incomplete)")
+            log(f"  ... ask_mode timeout on attempt {attempt}")
+            break
+
+    if not victory_captured:
+        log("  WARN: victory not captured — taking current state")
+        await take("tui-victory", "Victory (may be incomplete)")
     else:
         log("  WARN: repair prompt not detected — materials may not be in inventory")
         await take("tui-ship-repair", "Ship repair status")
