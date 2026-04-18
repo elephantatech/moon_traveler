@@ -1,7 +1,7 @@
 # Moon Traveler Terminal — Product Roadmap
 
 **Last updated:** 2026-04-18
-**Current version:** v0.4.2 (released)
+**Current version:** v0.5.0 (released)
 **Next:** v0.5.0 (gameplay + diagnostics)
 
 This roadmap covers planned development from the current dev build through v1.0.0 (full release). Each feature entry includes a description, technical approach grounded in the existing architecture, effort estimate, dependencies, and affected files.
@@ -26,7 +26,7 @@ Effort scale: **S** (< 1 day), **M** (1–3 days), **L** (3–7 days), **XL** (1
 
 **Release target:** Next tag push after final QA pass.
 
-This release delivers a fully interactive Textual-based TUI (`play_tui.py`), plus difficulty modes, drone improvements, and audio. CLI mode was removed in v0.4.2.
+This release delivers a fully interactive Textual-based TUI (`play_tui.py`), plus difficulty modes, drone improvements, and audio. CLI mode was removed in v0.5.0.
 
 ### What is built and ready
 
@@ -75,7 +75,7 @@ This release delivers a fully interactive Textual-based TUI (`play_tui.py`), plu
 - [x] `textual` added to `requirements.txt` and `pyproject.toml`
 - [x] `spec.md` version header updated
 - [x] `README.md` updated with TUI launch instructions
-- [x] Tagged v0.4.0, v0.4.1, v0.4.2
+- [x] Tagged v0.4.0, v0.4.1, v0.5.0
 
 ---
 
@@ -729,7 +729,7 @@ At 800+ lines, `commands.py` contains the dispatch table, all handler functions,
 `_llm_model` and `_llm_available` are module-level. This works for single-game use but prevents multiple game instances (required for web mode where concurrent sessions are possible). Wrap in an `LLMEngine` class with `load()`, `generate()`, `is_available()` methods. Inject via `GameContext`.
 - Effort: M | Priority: v1.0.0 (prerequisite for web mode backend)
 
-**Resolved in v0.4.2:** CLI mode and `GameCompleter` (prompt_toolkit) removed. Only `GameSuggester` (Textual) remains.
+**Resolved in v0.5.0:** CLI mode and `GameCompleter` (prompt_toolkit) removed. Only `GameSuggester` (Textual) remains.
 - Effort: S | Priority: v0.5.0
 
 **`ITEM_DESCRIPTIONS` is misplaced in `src/difficulty.py`.**
