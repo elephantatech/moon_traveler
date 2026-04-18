@@ -29,9 +29,6 @@
     {"type": "rectangle", "id": "status", "x": 310, "y": 310, "width": 230, "height": 80, "strokeColor": "#c89450", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
     {"type": "text", "id": "status_t", "x": 320, "y": 315, "width": 210, "height": 70, "text": "render_status_bar()\nFood/Water/Suit/Battery bars\nShip repair progress\nCreature trust when talking\nUpdates after every exchange", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
 
-    {"type": "rectangle", "id": "cli", "x": 570, "y": 310, "width": 230, "height": 80, "strokeColor": "#8ca4be", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
-    {"type": "text", "id": "cli_t", "x": 580, "y": 315, "width": 210, "height": 70, "text": "CLI Fallback Path\ninput_handler.py\nGameCompleter (prompt_toolkit)\nBottom toolbar (HTML format)\nUsed when play.py (no Textual)", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#8ca4be"},
-
     {"type": "rectangle", "id": "main_thread", "x": 50, "y": 420, "width": 380, "height": 40, "strokeColor": "#5caa78", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
     {"type": "text", "id": "main_t", "x": 60, "y": 425, "width": 360, "height": 30, "text": "MAIN THREAD (Textual async) — NEVER BLOCKS\nRendering, key events, widget updates, screenshot export", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
 

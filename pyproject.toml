@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "rich",
-    "prompt_toolkit",
     "llama-cpp-python",
     "psutil",
     "textual>=8.2.3",

@@ -1,4 +1,4 @@
-# How to Play — Moon Traveler CLI
+# How to Play — Moon Traveler Terminal
 
 You've crash-landed on Enceladus, Saturn's frozen moon. Your ship is wrecked. Your supplies are limited. Alien creatures inhabit the ice, and a small drone is your only companion. Gather repair materials, survive the cold, and get off this moon.
 
@@ -23,7 +23,7 @@ All models run on CPU. GPU (CUDA/Metal/Vulkan) is optional for faster inference.
 
 Run the game:
 ```
-python play.py
+python play_tui.py
 ```
 
 You'll be asked to choose:

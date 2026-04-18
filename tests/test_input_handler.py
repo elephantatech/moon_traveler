@@ -1,10 +1,6 @@
-"""Tests for the input_handler module."""
+"""Tests for the input_handler module (GameSuggester — TUI autocomplete)."""
 
-from unittest.mock import MagicMock
-
-from prompt_toolkit.document import Document
-
-from src.input_handler import BASE_COMMANDS, GameCompleter
+from src.input_handler import GameSuggester
 
 
 class FakeLocation:
@@ -57,82 +53,87 @@ class FakeCtx:
         return None
 
 
-def get_completions(completer, text):
-    """Helper to get completion text list from a document."""
-    doc = Document(text, len(text))
-    return [c.text for c in completer.get_completions(doc, MagicMock())]
+def get_suggestions(suggester, text):
+    """Helper to get all suggestions for a given input."""
+    return suggester._get_all_suggestions(text)
 
 
 class TestCommandCompletion:
-    def test_empty_returns_all_commands(self):
-        ctx = FakeCtx()
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "")
-        assert len(results) == len(BASE_COMMANDS)
-
     def test_partial_command(self):
         ctx = FakeCtx()
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "tra")
-        assert "travel" in results
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "tra")
+        assert any("travel" in r for r in results)
 
     def test_scan_completes(self):
         ctx = FakeCtx()
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "sc")
-        assert "scan" in results
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "sc")
+        assert any("scan" in r for r in results)
+
+    def test_empty_returns_nothing(self):
+        ctx = FakeCtx()
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "")
+        assert results == []
 
 
 class TestTravelCompletion:
     def test_travel_shows_known_locations(self):
         ctx = FakeCtx()
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "travel ")
-        assert "Crystal Ridge" in results
-        assert "Crash Site" in results
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "travel ")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Crystal Ridge" in names
+        assert "Crash Site" in names
 
     def test_travel_partial_match(self):
         ctx = FakeCtx()
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "travel Cry")
-        assert "Crystal Ridge" in results
-        assert "Frost Canyon" not in results
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "travel Cry")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Crystal Ridge" in names
+        assert "Frost Canyon" not in names
 
 
 class TestTalkCompletion:
     def test_talk_shows_creature_at_location(self):
         ctx = FakeCtx()
         ctx.player.location_name = "Crystal Ridge"
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "talk ")
-        assert "Kael" in results
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "talk ")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Kael" in names
 
     def test_talk_no_creature_at_location(self):
         ctx = FakeCtx()
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "talk ")
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "talk ")
         assert results == []
 
 
 class TestTakeCompletion:
     def test_take_shows_items_at_location(self):
         ctx = FakeCtx()
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "take ")
-        assert "Bio Gel" in results
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "take ")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Bio Gel" in names
 
 
 class TestGiveCompletion:
     def test_give_shows_inventory(self):
         ctx = FakeCtx()
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "give ")
-        assert "Ice Crystal" in results
-        assert "Metal Shard" in results
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "give ")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Ice Crystal" in names
+        assert "Metal Shard" in names
 
     def test_give_after_to_shows_creature(self):
         ctx = FakeCtx()
         ctx.player.location_name = "Crystal Ridge"
-        completer = GameCompleter(ctx)
-        results = get_completions(completer, "give Ice Crystal to ")
-        assert "Kael" in results
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "give Ice Crystal to ")
+        creature_names = [r.rsplit(" ", 1)[-1] for r in results]
+        assert "Kael" in creature_names

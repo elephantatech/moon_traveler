@@ -58,7 +58,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 **Inspect Command**
 - `inspect <item>` / `examine <item>` shows descriptions from `ITEM_DESCRIPTIONS` in `src/difficulty.py`
 - Covers all 8 repair materials, 8 drone upgrades, and 10 junk items
-- Autocomplete wired in both `GameCompleter` and `GameSuggester`
+- Autocomplete via `GameSuggester` (Textual)
 
 **NPC Memory System** (shipped in v0.3.2)
 - Structured markdown memory per creature, updated by LLM after each conversation
@@ -729,8 +729,7 @@ At 800+ lines, `commands.py` contains the dispatch table, all handler functions,
 `_llm_model` and `_llm_available` are module-level. This works for single-game use but prevents multiple game instances (required for web mode where concurrent sessions are possible). Wrap in an `LLMEngine` class with `load()`, `generate()`, `is_available()` methods. Inject via `GameContext`.
 - Effort: M | Priority: v1.0.0 (prerequisite for web mode backend)
 
-**Dual input system duplicates completion logic.**
-`GameCompleter` (prompt_toolkit) and `GameSuggester` (Textual) both implement the same completion rules. Extract a `CompletionProvider(ctx)` class with a single `get_all_suggestions(text: str) -> list[str]` method. Both front-ends delegate to it. Eliminates the current synchronization risk where adding a new completion to one but not the other.
+**Resolved in v0.4.2:** CLI mode and `GameCompleter` (prompt_toolkit) removed. Only `GameSuggester` (Textual) remains.
 - Effort: S | Priority: v0.5.0
 
 **`ITEM_DESCRIPTIONS` is misplaced in `src/difficulty.py`.**
@@ -874,7 +873,7 @@ Core gameplay improvements that make the game harder and more interesting, plus 
 | **P1** | #9 LLM performance diagnostics in dev mode | S | Needed for optimization work |
 | **P1** | #4 Screen reader mode | M | Accessibility — important for wider audience |
 | **P2** | #5 Text-to-speech output mode | L | Accessibility — depends on #4 |
-| **P2** | #23 Unify GameCompleter and GameSuggester | S | Tech debt — reduces maintenance burden |
+| ~~P2~~ | ~~#23 Unify GameCompleter and GameSuggester~~ | ~~S~~ | **Done** — CLI removed, only GameSuggester remains |
 | **P3** | #6 Voice input via Whisper.cpp | XL | Cool but complex — can wait |
 
 ### v0.6.0 — World Expansion (6-8 weeks)

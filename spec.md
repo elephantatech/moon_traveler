@@ -1,4 +1,4 @@
-# Moon Traveler CLI - Technical Specification
+# Moon Traveler Terminal - Technical Specification
 
 **Version:** 0.4.1
 **Platform:** Python 3.11+, Windows / macOS / Linux
@@ -21,8 +21,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Component | Technology |
 |-----------|-----------|
 | Language | Python 3.11 |
-| Terminal UI | rich |
-| Input | prompt_toolkit |
+| Terminal UI | Textual + Rich |
 | LLM | llama-cpp-python |
 | Model (tiny) | SmolLM2 1.7B (Q4_K_M GGUF, ~1.0 GB) |
 | Model (default) | Qwen3.5 2B (Q4_K_M GGUF, ~1.3 GB) |
@@ -47,7 +46,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 
 ```
 rich
-prompt_toolkit
+textual
 llama-cpp-python
 psutil
 ```
@@ -56,15 +55,12 @@ psutil
 
 ## 2. Entry Point
 
-### `play.py` — CLI mode
-Adds project root to `sys.path`, imports and calls `src.game.main()`.
-
-### `play_tui.py` — Textual TUI mode
+### `play_tui.py` — Entry Point
 Launches the Textual `MoonTravelerApp` which runs `game.main()` in a worker thread with the UIBridge console shim active.
 
-### CLI Flags
+### Flags
 
-Both entry points support:
+Supports:
 - `--dev` — Start with dev mode enabled (diagnostic logging)
 - `--super` — Start with max trust, all repair materials, full drone upgrades (testing)
 - `--dev --super` — Both
@@ -858,7 +854,7 @@ Triggered after travel, conversation, give, trade, and quit. Slot: `"autosave"`.
 
 ### 15.1 Autocomplete
 
-Context-aware completions via prompt_toolkit:
+Context-aware completions via Textual GameSuggester:
 
 | Command | Completes To |
 |---------|-------------|
@@ -948,7 +944,7 @@ python scripts/build_release.py [--platform windows|macos|linux|all] [--no-archi
 2. Check/install PyInstaller
 3. Build with `--onedir --console`
 4. Include `src/` as `--add-data`
-5. Hidden imports: rich, prompt_toolkit, psutil
+5. Hidden imports: rich, textual, psutil
 6. Create empty `models/` and `saves/` directories in output
 7. Create `PLACE_MODEL_HERE.txt` in models/
 8. Archive: `.zip` for Windows, `.tar.gz` for macOS/Linux
@@ -989,7 +985,7 @@ All entries in `repair_checklist` are `True` (all materials installed at Crash S
 ## 20. File Manifest
 
 ```
-play.py                    CLI entry point
+play_tui.py                Entry point (Textual TUI)
 play_tui.py                Textual TUI entry point
 pyproject.toml             Project config, dependencies
 requirements.txt           Minimal pip requirements
@@ -1020,7 +1016,7 @@ src/
   game.tcss                Textual CSS layout
   tutorial.py              Boot sequence, auto-skip, replay command
   save_load.py             SQLite save/load, creature_memory table, version validation
-  input_handler.py         GameCompleter (prompt_toolkit) + GameSuggester (Textual)
+  input_handler.py         GameSuggester (Textual tab-autocomplete)
   config.py                ~/.moonwalker/ config (save_dir, gpu, context, sound, tutorial)
   sound.py                 Cross-platform sound (22 events, beeps + voice via say)
   dev_mode.py              Developer diagnostics (JSON log to ~/.moonwalker/dev/)
@@ -1184,7 +1180,7 @@ The game and its external dependencies: Player, Local LLM (.gguf model), SQLite 
 `docs/diagrams/c4-container.excalidraw`
 
 Major containers within the system:
-- **Entry Points** — `play.py` (CLI), `play_tui.py` (TUI)
+- **Entry Point** — `play_tui.py` (Textual TUI)
 - **UI Layer** — Textual TUI, CLI input, UI abstraction (`_BridgeConsoleShim`), sound
 - **Game Engine** (center) — `game.py` + `commands.py`, world/travel, difficulty, tutorial
 - **AI & Creature System** — LLM inference pipeline, creature dataclass, trust/action tags
