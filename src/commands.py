@@ -1,6 +1,8 @@
 """Command registry, parser, and handlers."""
 
 import random
+import re
+import unicodedata
 
 from src import llm, ui
 from src.creatures import Creature
@@ -515,6 +517,7 @@ def cmd_talk(ctx: GameContext, args: str):
         ui.console.print()
 
     exchange_count = 0
+    conversation_start_idx = len(creature.conversation_history)
 
     while True:
         try:
@@ -568,9 +571,9 @@ def cmd_talk(ctx: GameContext, args: str):
             continue
 
         # Sanitize player input — strip action tag patterns to prevent injection
-        import re
-
-        clean_input = re.sub(r"\[/?[A-Z_]+(?::[^\]]*)?\]", "", player_input).strip()
+        # Normalize Unicode to catch fullwidth/variant chars that bypass regex
+        normalized_input = unicodedata.normalize("NFKC", player_input)
+        clean_input = re.sub(r"\[/?[A-Z_]+(?::[^\]]*)?\]", "", normalized_input).strip()
         if not clean_input:
             clean_input = player_input  # Fallback if everything was stripped
 
@@ -633,6 +636,11 @@ def cmd_talk(ctx: GameContext, args: str):
             ui.console.print(f"[dim]+{trust_gain} trust ({creature.trust}/100 — {next_tier} for {tier_label})[/dim]")
         exchange_count += 1
 
+        # Update status bar so player sees trust/vitals change live
+        loc = ctx.current_location()
+        followers = [c for c in ctx.creatures if c.following]
+        ui.render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature, followers)
+
         # Drone private advice (NOT added to creature conversation history)
         interjection_chance = _interjection_probability(creature, exchange_count)
         if ctx.rng.random() < interjection_chance:
@@ -685,10 +693,11 @@ def cmd_talk(ctx: GameContext, args: str):
 
         ui.console.print()
 
-    # Update creature memory with conversation highlights
+    # Update creature memory with current conversation (capped to avoid context overflow)
     if exchange_count > 0:
+        current_convo_len = len(creature.conversation_history) - conversation_start_idx
         try:
-            llm.update_creature_memory(creature)
+            llm.update_creature_memory(creature, recent_count=min(max(current_convo_len, 1), 40))
         except Exception:
             pass
 
@@ -1293,7 +1302,7 @@ def _bay_storage(ctx: GameContext):
         ui.success(f"Stashed all: {', '.join(stashed)}")
 
     # Check for junk easter egg (only on stash operations, fire once)
-    if choice in ("1", "3") and not ctx.easter_egg_announced:
+    if choice in ("1", "3") and has_inv and not ctx.easter_egg_announced:
         from src.difficulty import check_junk_easter_egg
 
         if check_junk_easter_egg(ctx.player, ctx.world_mode):
@@ -1770,9 +1779,9 @@ def cmd_screenshot(ctx: GameContext, args: str):
 
 
 def cmd_quit(ctx: GameContext, args: str):
-    ui.warn("Are you sure? (y/n)")
+    ui.console.print("[bold yellow]Are you sure you want to quit? (y/n)[/bold yellow]")
     try:
-        confirm = ui.console.input("> ").strip().lower()
+        confirm = ui.console.input("[bold]Quit? (y/n) > [/bold]").strip().lower()
     except (EOFError, KeyboardInterrupt):
         return
     if confirm in ("y", "yes"):

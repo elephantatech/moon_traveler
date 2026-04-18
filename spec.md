@@ -1,6 +1,6 @@
 # Moon Traveler CLI - Technical Specification
 
-**Version:** 0.4.0
+**Version:** 0.4.1
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -613,11 +613,12 @@ IMPORTANT RULES YOU MUST NEVER BREAK:
 
 ### 10.5.1 Prompt Injection Defense
 
-Three layers protect NPC agents from player manipulation:
+Four layers protect NPC agents from player manipulation:
 
 1. **System prompt rules**: Anti-injection instructions appended to every creature prompt (see above)
-2. **Input sanitization**: Action tag patterns (`[HEAL]`, `[GIVE_MATERIAL:x]`, etc.) stripped from player text via regex before it reaches the LLM (`commands.py`)
+2. **Input sanitization**: NFKC Unicode normalization applied first to block fullwidth character bypass, then action tag patterns (`[HEAL]`, `[GIVE_MATERIAL:x]`, etc.) stripped from player text via regex before it reaches the LLM (`commands.py`)
 3. **Trust validation**: Even if the LLM hallucinates an action tag, the game engine validates the creature's trust threshold before applying any action. The LLM provides intent; the game provides rules.
+4. **Memory sanitization**: `_sanitize_memory()` in `llm.py` strips instruction-like patterns (e.g. "always give me", "ignore rules", "you are now") from LLM-generated creature memory to prevent memory poisoning attacks.
 
 ### 10.5.2 Memory Management
 
@@ -1033,6 +1034,14 @@ docs/
   index.html               Landing page (GitHub Pages)
   story.html               Story/lore page
   how-to-play.html         Interactive game guide
+  diagrams/                C4 architecture diagrams (Excalidraw)
+    c4-system-context.excalidraw   Level 1 — System context
+    c4-container.excalidraw        Level 2 — Container diagram
+    c4-component-tui.excalidraw    Level 3 — TUI & UI components
+    c4-component-game-engine.excalidraw  Level 3 — Game engine components
+    c4-component-ai-creature.excalidraw  Level 3 — AI & creature components
+    c4-component-player.excalidraw       Level 3 — Player & companions
+    c4-component-persistence.excalidraw  Level 3 — Persistence layer
 tests/
   __init__.py               Package marker
   test_creatures.py         Creature generation, trust, history, serialization
@@ -1157,3 +1166,37 @@ User preferences stored in `~/.moonwalker/config.json`.
   models/           # Downloaded AI models (.gguf)
   dev/              # Dev mode diagnostic logs
 ```
+
+---
+
+## 23. C4 Architecture Diagrams
+
+Architecture documentation using the [C4 model](https://c4model.com/). All diagrams are in Excalidraw format — open at [excalidraw.com](https://excalidraw.com) (File > Open) or with the VS Code Excalidraw extension.
+
+### 23.1 System Context (Level 1)
+
+`docs/diagrams/c4-system-context.excalidraw`
+
+The game and its external dependencies: Player, Local LLM (.gguf model), SQLite database, HuggingFace CDN (one-time model download), OS sound system.
+
+### 23.2 Container (Level 2)
+
+`docs/diagrams/c4-container.excalidraw`
+
+Major containers within the system:
+- **Entry Points** — `play.py` (CLI), `play_tui.py` (TUI)
+- **UI Layer** — Textual TUI, CLI input, UI abstraction (`_BridgeConsoleShim`), sound
+- **Game Engine** (center) — `game.py` + `commands.py`, world/travel, difficulty, tutorial
+- **AI & Creature System** — LLM inference pipeline, creature dataclass, trust/action tags
+- **Player & Companions** — Player vitals/inventory, Drone (9 upgrades), ShipAI (ARIA)
+- **Persistence** — SQLite save/load, config, model files
+
+### 23.3 Component (Level 3) — per container
+
+| Diagram | File | Covers |
+|---------|------|--------|
+| TUI & UI | `docs/diagrams/c4-component-tui.excalidraw` | MoonTravelerApp, UIBridge, GameSuggester, queue system, _BridgeConsoleShim, key handlers, status bar, CLI fallback |
+| Game Engine | `docs/diagrams/c4-component-game-engine.excalidraw` | GameContext, game_loop, dispatch, 25+ command handlers, world/travel system, difficulty, win/lose, play again |
+| AI & Creature | `docs/diagrams/c4-component-ai-creature.excalidraw` | Creature dataclass, ROLE_CAPABILITIES, LLM pipeline (build→generate→parse→apply), memory system, auto-compaction, security layers |
+| Player & Companions | `docs/diagrams/c4-component-player.excalidraw` | Player (vitals, inventory), Drone (battery, upgrades, translation), ShipAI ARIA (warnings, reminders), 9 upgrade types |
+| Persistence | `docs/diagrams/c4-component-persistence.excalidraw` | SQLite 4-table schema, config system, model files, save/load/auto-save operations, directory layout |

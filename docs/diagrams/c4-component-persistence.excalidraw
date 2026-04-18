@@ -1,0 +1,25 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "moon-traveler",
+  "elements": [
+    {"type": "text", "id": "title", "x": 280, "y": 10, "width": 400, "height": 30, "text": "C4 Component — Persistence Layer", "fontSize": 22, "fontFamily": 1, "textAlign": "center", "strokeColor": "#dce0ee"},
+    {"type": "rectangle", "id": "boundary", "x": 30, "y": 50, "width": 840, "height": 380, "strokeColor": "#8ca4be", "backgroundColor": "transparent", "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "dashed", "roundness": {"type": 3}},
+    {"type": "text", "id": "boundary_t", "x": 50, "y": 55, "width": 400, "height": 20, "text": "Persistence Container [save_load.py + config.py]", "fontSize": 12, "fontFamily": 1, "strokeColor": "#8ca4be"},
+    {"type": "rectangle", "id": "sqlite", "x": 50, "y": 85, "width": 380, "height": 140, "strokeColor": "#8ca4be", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "sqlite_t", "x": 60, "y": 90, "width": 360, "height": 130, "text": "SQLite Database\n[~/.moonwalker/saves/moon_traveler.db]\n\nsaves — slot, key, value (game state as JSON)\nsave_meta — slot, version, created_at, updated_at\nchat_history — slot, creature_id, role, content\ncreature_memory — slot, creature_id, memory\n\nSave format version: v4 · Named slots + autosave", "fontSize": 11, "fontFamily": 1, "textAlign": "left", "strokeColor": "#8ca4be"},
+    {"type": "rectangle", "id": "config", "x": 470, "y": 85, "width": 380, "height": 80, "strokeColor": "#8ca4be", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "config_t", "x": 480, "y": 90, "width": 360, "height": 70, "text": "Config System\n[~/.moonwalker/config.json]\nsave_dir · gpu_mode (auto/gpu/cpu)\ncontext_size · sound_enabled · tutorial_completed\nLazy-loaded, cached in _config dict", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#8ca4be"},
+    {"type": "rectangle", "id": "models", "x": 470, "y": 180, "width": 380, "height": 45, "strokeColor": "#8ca4be", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "models_t", "x": 480, "y": 185, "width": 360, "height": 35, "text": "LLM Model Files\n~/.moonwalker/models/*.gguf — 1.2 to 4.4 GB", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#8ca4be"},
+    {"type": "rectangle", "id": "save", "x": 50, "y": 250, "width": 240, "height": 70, "strokeColor": "#c89450", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "save_t", "x": 60, "y": 255, "width": 220, "height": 60, "text": "save_game()\nSerialize GameContext → JSON blobs\nWrite to saves + chat_history tables\ncreature_memory written separately", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
+    {"type": "rectangle", "id": "load", "x": 320, "y": 250, "width": 240, "height": 70, "strokeColor": "#c89450", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "load_t", "x": 330, "y": 255, "width": 220, "height": 60, "text": "load_game()\nRead JSON blobs → reconstruct state\nRestore conversation_history per creature\nVersion validation on load", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
+    {"type": "rectangle", "id": "auto", "x": 590, "y": 250, "width": 240, "height": 70, "strokeColor": "#c89450", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "auto_t", "x": 600, "y": 255, "width": 220, "height": 60, "text": "auto_save()\nTriggers: travel, talk, give, trade, quit\nWrites to \"autosave\" slot\nNon-blocking, silent on failure", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
+    {"type": "rectangle", "id": "dir", "x": 50, "y": 345, "width": 800, "height": 40, "strokeColor": "#7c84a4", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "dir_t", "x": 60, "y": 350, "width": 780, "height": 30, "text": "~/.moonwalker/ directory structure\nconfig.json · saves/moon_traveler.db · models/*.gguf · dev/dev_diagnostics.jsonl", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#7c84a4"}
+  ],
+  "appState": {"viewBackgroundColor": "#0a0d18", "gridSize": null}
+}

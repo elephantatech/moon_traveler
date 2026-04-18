@@ -210,7 +210,8 @@ class TestAutoCharge:
         d.battery = 50.0
         p = Player()
         messages = execute_travel(p, d, crash, origin, random.Random(42), game_mode="long")
-        # Should see crash site recharge but NOT auto-charge message
+        # No auto-recharge at crash site — player must use ship charging bay
         msg_text = " ".join(messages)
         assert "Auto-charge" not in msg_text
-        assert d.battery == d.battery_max  # Full recharge at crash site
+        assert d.battery < d.battery_max  # Battery NOT auto-recharged
+        assert "ship charging" in msg_text  # Tip to recharge manually

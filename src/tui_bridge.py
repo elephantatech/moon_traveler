@@ -79,7 +79,9 @@ class UIBridge:
             done.set()
 
         self._app.call_from_thread(_enter)
-        done.wait(timeout=5)
+        if not done.wait(timeout=10):
+            # Textual main thread unresponsive — fall back to avoid deadlock
+            raise KeyboardInterrupt
 
         result = self._ask_queue.get()  # Blocks worker thread
 
@@ -91,7 +93,9 @@ class UIBridge:
             exit_done.set()
 
         self._app.call_from_thread(_exit)
-        exit_done.wait(timeout=5)
+        if not exit_done.wait(timeout=10):
+            # Force exit ask mode from worker thread as fallback
+            self._app._ask_mode = False
 
         self._restore_prompt_label()
         if result is None:
