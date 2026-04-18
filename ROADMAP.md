@@ -856,6 +856,8 @@ These are bugs and quick wins that should ship before any new features:
 | **P1** | #2 Drone service boot messages — immersive loading | S | Polish: feels like debug output currently |
 | **P1** | #1 Responsive status bar — wrap on narrow terminals | M | Truncated on small screens |
 | **P1** | #30 Security fixes — already committed, needs release tag | S | Path traversal, prompt injection |
+| **P1** | #31 LLM memory poisoning — sanitize instruction patterns | S | Player can manipulate creature memory |
+| **P1** | #32 Unicode action tag smuggling — NFKC normalization | S | Fullwidth chars bypass input sanitizer |
 
 ### v0.5.0 — Gameplay & Diagnostics (next major, 2-3 weeks)
 
@@ -866,6 +868,8 @@ Core gameplay improvements that make the game harder and more interesting, plus 
 | **P0** | #28 Required creature escorts for ship repair | M | Game too easy without forced relationships |
 | **P0** | #7 Session stats tracker | S | Foundation for post-game screen and achievements |
 | **P0** | #8 Post-game stats screen with score | M | Depends on #7. Gives players a goal beyond "win" |
+| **P1** | #33 Model download integrity — SHA-256 checksums | S | No hash verification on .gguf files |
+| **P1** | #34 Save file integrity — validate on load | M | Tampered saves can inject LLM prompts |
 | **P1** | #9 LLM performance diagnostics in dev mode | S | Needed for optimization work |
 | **P1** | #4 Screen reader mode | M | Accessibility — important for wider audience |
 | **P2** | #5 Text-to-speech output mode | L | Accessibility — depends on #4 |
