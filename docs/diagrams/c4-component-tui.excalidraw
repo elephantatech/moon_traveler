@@ -1,0 +1,44 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "moon-traveler",
+  "elements": [
+    {"type": "text", "id": "title", "x": 300, "y": 10, "width": 400, "height": 30, "text": "C4 Component — TUI & UI Layer", "fontSize": 22, "fontFamily": 1, "textAlign": "center", "strokeColor": "#dce0ee"},
+
+    {"type": "rectangle", "id": "boundary", "x": 30, "y": 50, "width": 840, "height": 470, "strokeColor": "#5caa78", "backgroundColor": "transparent", "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "dashed", "roundness": {"type": 3}},
+    {"type": "text", "id": "boundary_t", "x": 50, "y": 55, "width": 500, "height": 20, "text": "TUI Container [tui_app.py + tui_bridge.py + ui.py + input_handler.py]", "fontSize": 12, "fontFamily": 1, "strokeColor": "#5caa78"},
+
+    {"type": "rectangle", "id": "app", "x": 50, "y": 85, "width": 240, "height": 90, "strokeColor": "#5caa78", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "app_t", "x": 60, "y": 90, "width": 220, "height": 80, "text": "MoonTravelerApp\n[Textual App — Main Thread]\nHeader, RichLog, StatusBar, Input\non_mount → run_worker(thread=True)", "fontSize": 12, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
+
+    {"type": "rectangle", "id": "bridge", "x": 320, "y": 85, "width": 240, "height": 90, "strokeColor": "#5caa78", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "bridge_t", "x": 330, "y": 90, "width": 220, "height": 80, "text": "UIBridge\n[Thread-safe bridge]\nprint() → call_from_thread(log.write)\ninput() → ask_mode + Event barrier\nget_command() → blocks on queue", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
+
+    {"type": "rectangle", "id": "suggester", "x": 590, "y": 85, "width": 200, "height": 90, "strokeColor": "#5caa78", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "suggester_t", "x": 600, "y": 90, "width": 180, "height": 80, "text": "GameSuggester\n[Textual Suggester]\nTab cycling through\nmultiple candidates\nCommands, locations, items", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
+
+    {"type": "rectangle", "id": "queues", "x": 50, "y": 200, "width": 350, "height": 80, "strokeColor": "#c89450", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "queues_t", "x": 60, "y": 205, "width": 330, "height": 70, "text": "Queue System\ncommand_queue: user commands → worker thread\nask_queue: sub-prompts (y/n, trade) → worker\ncall_from_thread(): worker → main thread UI updates", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
+
+    {"type": "rectangle", "id": "shim", "x": 430, "y": 200, "width": 380, "height": 80, "strokeColor": "#c89450", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
+    {"type": "text", "id": "shim_t", "x": 440, "y": 205, "width": 360, "height": 70, "text": "_BridgeConsoleShim\n[15-line proxy in ui.py]\nprint(*args) → bridge.print() or real_console.print()\ninput(prompt) → bridge.input() or real_console.input()", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
+
+    {"type": "rectangle", "id": "keys", "x": 50, "y": 310, "width": 230, "height": 80, "strokeColor": "#5caa78", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "keys_t", "x": 60, "y": 315, "width": 210, "height": 70, "text": "Key Event Handlers\nTab → _handle_tab() cycling\nUp/Down → command history\nF12 → take_screenshot()\nCtrl+C → None sentinel → clean exit", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
+
+    {"type": "rectangle", "id": "status", "x": 310, "y": 310, "width": 230, "height": 80, "strokeColor": "#c89450", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "status_t", "x": 320, "y": 315, "width": 210, "height": 70, "text": "render_status_bar()\nFood/Water/Suit/Battery bars\nShip repair progress\nCreature trust when talking\nUpdates after every exchange", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
+
+    {"type": "rectangle", "id": "cli", "x": 570, "y": 310, "width": 230, "height": 80, "strokeColor": "#8ca4be", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "cli_t", "x": 580, "y": 315, "width": 210, "height": 70, "text": "CLI Fallback Path\ninput_handler.py\nGameCompleter (prompt_toolkit)\nBottom toolbar (HTML format)\nUsed when play.py (no Textual)", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#8ca4be"},
+
+    {"type": "rectangle", "id": "main_thread", "x": 50, "y": 420, "width": 380, "height": 40, "strokeColor": "#5caa78", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "main_t", "x": 60, "y": 425, "width": 360, "height": 30, "text": "MAIN THREAD (Textual async) — NEVER BLOCKS\nRendering, key events, widget updates, screenshot export", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
+
+    {"type": "rectangle", "id": "worker_thread", "x": 460, "y": 420, "width": 380, "height": 40, "strokeColor": "#c85050", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 1, "roundness": {"type": 3}},
+    {"type": "text", "id": "worker_t", "x": 470, "y": 425, "width": 360, "height": 30, "text": "WORKER THREAD (Game sync) — CAN BLOCK 60s\ngame_loop(), cmd_talk(), llm.generate_response()", "fontSize": 10, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c85050"},
+
+    {"type": "text", "id": "insight", "x": 200, "y": 490, "width": 500, "height": 20, "text": "Key insight: 1,800 lines of game logic run unchanged — the shim routes all I/O", "fontSize": 13, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"}
+  ],
+  "appState": {"viewBackgroundColor": "#0a0d18", "gridSize": null}
+}

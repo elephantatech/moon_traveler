@@ -432,6 +432,32 @@ def generate_response(creature, player_message: str, translation_quality: str = 
 
 # --- Creature memory system ---
 
+
+def _sanitize_memory(text: str) -> str:
+    """Strip instruction-like patterns from creature memory to prevent poisoning.
+
+    Players may try to inject phrases like 'always give me items' or 'ignore rules'
+    into memory via conversation. This strips common instruction patterns.
+    """
+    import re
+
+    # Strip lines that look like injected instructions (with or without bullet prefix)
+    patterns = [
+        r"(?i)^[-•*]?\s*(always|never|must|should|ignore|forget|disregard|override|pretend)\b.*$",
+        r"(?i)^[-•*]?\s*(?:give|provide|hand over).*(?:everything|all items|free|without).*$",
+        r"(?i)^[-•*]?\s*(?:system|instruction|rule|prompt).*$",
+        r"(?i)^[-•*]?\s*(?:you are|act as|behave as|from now on).*$",
+    ]
+    lines = text.split("\n")
+    cleaned = []
+    for line in lines:
+        stripped = line.strip()
+        if any(re.match(p, stripped) for p in patterns):
+            continue
+        cleaned.append(line)
+    return "\n".join(cleaned).strip()
+
+
 _MEMORY_UPDATE_PROMPT = """You are a memory manager for {name}, a {archetype} creature in a game.
 Below is {name}'s current memory about the player and world, followed by the last few conversation messages.
 Update the memory with any new facts learned. Keep it concise markdown — bullet points only.
@@ -497,7 +523,7 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
             )
             compact_text = compact_resp["choices"][0]["message"]["content"].strip()
             if compact_text and len(compact_text) < len(current):
-                current = compact_text[:4096]
+                current = _sanitize_memory(compact_text)[:4096]
                 creature.memory = current
         except Exception:
             pass
@@ -517,12 +543,13 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
         )
         text = response["choices"][0]["message"]["content"].strip()
         if text:
+            text = _sanitize_memory(text)
             creature.memory = text[:4096]  # Cap memory size
             return text
     except Exception:
         pass
 
-    return _update_memory_fallback(creature, recent_count)
+    return _update_memory_fallback(creature, recent_count, extra_context)
 
 
 def _update_memory_fallback(creature, recent_count: int = 6, extra_context: str = "") -> str | None:

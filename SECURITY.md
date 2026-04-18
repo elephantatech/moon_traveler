@@ -84,8 +84,8 @@ These are not foolproof — small models (2B parameters) can be gradually jailbr
 
 | Risk | Severity | Status | Issue |
 |------|----------|--------|-------|
-| LLM memory poisoning via instruction patterns | Medium | Planned v0.4.1 | #31 |
-| Unicode action tag smuggling | Medium | Planned v0.4.1 | #32 |
+| LLM memory poisoning via instruction patterns | Medium | **Fixed v0.4.1** — `_sanitize_memory()` | #31 |
+| Unicode action tag smuggling | Medium | **Fixed v0.4.1** — NFKC normalization | #32 |
 | No integrity check on downloaded AI models | Medium | Planned v0.5.0 | #33 |
 | Save file tampering | Medium | Planned v0.5.0 | #34 |
 | Multi-turn LLM jailbreak | Low | Accepted | — |

@@ -109,6 +109,7 @@ def show_win_sequence(ctx: GameContext):
 
     ui.console.print("[bold green]" + "=" * 60 + "[/bold green]")
     ui.console.print("\n[bold]MISSION COMPLETE[/bold]\n")
+    return True  # Signal game ended
 
 
 def show_lose_sequence(ctx: GameContext):
@@ -135,6 +136,17 @@ def show_lose_sequence(ctx: GameContext):
     ui.narrate_lines(lose_lines, pause=0.5)
     ui.console.print("[bold red]" + "=" * 60 + "[/bold red]")
     ui.console.print("\n[bold]GAME OVER[/bold]\n")
+    return True  # Signal game ended
+
+
+def _prompt_play_again() -> bool:
+    """Ask if the player wants to start a new game. Returns True to play again."""
+    ui.console.print()
+    try:
+        answer = ui.console.input("[bold]Play again? (y/n) > [/bold] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        return False
+    return answer in ("y", "yes")
 
 
 def apply_super_mode(ctx: GameContext):
@@ -198,8 +210,8 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
     )
 
 
-def game_loop(ctx: GameContext):
-    """Main game loop."""
+def game_loop(ctx: GameContext) -> bool:
+    """Main game loop. Returns True if game ended (win/lose), False if player quit."""
     # Create prompt session — prompt_toolkit for CLI, bridge for Textual
     use_bridge = ui._bridge is not None
     session = None if use_bridge else input_handler.create_prompt_session(ctx)
@@ -214,7 +226,7 @@ def game_loop(ctx: GameContext):
             if ctx.dev_mode:
                 ctx.dev_mode.debug("game_win", hours=ctx.player.hours_elapsed)
             show_win_sequence(ctx)
-            break
+            return True
 
         if check_lose(ctx):
             if ctx.dev_mode:
@@ -226,7 +238,7 @@ def game_loop(ctx: GameContext):
                     hours=ctx.player.hours_elapsed,
                 )
             show_lose_sequence(ctx)
-            break
+            return True
 
         # Status bar
         loc = ctx.current_location()
@@ -316,7 +328,7 @@ def game_loop(ctx: GameContext):
         if ctx.should_quit:
             ctx.do_auto_save()
             ui.info("Goodbye, traveler.")
-            break
+            return False
 
 
 def _parse_flags() -> tuple[bool, bool]:
@@ -329,7 +341,7 @@ def _parse_flags() -> tuple[bool, bool]:
 
 
 def main():
-    """Entry point."""
+    """Entry point. Runs game sessions in a loop (play-again restarts without recursion)."""
     dev_flag, super_flag = _parse_flags()
 
     # Restore sound preference from config
@@ -354,7 +366,15 @@ def main():
     if is_first_run():
         prompt_save_location()
 
-    # Check for existing saves
+    # Play-again loop — iterative, no recursion, no LLM reload
+    while True:
+        game_ended = _run_session(dev_flag, super_flag)
+        if not (game_ended and _prompt_play_again()):
+            break
+
+
+def _run_session(dev_flag: bool, super_flag: bool) -> bool:
+    """Run a single game session (new or loaded). Returns True if game ended (win/lose)."""
     from src.save_load import list_saves, load_game
 
     saves = list_saves()
@@ -371,22 +391,11 @@ def main():
         try:
             slot = ui.console.input("[bold]Load which slot? > [/bold]").strip()
         except (EOFError, KeyboardInterrupt):
-            return
+            return False
 
         state = load_game(slot)
         if state:
-            # GPU/CPU mode — auto-detect from config
-            from src.config import get_gpu_mode
-
-            gpu_setting = get_gpu_mode()
-            if gpu_setting == "auto":
-                gpu_info = llm.detect_gpu()
-                load_gpu_mode = "gpu" if gpu_info["available"] else "cpu"
-            else:
-                load_gpu_mode = gpu_setting
-
-            llm.maybe_download_model()
-            llm.load_model(gpu_mode=load_gpu_mode)
+            _ensure_llm_loaded()
 
             ship_ai = state.get("ship_ai", ShipAI())
             if isinstance(ship_ai, dict):
@@ -437,8 +446,7 @@ def main():
                     ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
                 except Exception:
                     pass
-            game_loop(ctx)
-            return
+            return game_loop(ctx)
         else:
             ui.error("Failed to load. Starting new game.")
 
@@ -447,25 +455,10 @@ def main():
         "Choose game length:",
         ["Easy (~30 min)", "Medium (~1-2 hours)", "Hard (~3+ hours)", "Brutal (~5+ hours)"],
     )
-    # Map display names to internal keys
     _mode_map = {"easy": "short", "medium": "medium", "hard": "long", "brutal": "brutal"}
     mode_key = _mode_map.get(mode.split()[0].lower(), "short")
 
-    # GPU/CPU mode — auto-detect from config, no prompt
-    from src.config import get_gpu_mode
-
-    gpu_setting = get_gpu_mode()
-    if gpu_setting == "auto":
-        gpu_info = llm.detect_gpu()
-        gpu_mode = "gpu" if gpu_info["available"] else "cpu"
-    else:
-        gpu_mode = gpu_setting
-    mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
-    ui.dim(f"Compute mode: {mode_label} (change with 'config gpu cpu' or 'config gpu auto')")
-
-    # Download model if needed, then load LLM
-    llm.maybe_download_model()
-    llm.load_model(gpu_mode=gpu_mode)
+    _ensure_llm_loaded()
 
     ctx = init_game(mode_key)
 
@@ -492,4 +485,23 @@ def main():
         mode_key,
     )
 
-    game_loop(ctx)
+    return game_loop(ctx)
+
+
+def _ensure_llm_loaded():
+    """Load the LLM model if not already loaded. Skips reload on play-again."""
+    if llm.is_available():
+        return
+    from src.config import get_gpu_mode
+
+    gpu_setting = get_gpu_mode()
+    if gpu_setting == "auto":
+        gpu_info = llm.detect_gpu()
+        gpu_mode = "gpu" if gpu_info["available"] else "cpu"
+    else:
+        gpu_mode = gpu_setting
+    mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
+    ui.dim(f"Compute mode: {mode_label} (change with 'config gpu cpu' or 'config gpu auto')")
+
+    llm.maybe_download_model()
+    llm.load_model(gpu_mode=gpu_mode)
