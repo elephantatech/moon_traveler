@@ -34,10 +34,20 @@ def _patched_game_loop(ctx):
     return _original_game_loop(ctx)
 
 
+LOG_FILE = Path("screenshot_debug.log")
+
+
+def log(msg):
+    """Write to a log file (print is captured by Textual)."""
+    with open(LOG_FILE, "a") as f:
+        f.write(msg + "\n")
+
+
 async def screenshot_pilot(pilot):
     """Inject commands via queue and capture screenshots."""
 
     ASSETS_DIR.mkdir(exist_ok=True)
+    LOG_FILE.write_text("")  # Clear log
     app = pilot.app
 
     async def take(name, desc):
@@ -45,16 +55,16 @@ async def screenshot_pilot(pilot):
         app.refresh()
         await pilot.pause(0.5)
         app.save_screenshot(str(ASSETS_DIR / f"{name}.svg"))
-        print(f"  Saved: assets/{name}.svg — {desc}")
+        log(f"  Saved: assets/{name}.svg — {desc}")
 
     async def send(text, wait=4.0):
-        print(f"  >>> send command: {text!r}")
+        log(f"  >>> send command: {text!r}")
         app.command_queue.put(text)
         await pilot.pause(wait)
 
     async def respond(text, wait=2.0):
         """Send a response to the ask_queue (for prompts like y/n, menus)."""
-        print(f"  >>> respond: {text!r}  (ask_mode={app._ask_mode})")
+        log(f"  >>> respond: {text!r}  (ask_mode={app._ask_mode})")
         if app._bridge:
             app._bridge.push_response(text)
         else:
@@ -71,14 +81,14 @@ async def screenshot_pilot(pilot):
         elapsed = 0.0
         while elapsed < timeout:
             if app._ask_mode:
-                print(f"  ... ask_mode detected after {elapsed:.1f}s")
+                log(f"  ... ask_mode detected after {elapsed:.1f}s")
                 return True
             await pilot.pause(0.3)
             elapsed += 0.3
-        print(f"  ... ask_mode TIMEOUT after {timeout}s")
+        log(f"  ... ask_mode TIMEOUT after {timeout}s")
         return False
 
-    print("Taking TUI screenshots...\n")
+    log("Taking TUI screenshots...")
 
     # Wait for app to mount and bridge to be ready
     await pilot.pause(3.0)
@@ -101,7 +111,7 @@ async def screenshot_pilot(pilot):
     _ctx_ready.wait(timeout=30)
     ctx = _game_ctx
     if not ctx:
-        print("  ERROR: Could not capture game context. Exiting.")
+        log("  ERROR: Could not capture game context. Exiting.")
         app.command_queue.put(None)
         return
 
@@ -209,14 +219,14 @@ async def screenshot_pilot(pilot):
     while not app._bridge._ask_queue.empty():
         try:
             app._bridge._ask_queue.get_nowait()
-            print("  WARN: drained stale ask_queue entry")
+            log("  WARN: drained stale ask_queue entry")
         except Exception:
             break
 
     # Verify we're at crash site with materials
-    print(f"  Location: {ctx.player.location_name}")
-    print(f"  Inventory: {dict(ctx.player.inventory)}")
-    print(f"  Checklist: {ctx.repair_checklist}")
+    log(f"  Location: {ctx.player.location_name}")
+    log(f"  Inventory: {dict(ctx.player.inventory)}")
+    log(f"  Checklist: {ctx.repair_checklist}")
 
     # Ship repair — send command and immediately start polling for the y/n prompt
     app.command_queue.put("ship repair")
@@ -229,16 +239,20 @@ async def screenshot_pilot(pilot):
         # Victory sequence: narrated lines + launch art + ally list + MISSION COMPLETE
         # Wait for the play-again prompt as signal that everything rendered
         if await wait_for_ask_mode(timeout=45.0):
+            # Let the RichLog scroll to show the full victory sequence
+            await pilot.pause(3.0)
+            app.refresh()
+            await pilot.pause(1.0)
             await take("tui-victory", "Victory — mission complete")
             await respond("n", wait=2.0)  # Decline play-again
         else:
-            print("  WARN: play-again prompt not detected, taking screenshot anyway")
+            log("  WARN: play-again prompt not detected, taking screenshot anyway")
             await take("tui-victory", "Victory (may be incomplete)")
     else:
-        print("  WARN: repair prompt not detected — materials may not be in inventory")
+        log("  WARN: repair prompt not detected — materials may not be in inventory")
         await take("tui-ship-repair", "Ship repair status")
 
-    print(f"\nDone! Screenshots saved to {ASSETS_DIR}/")
+    log(f"Done! Screenshots saved to {ASSETS_DIR}/")
     app.command_queue.put(None)
     await pilot.pause(1.0)
 
