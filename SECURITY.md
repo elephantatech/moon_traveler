@@ -124,7 +124,6 @@ All user data lives in `~/.moonwalker/`:
 | llama-cpp-python | Medium | Wraps C++ code. Parses GGUF binary format. Attack surface for malicious model files. |
 | textual | Low | Pure Python TUI framework. No network access. |
 | rich | Low | Terminal rendering. Markup injection possible if text is not escaped. |
-| prompt_toolkit | Low | Input handling. No security-critical operations. |
 | psutil | Low | System metrics for dev mode. Read-only. |
 
 ## Security Checklist for Contributors

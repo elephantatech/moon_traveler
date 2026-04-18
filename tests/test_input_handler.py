@@ -137,3 +137,37 @@ class TestGiveCompletion:
         results = get_suggestions(s, "give Ice Crystal to ")
         creature_names = [r.rsplit(" ", 1)[-1] for r in results]
         assert "Kael" in creature_names
+
+
+class TestDroneCompletion:
+    def test_drone_shows_subcommands(self):
+        ctx = FakeCtx()
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "drone ")
+        subs = [r.split(" ", 1)[1] for r in results]
+        assert "status" in subs
+        assert "upgrade" in subs
+        assert "charge" in subs
+
+    def test_drone_partial_subcommand(self):
+        ctx = FakeCtx()
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "drone up")
+        assert any("upgrade" in r for r in results)
+
+    def test_upgrade_alias_shows_upgrade_items(self):
+        ctx = FakeCtx()
+        ctx.player.inventory["range_module"] = 1
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "upgrade ")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Range Module" in names
+
+    def test_ship_shows_bays(self):
+        ctx = FakeCtx()
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "ship ")
+        bays = [r.split(" ", 1)[1] for r in results]
+        assert "repair" in bays
+        assert "storage" in bays
+        assert "charging" in bays

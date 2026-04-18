@@ -26,7 +26,7 @@ Effort scale: **S** (< 1 day), **M** (1–3 days), **L** (3–7 days), **XL** (1
 
 **Release target:** Next tag push after final QA pass.
 
-This release delivers a fully interactive Textual-based TUI alongside the existing CLI (`play.py`), plus difficulty modes, drone improvements, and audio.
+This release delivers a fully interactive Textual-based TUI (`play_tui.py`), plus difficulty modes, drone improvements, and audio. CLI mode was removed in v0.4.2.
 
 ### What is built and ready
 
@@ -34,7 +34,7 @@ This release delivers a fully interactive Textual-based TUI alongside the existi
 - `MoonTravelerApp` runs the full game in a worker thread via `run_worker(thread=True)`
 - `UIBridge` provides thread-safe `write()`, `print()`, `input()`, and `ask()` paths between the worker and Textual's async event loop
 - `_BridgeConsoleShim` in `src/ui.py` intercepts all `console.print()` and `console.input()` calls so the entire game routes through Textual without changes to game logic
-- Tab-cycling autocomplete via `GameSuggester` (Textual Suggester subclass) sharing logic with `GameCompleter` (prompt_toolkit)
+- Tab-cycling autocomplete via `GameSuggester` (Textual Suggester subclass)
 - Up/down arrow command history (in-session, not persisted)
 - F12 screenshot export to `assets/screenshot-TIMESTAMP.svg`
 - Header bar, scrollable `RichLog` output pane, fixed status bar, and prompt label+input field layout defined in `src/game.tcss`
