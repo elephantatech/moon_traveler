@@ -90,7 +90,7 @@ class TestHazardEvents:
         for seed in range(100):
             p = Player(suit_integrity=92.0)
             rng = random.Random(seed)
-            execute_travel(p, Drone(), dest, current, rng)
+            execute_travel(p, Drone(), dest, current, rng)  # side effects only
             if p.suit_integrity < 92.0:
                 damage_occurred = True
                 break
@@ -209,7 +209,7 @@ class TestAutoCharge:
         d.auto_charge_enabled = True
         d.battery = 50.0
         p = Player()
-        messages = execute_travel(p, d, crash, origin, random.Random(42), game_mode="long")
+        messages, _, _ = execute_travel(p, d, crash, origin, random.Random(42), game_mode="long")
         # No auto-recharge at crash site — player must use ship charging bay
         msg_text = " ".join(messages)
         assert "Auto-charge" not in msg_text

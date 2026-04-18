@@ -79,6 +79,7 @@ HELP_TEXT = """
 
 [bold]Player:[/bold]
   [cyan]status[/cyan]               — Show player vitals (food, water, suit, time)
+  [cyan]stats[/cyan]                — Show session gameplay statistics
   [cyan]rest[/cyan]                 — Rest 1 hour (+10% food/water, +20% at ship)
 
 [bold]Ship:[/bold]
@@ -142,6 +143,10 @@ class GameContext:
         self.should_load = False
         self.loaded_state: dict | None = None
         self.easter_egg_announced = False
+
+        from src.stats import SessionStats
+
+        self.stats: SessionStats = SessionStats()
 
     def current_location(self) -> Location:
         for loc in self.locations:
@@ -408,7 +413,11 @@ def cmd_travel(ctx: GameContext, args: str):
             battery_before=round(ctx.drone.battery, 1),
         )
 
-    messages = execute_travel(ctx.player, ctx.drone, dest, cur, ctx.rng, ctx.ship_ai, ctx.locations, ctx.world_mode)
+    messages, travel_km, hazards_hit = execute_travel(
+        ctx.player, ctx.drone, dest, cur, ctx.rng, ctx.ship_ai, ctx.locations, ctx.world_mode
+    )
+    ctx.stats.km_traveled += travel_km
+    ctx.stats.hazards_survived += hazards_hit
     for msg in messages:
         ui.console.print(msg)
 
@@ -478,6 +487,7 @@ def cmd_take(ctx: GameContext, args: str):
         ctx.player.add_item(item_name)
         display = item_name.replace("_", " ").title()
         ui.success(f"Picked up: {display}")
+        ctx.stats.items_collected += 1
         if ctx.dev_mode:
             ctx.dev_mode.debug("item_pickup", item=item_name, location=loc.name, inventory_count=ctx.player.total_items)
         # Hint if this is a needed repair material
@@ -539,6 +549,8 @@ def cmd_talk(ctx: GameContext, args: str):
     if initial_tip:
         ui.console.print(initial_tip)
         ui.console.print()
+
+    ctx.stats.creatures_talked.add(creature.id)
 
     exchange_count = 0
     conversation_start_idx = len(creature.conversation_history)
@@ -633,6 +645,10 @@ def cmd_talk(ctx: GameContext, args: str):
             action_msgs = llm.apply_actions(actions, ctx.player, ctx.drone, creature, ctx.repair_checklist)
             for msg in action_msgs:
                 ui.console.print(msg)
+            # Track LLM-initiated trades in session stats
+            for act in actions:
+                if act.get("action") == "TRADE":
+                    ctx.stats.trades += 1
 
         # Trust gain from conversation (scaled by difficulty)
         from src.difficulty import EASTER_EGG_TRUST_MULTIPLIER, check_junk_easter_egg, get_difficulty
@@ -775,6 +791,7 @@ def cmd_give(ctx: GameContext, args: str):
     ctx.player.remove_item(item_part)
     display = item_part.replace("_", " ").title()
     ui.success(f"You give {display} to {creature.name}.")
+    ctx.stats.gifts_given += 1
 
     # Trust increase from gift (scaled by difficulty)
     from src.difficulty import EASTER_EGG_TRUST_MULTIPLIER, check_junk_easter_egg, get_difficulty
@@ -894,6 +911,7 @@ def cmd_trade(ctx: GameContext, args: str):
     give_display = give_item.replace("_", " ").title()
     sound.play("trade")
     ui.success(f"Traded! You gave {give_display} and received {get_display}.")
+    ctx.stats.trades += 1
 
     if ctx.dev_mode:
         ctx.dev_mode.debug(
@@ -1163,6 +1181,30 @@ def cmd_status(ctx: GameContext, args: str):
         ctx.player.inventory,
         ctx.player.suit_integrity,
     )
+
+
+def cmd_stats(ctx: GameContext, args: str):
+    """Show session gameplay statistics."""
+    if not ctx.stats:
+        ui.error("Session stats failed to initialize. Please report this bug.")
+        return
+
+    from rich.table import Table
+
+    s = ctx.stats
+    table = Table(title="Session Stats", border_style="cyan", show_header=False)
+    table.add_column("Stat", style="bold")
+    table.add_column("Value")
+
+    table.add_row("Real time", s.elapsed_display)
+    table.add_row("Commands typed", str(s.commands))
+    table.add_row("Distance traveled", f"{s.km_traveled:.1f} km")
+    table.add_row("Creatures talked to", str(len(s.creatures_talked)))
+    table.add_row("Hazards survived", str(s.hazards_survived))
+    table.add_row("Trades completed", str(s.trades))
+    table.add_row("Gifts given", str(s.gifts_given))
+    table.add_row("Items collected", str(s.items_collected))
+    ui.console.print(table)
 
 
 def cmd_ship(ctx: GameContext, args: str):
@@ -1876,6 +1918,7 @@ COMMANDS = {
     "drone": cmd_drone,
     "upgrade": cmd_upgrade,
     "status": cmd_status,
+    "stats": cmd_stats,
     "ship": cmd_ship,
     "repair": cmd_ship,
     "rest": cmd_rest,
@@ -1905,6 +1948,7 @@ def dispatch(ctx: GameContext, raw_input: str):
 
     handler = COMMANDS.get(cmd)
     if handler:
+        ctx.stats.commands += 1
         handler(ctx, args)
     else:
         ui.error(f"Unknown command: '{cmd}'. Type 'help' for available commands.")
