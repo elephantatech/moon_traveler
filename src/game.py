@@ -109,6 +109,7 @@ def show_win_sequence(ctx: GameContext):
 
     ui.console.print("[bold green]" + "=" * 60 + "[/bold green]")
     ui.console.print("\n[bold]MISSION COMPLETE[/bold]\n")
+    return True  # Signal game ended
 
 
 def show_lose_sequence(ctx: GameContext):
@@ -135,6 +136,17 @@ def show_lose_sequence(ctx: GameContext):
     ui.narrate_lines(lose_lines, pause=0.5)
     ui.console.print("[bold red]" + "=" * 60 + "[/bold red]")
     ui.console.print("\n[bold]GAME OVER[/bold]\n")
+    return True  # Signal game ended
+
+
+def _prompt_play_again() -> bool:
+    """Ask if the player wants to start a new game. Returns True to play again."""
+    ui.console.print()
+    try:
+        answer = ui.console.input("[bold]Play again? (y/n) > [/bold] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        return False
+    return answer in ("y", "yes")
 
 
 def apply_super_mode(ctx: GameContext):
@@ -438,6 +450,8 @@ def main():
                 except Exception:
                     pass
             game_loop(ctx)
+            if _prompt_play_again():
+                main(dev_flag=dev_flag, super_flag=super_flag)
             return
         else:
             ui.error("Failed to load. Starting new game.")
@@ -493,3 +507,5 @@ def main():
     )
 
     game_loop(ctx)
+    if _prompt_play_again():
+        main(dev_flag=dev_flag, super_flag=super_flag)

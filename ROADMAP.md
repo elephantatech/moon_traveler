@@ -849,15 +849,16 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 
 These are bugs and quick wins that should ship before any new features:
 
-| Priority | Issue | Effort | Impact |
+| Priority | Issue | Effort | Status |
 |----------|-------|--------|--------|
-| **P0** | #27 Game exits after win/lose — return to menu | S | Players lose the app on every game end |
-| **P0** | #3 Status bar not updating during conversations | S | Players can't see trust/vitals changing |
+| **P0** | #27 Game exits after win/lose — return to menu | S | **Fixed** — play-again prompt after win/lose |
+| **P0** | #3 Status bar not updating during conversations | S | **Fixed** — render_status_bar() after each exchange |
+| **P0** | #35 NPC memory only captures last 6 msgs, misses current conversation | S | **Fixed** — tracks conversation start index |
+| **P1** | #31 LLM memory poisoning — sanitize instruction patterns | S | **Fixed** — _sanitize_memory() strips injections |
+| **P1** | #32 Unicode action tag smuggling — NFKC normalization | S | **Fixed** — unicodedata.normalize before regex |
+| **P1** | #30 Security fixes — already committed, needs release tag | S | Path traversal, prompt injection |
 | **P1** | #2 Drone service boot messages — immersive loading | S | Polish: feels like debug output currently |
 | **P1** | #1 Responsive status bar — wrap on narrow terminals | M | Truncated on small screens |
-| **P1** | #30 Security fixes — already committed, needs release tag | S | Path traversal, prompt injection |
-| **P1** | #31 LLM memory poisoning — sanitize instruction patterns | S | Player can manipulate creature memory |
-| **P1** | #32 Unicode action tag smuggling — NFKC normalization | S | Fullwidth chars bypass input sanitizer |
 
 ### v0.5.0 — Gameplay & Diagnostics (next major, 2-3 weeks)
 
