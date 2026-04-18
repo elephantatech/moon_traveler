@@ -1,0 +1,49 @@
+repos:
+  # Python lint + format
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.12
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # Markdown lint
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.17.2
+    hooks:
+      - id: markdownlint-cli2
+        args: [--fix]
+
+  # Shell script lint (uses locally installed shellcheck)
+  - repo: local
+    hooks:
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck --severity=warning
+        language: system
+        types: [shell]
+
+  # YAML lint
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: [-d, "{extends: relaxed, rules: {line-length: {max: 150}}}"]
+
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-ast
+      - id: debug-statements
+      - id: check-toml

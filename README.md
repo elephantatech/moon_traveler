@@ -61,11 +61,13 @@ All models run on CPU. GPU (CUDA/Metal/Vulkan) is optional for faster inference.
 ### Quick install (pre-built binary)
 
 **macOS / Linux:**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex
 ```
@@ -101,6 +103,7 @@ python play_tui.py
 Features a fixed status bar, scrollable game log, tab-autocomplete with cycling, command history (Up/Down arrows), and F12 screenshots.
 
 **Flags:**
+
 ```bash
 python play_tui.py --dev     # Start with dev mode enabled
 python play_tui.py --super   # Start with max trust, all items, full upgrades (testing)
@@ -108,6 +111,7 @@ python play_tui.py --dev --super  # Both
 ```
 
 On startup you'll choose:
+
 1. **Difficulty** — Easy (~30 min), Medium (~1-2 hours), Hard (~3+ hours), Brutal (~5+ hours)
 2. **Compute mode** (auto-detected from config, changeable with `config gpu`)
 
@@ -225,18 +229,24 @@ This creates standalone executables for Windows, macOS, and Linux in the `dist/`
 
 ## Development
 
+### Development Setup
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Pre-commit hooks automatically run ruff, markdownlint, shellcheck, and file hygiene checks on every commit.
+
 ### Running Tests
 
 ```bash
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
-### Code Style
+### Code Quality
 
-The project uses [ruff](https://github.com/astral-sh/ruff) for linting:
-```bash
-ruff check src/ tests/
-```
+The project uses [ruff](https://github.com/astral-sh/ruff) for Python linting and formatting, [markdownlint](https://github.com/DavidAnson/markdownlint-cli2) for Markdown, and [shellcheck](https://www.shellcheck.net/) for shell scripts. All checks run automatically via pre-commit hooks and in CI.
 
 ## Project Structure
 

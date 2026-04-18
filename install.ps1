@@ -6,7 +6,7 @@ $Repo = "elephantatech/moon_traveler"
 $InstallDir = if ($env:MOON_TRAVELER_INSTALL_DIR) { $env:MOON_TRAVELER_INSTALL_DIR } else { "$env:LOCALAPPDATA\Programs\moon-traveler" }
 
 Write-Host ""
-Write-Host "Moon Traveler CLI Installer" -ForegroundColor Cyan
+Write-Host "Moon Traveler Terminal Installer" -ForegroundColor Cyan
 Write-Host ""
 
 # Get latest version
@@ -66,7 +66,7 @@ if ($UserPath -notlike "*$InstallDir*") {
 }
 
 Write-Host ""
-Write-Host "  Moon Traveler CLI $Version installed!" -ForegroundColor Green
+Write-Host "  Moon Traveler Terminal $Version installed!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Location: $InstallDir" -ForegroundColor DarkGray
 Write-Host "  Data:     $env:USERPROFILE\.moonwalker\" -ForegroundColor DarkGray

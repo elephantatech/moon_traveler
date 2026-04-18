@@ -138,9 +138,9 @@
             <circle cx="22" cy="0" r="7" fill="#febc2e"/>
             <circle cx="44" cy="0" r="7" fill="#28c840"/>
             </g>
-        
+
     <g transform="translate(9, 41)" clip-path="url(#terminal-3220181721-clip-terminal)">
-    
+
     <g class="terminal-3220181721-matrix">
     <text class="terminal-3220181721-r1" x="1220" y="20" textLength="12.2" clip-path="url(#terminal-3220181721-line-0)">
 </text><text class="terminal-3220181721-r2" x="0" y="44.4" textLength="61" clip-path="url(#terminal-3220181721-line-1)">Goal:</text><text class="terminal-3220181721-r1" x="61" y="44.4" textLength="951.6" clip-path="url(#terminal-3220181721-line-1)">&#160;Collect&#160;repair&#160;materials&#160;and&#160;install&#160;them&#160;at&#160;the&#160;Crash&#160;Site&#160;to&#160;fix&#160;your&#160;ship.</text><text class="terminal-3220181721-r1" x="1220" y="44.4" textLength="12.2" clip-path="url(#terminal-3220181721-line-1)">

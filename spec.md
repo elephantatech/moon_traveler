@@ -56,16 +56,19 @@ psutil
 ## 2. Entry Point
 
 ### `play_tui.py` — Entry Point
+
 Launches the Textual `MoonTravelerApp` which runs `game.main()` in a worker thread with the UIBridge console shim active.
 
 ### Flags
 
 Supports:
+
 - `--dev` — Start with dev mode enabled (diagnostic logging)
 - `--super` — Start with max trust, all repair materials, full drone upgrades (testing)
 - `--dev --super` — Both
 
 ### `src/game.py` — `main()`
+
 1. Parse `--dev` and `--super` flags
 2. TUI boot sequence displays title and ARIA intro
 3. Check for existing saves → offer "New Game" / "Load Game"
@@ -131,6 +134,7 @@ class Location:
 | settlement | 1 | — | cargo_rack, translator_chip, autopilot_chip | No | No |
 
 **Notes:**
+
 - World item drops are reduced. Creatures are the primary source of repair materials.
 - Each location gets 0-1 items.
 - A post-generation pass guarantees at least one food source and one water source exist in every world.
@@ -186,6 +190,7 @@ class Player:
 ### 5.2 Suit Repair
 
 At the Crash Site, the `ship` command offers suit repair:
+
 - Cost: 1% drone battery per 2% suit integrity restored
 - Restores up to 100% or until battery runs out
 - Requires minimum 10% drone battery
@@ -265,6 +270,7 @@ Hostile creatures chase the player away with words, not violence. They are defen
 | High | 70-100 | Full cooperation, shares materials and knowledge |
 
 **Trust gain:**
+
 - Conversation: +3 per message exchange
 - Gift: +15 (friendly/neutral), +10 (hostile)
 
@@ -386,8 +392,9 @@ class Drone:
 ### 7.3 Speech System
 
 Two voice modes:
+
 - **`speak(message)`** — Visible drone commentary: `[bold magenta]DRONE:[/bold magenta] message`
-- **`whisper(message)`** — Private to player: `  [dim magenta]< DRONE >[/dim magenta] message`
+- **`whisper(message)`** — Private to player: `[dim magenta]< DRONE >[/dim magenta] message`
 
 ### 7.4 Travel Musings
 
@@ -398,12 +405,14 @@ Pool of 15 pre-written observations. Selected via `get_travel_musing(rng)`. Retu
 `get_smart_advice(creature, player, repair_checklist, rng)` provides context-aware hints:
 
 **When LLM available:** Short secondary LLM call (~50 token response) suggesting a specific question the player should ask, based on:
+
 - Creature's archetype and what they can provide
 - Items in creature's `role_inventory` that the player needs
 - Current trust level vs. required threshold
 - Recent conversation context
 
 **When LLM unavailable:** Smart template fallback:
+
 - If creature has needed materials but trust is below threshold: states the target trust
 - If trust is high enough: suggests asking about specific material
 - If Healer and player is hurt: reminds player Healers help even at low trust
@@ -416,6 +425,7 @@ Returns `None` if battery is 0.
 ### 7.6 Translation Framing
 
 `get_translation_frame(rng)` selects flavor text per quality level:
+
 - **Low:** 3 options (e.g., "Signal noisy... reconstructing meaning...")
 - **Medium:** 3 options (e.g., "Translation mostly clear. A few gaps.")
 - **High:** 2 options (e.g., "Clear signal. Translation is clean.")
@@ -507,6 +517,7 @@ The environment is the primary danger source (not creatures). During travel, haz
 ### 9.6 Late-Game Weather Escalation
 
 After `hours_elapsed >= 40` (60 in long mode), weather deteriorates:
+
 - Hazard probabilities increase by +5% per 10 hours past threshold
 - Ice storms become more frequent
 - Water drain rate increases by 0.5%/hr
@@ -543,6 +554,7 @@ Screen clears before travel. On arrival: if Autopilot Chip is installed and dron
 ### 10.1 GPU Detection
 
 `detect_gpu()` checks for GPU offload support via:
+
 1. `llama_cpp.llama_supports_gpu_offload()`
 2. `llama_cpp.LLAMA_SUPPORTS_GPU_OFFLOAD`
 3. Backend-specific constants (GGML_USE_CUDA, GGML_USE_METAL, GGML_USE_VULKAN)
@@ -625,6 +637,7 @@ Four layers protect NPC agents from player manipulation:
 **Auto-compaction**: When memory exceeds 2048 characters, a compaction LLM call condenses it to the 15 most important facts before the regular update runs. This prevents memory bloat in long games.
 
 **Token budget per inference call**:
+
 ```
 System prompt (base)        ~400 tokens
 Creature memory             ~200 tokens (capped)
@@ -716,11 +729,13 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 ### 11.3 Ship Repair (cmd_ship)
 
 At Crash Site:
+
 1. Shows repair checklist table
 2. Lists installable materials from inventory → prompts to install
 3. Offers suit repair using drone battery (if suit <100% and battery >=10%)
 
 Away from Crash Site:
+
 - Shows checklist only with hint to return
 
 ---
@@ -770,6 +785,7 @@ Both crash-site and exploring status bars show `Inv {current}/{max}` using `play
 ### 12.5 GPS Resource Markers
 
 GPS table includes a "Resources" column showing food/water availability for **visited** locations only:
+
 - `🍎` for food source
 - `🚰` for water source
 
@@ -806,14 +822,14 @@ Non-blocking: wrong commands don't nag.
 2. **Auto-skip for returning players**: if `tutorial_completed` is true in config, shows "Welcome back, Commander." and skips to gameplay. No prompt.
 3. First-time players see crash art + full boot sequence:
 4. `ARIA SYSTEM v4.2.1 — INITIALIZING`
-3. Ship Diagnostics: hull 23%, life support degraded, propulsion/nav/comms offline, power backup
-4. Environment Scan: temp -201C, gravity 0.0113g, atmosphere trace, radiation low
-5. Crew Vitals: food%, water%, suit%
-6. Repair Assessment: components needed, components found, repair class
-7. Drone deployment: `"Deploying ARIA Scout Drone..."`
-8. `CONNECTION ESTABLISHED`
-9. Drone intro: `"Online and operational. I'll handle translation, scanning, and keeping you alive out there."`
-10. ARIA opening lines + tutorial hint
+5. Ship Diagnostics: hull 23%, life support degraded, propulsion/nav/comms offline, power backup
+6. Environment Scan: temp -201C, gravity 0.0113g, atmosphere trace, radiation low
+7. Crew Vitals: food%, water%, suit%
+8. Repair Assessment: components needed, components found, repair class
+9. Drone deployment: `"Deploying ARIA Scout Drone..."`
+10. `CONNECTION ESTABLISHED`
+11. Drone intro: `"Online and operational. I'll handle translation, scanning, and keeping you alive out there."`
+12. ARIA opening lines + tutorial hint
 
 ---
 
@@ -919,6 +935,7 @@ Events: scan, travel_start, travel_arrive, item_pickup, trust_change, llm_action
 ### 17.2 Conversation Design
 
 Creature prompts are written to make creatures feel like real people:
+
 - They have lives, families, concerns, opinions (from generated backstory)
 - They ask the player questions back, showing genuine curiosity
 - Hostile creatures are defensive, not evil — protecting territory and people
@@ -964,6 +981,33 @@ dist/
 ### 18.4 Cross-Compilation
 
 Not supported. Must build on each target platform.
+
+### 18.5 CI Pipeline (`.github/workflows/ci.yml`)
+
+Triggered on pull requests to `main`. 6 parallel jobs:
+
+| Job | Tool | Checks |
+|-----|------|--------|
+| test | pytest | All Python tests pass |
+| lint | ruff | Python lint + format |
+| markdown | markdownlint-cli2 | Markdown formatting |
+| shellcheck | shellcheck | Bash scripts |
+| powershell-lint | PSScriptAnalyzer | PowerShell scripts |
+| actionlint | actionlint | GitHub Actions workflow syntax |
+
+### 18.6 Release Pipeline (`.github/workflows/release.yml`)
+
+Triggered on tag push (`v*`). Builds PyInstaller binaries for Linux, Windows, macOS. Creates GitHub Release with archives and checksums.
+
+### 18.7 Pages Deployment (`.github/workflows/pages.yml`)
+
+Triggered on release published or manual `workflow_dispatch`. Deploys `docs/` to GitHub Pages.
+
+### 18.8 Pre-commit Hooks (`.pre-commit-config.yaml`)
+
+12 hooks run locally before every commit: ruff (lint + format), markdownlint-cli2, shellcheck, yamllint, trailing-whitespace, end-of-file-fixer, mixed-line-ending (LF), check-ast, debug-statements, check-yaml/json/toml, check-merge-conflict, check-added-large-files.
+
+Setup: `pip install pre-commit && pre-commit install`
 
 ---
 
@@ -1180,6 +1224,7 @@ The game and its external dependencies: Player, Local LLM (.gguf model), SQLite 
 `docs/diagrams/c4-container.excalidraw`
 
 Major containers within the system:
+
 - **Entry Point** — `play_tui.py` (Textual TUI)
 - **UI Layer** — Textual TUI, CLI input, UI abstraction (`_BridgeConsoleShim`), sound
 - **Game Engine** (center) — `game.py` + `commands.py`, world/travel, difficulty, tutorial
