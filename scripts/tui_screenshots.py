@@ -48,11 +48,13 @@ async def screenshot_pilot(pilot):
         print(f"  Saved: assets/{name}.svg — {desc}")
 
     async def send(text, wait=4.0):
+        print(f"  >>> send command: {text!r}")
         app.command_queue.put(text)
         await pilot.pause(wait)
 
     async def respond(text, wait=2.0):
         """Send a response to the ask_queue (for prompts like y/n, menus)."""
+        print(f"  >>> respond: {text!r}  (ask_mode={app._ask_mode})")
         if app._bridge:
             app._bridge.push_response(text)
         else:
@@ -69,9 +71,11 @@ async def screenshot_pilot(pilot):
         elapsed = 0.0
         while elapsed < timeout:
             if app._ask_mode:
+                print(f"  ... ask_mode detected after {elapsed:.1f}s")
                 return True
             await pilot.pause(0.3)
             elapsed += 0.3
+        print(f"  ... ask_mode TIMEOUT after {timeout}s")
         return False
 
     print("Taking TUI screenshots...\n")
