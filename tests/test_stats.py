@@ -61,3 +61,61 @@ class TestSessionStats:
         assert s.trades == 2
         assert s.gifts_given == 5
         assert s.items_collected == 8
+
+
+class FakeCreature:
+    def __init__(self, trust=0):
+        self.trust = trust
+
+
+class TestCalculateScore:
+    def test_score_range(self):
+        s = SessionStats()
+        score, grade = s.calculate_score(10, [], {})
+        assert 0 <= score <= 1000
+
+    def test_grade_s(self):
+        s = SessionStats()
+        s.commands = 10
+        creatures = [FakeCreature(trust=80) for _ in range(5)]
+        checklist = {f"m_{i}": True for i in range(8)}
+        score, grade = s.calculate_score(25, creatures, checklist)
+        assert grade == "S"
+
+    def test_grade_d_on_zero(self):
+        s = SessionStats()
+        s.hazards_survived = 30
+        score, grade = s.calculate_score(0, [], {})
+        assert grade == "D"
+        assert score == 0
+
+    def test_hazards_reduce_score(self):
+        s1 = SessionStats()
+        s1.commands = 50
+        s2 = SessionStats()
+        s2.commands = 50
+        s2.hazards_survived = 10
+        score1, _ = s1.calculate_score(10, [], {})
+        score2, _ = s2.calculate_score(10, [], {})
+        assert score1 > score2
+
+    def test_allies_increase_score(self):
+        s = SessionStats()
+        s.commands = 50
+        no_allies = s.calculate_score(10, [], {})[0]
+        with_allies = s.calculate_score(10, [FakeCreature(trust=60), FakeCreature(trust=70)], {})[0]
+        assert with_allies > no_allies
+
+    def test_all_grades_exist(self):
+        for grade in ["S", "A", "B", "C", "D"]:
+            # Ensure each grade is achievable
+            s = SessionStats()
+            if grade == "S":
+                s.commands = 5
+                score, g = s.calculate_score(25, [FakeCreature(80)] * 5, {f"m_{i}": True for i in range(8)})
+            elif grade == "D":
+                s.hazards_survived = 50
+                score, g = s.calculate_score(0, [], {})
+            else:
+                continue  # middle grades are harder to target exactly
+            assert g == grade

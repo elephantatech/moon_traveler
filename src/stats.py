@@ -17,6 +17,43 @@ class SessionStats:
     gifts_given: int = 0
     items_collected: int = 0
 
+    def calculate_score(self, hours_elapsed: int, creatures: list, repair_checklist: dict) -> tuple[int, str]:
+        """Calculate final score and letter grade.
+
+        Returns (score, grade) where score is 0-1000 and grade is S/A/B/C/D.
+        """
+        # Base: reward survival time
+        base = min(500, hours_elapsed * 20)
+
+        # Bonus: creature relationships and repair progress
+        allies = sum(1 for c in creatures if c.trust > 50)
+        repairs_done = sum(1 for v in repair_checklist.values() if v)
+        bonus = allies * 50 + repairs_done * 50
+
+        # Efficiency: reward fewer commands and less distance (did more with less)
+        efficiency = 0
+        if self.commands > 0:
+            efficiency = min(200, max(0, 200 - self.commands))
+
+        # Deductions
+        deduction = self.hazards_survived * 15
+
+        raw = base + bonus + efficiency - deduction
+        score = max(0, min(1000, raw))
+
+        if score >= 900:
+            grade = "S"
+        elif score >= 750:
+            grade = "A"
+        elif score >= 600:
+            grade = "B"
+        elif score >= 450:
+            grade = "C"
+        else:
+            grade = "D"
+
+        return score, grade
+
     @property
     def elapsed_seconds(self) -> float:
         """Real-world seconds since session started."""
