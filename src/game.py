@@ -212,6 +212,9 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
 
 def game_loop(ctx: GameContext) -> bool:
     """Main game loop. Returns True if game ended (win/lose), False if player quit."""
+    if ui._bridge is None:
+        raise RuntimeError("game_loop() requires TUI bridge — launch via play_tui.py")
+
     # Initial look
     cmd_look(ctx, "")
     ui.console.print()

@@ -1,6 +1,6 @@
 # Moon Traveler Terminal - Technical Specification
 
-**Version:** 0.4.1
+**Version:** 0.4.2
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
