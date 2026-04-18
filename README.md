@@ -229,19 +229,24 @@ This creates standalone executables for Windows, macOS, and Linux in the `dist/`
 
 ## Development
 
+### Development Setup
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Pre-commit hooks automatically run ruff, markdownlint, shellcheck, and file hygiene checks on every commit.
+
 ### Running Tests
 
 ```bash
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
-### Code Style
+### Code Quality
 
-The project uses [ruff](https://github.com/astral-sh/ruff) for linting:
-
-```bash
-ruff check src/ tests/
-```
+The project uses [ruff](https://github.com/astral-sh/ruff) for Python linting and formatting, [markdownlint](https://github.com/DavidAnson/markdownlint-cli2) for Markdown, and [shellcheck](https://www.shellcheck.net/) for shell scripts. All checks run automatically via pre-commit hooks and in CI.
 
 ## Project Structure
 
