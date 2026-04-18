@@ -195,7 +195,7 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
     tutorial = TutorialManager()
     dev_mode = DevMode()
 
-    return GameContext(
+    ctx = GameContext(
         player=player,
         drone=drone,
         locations=world["locations"],
@@ -208,6 +208,7 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
         tutorial=tutorial,
         dev_mode=dev_mode,
     )
+    return ctx
 
 
 def game_loop(ctx: GameContext) -> bool:

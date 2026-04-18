@@ -236,8 +236,8 @@ def execute_travel(
     ship_ai=None,
     locations: list[Location] | None = None,
     game_mode: str = "medium",
-) -> list[str]:
-    """Move player to destination. Returns list of event messages."""
+) -> tuple[list[str], float, int]:
+    """Move player to destination. Returns (messages, distance_km, hazards_hit)."""
     distance = current.distance_to(destination.x, destination.y)
     hours = calculate_travel_time(distance, drone)
     hours_int = max(1, round(hours))
@@ -303,6 +303,7 @@ def execute_travel(
         player.water = max(0, player.water - extra_water_drain)
 
     # Hazard events — environment is the primary danger
+    hazards_hit = 0
     num_hazard_rolls = min(3, max(1, hours_int // 2))
     for _ in range(num_hazard_rolls):
         for hazard in HAZARD_EVENTS:
@@ -349,6 +350,7 @@ def execute_travel(
                         )
                     else:
                         messages.append(ship_ai.speak("Damage sustained. Check your status, Commander."))
+                hazards_hit += 1
                 break  # max 1 hazard per roll
 
     # Item find chance (scaled by difficulty)
@@ -424,4 +426,4 @@ def execute_travel(
     if destination.loc_type == "crash_site" and drone.battery < drone.battery_max:
         messages.append("[dim]Tip: Use 'ship charging' to recharge your drone.[/dim]")
 
-    return messages
+    return messages, distance, hazards_hit

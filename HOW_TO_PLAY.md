@@ -85,6 +85,7 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 | Command | Aliases | What it does |
 |---|---|---|
 | `status` | — | Show food, water, suit integrity, time elapsed, and repair progress |
+| `stats` | — | Show session gameplay statistics (commands, km, creatures, hazards) |
 | `ship` | `repair` | Ship bays menu — or use `ship <bay>` directly |
 | `ship repair` | — | Install repair materials into the ship |
 | `ship storage` | — | Stash/retrieve items from ship storage |
