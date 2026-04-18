@@ -235,11 +235,20 @@ async def screenshot_pilot(pilot):
     # Wait for the "Install all? (y/n)" prompt
     if await wait_for_ask_mode(timeout=15.0):
         await take("tui-repair-prompt", "Repair install prompt")
-        await respond("y", wait=3.0)
-        # Victory sequence: narrated lines + launch art + ally list + MISSION COMPLETE
-        # Wait for the play-again prompt as signal that everything rendered
+        await respond("y", wait=1.0)
+
+        # Wait for ask_mode to go FALSE (repair prompt dismissed)
+        log("  ... waiting for ask_mode to clear...")
+        for _ in range(30):
+            if not app._ask_mode:
+                log("  ... ask_mode cleared")
+                break
+            await pilot.pause(0.5)
+
+        # Now wait for ask_mode to go TRUE again (play-again prompt after victory)
+        log("  ... waiting for play-again prompt...")
         if await wait_for_ask_mode(timeout=45.0):
-            # Let the RichLog scroll to show the full victory sequence
+            # Let the RichLog finish scrolling the victory sequence
             await pilot.pause(3.0)
             app.refresh()
             await pilot.pause(1.0)
@@ -253,8 +262,9 @@ async def screenshot_pilot(pilot):
         await take("tui-ship-repair", "Ship repair status")
 
     log(f"Done! Screenshots saved to {ASSETS_DIR}/")
-    app.command_queue.put(None)
-    await pilot.pause(1.0)
+    # Give the worker time to finish, then force exit
+    await pilot.pause(3.0)
+    app.exit()
 
 
 if __name__ == "__main__":
