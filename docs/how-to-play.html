@@ -360,8 +360,7 @@
     <pre><code>python play_tui.py</code></pre>
     <p>You'll be asked to choose:</p>
     <ol>
-      <li><strong>Game length</strong> &mdash; Short, Medium, or Long</li>
-      <li><strong>Compute mode</strong> &mdash; CPU + GPU or CPU Only (if a GPU is detected)</li>
+      <li><strong>Difficulty</strong> &mdash; Easy (~30 min), Medium (~1-2 hr), Hard (~3+ hr), or Brutal (~5+ hr)</li>
     </ol>
     <p>
       If no AI model is found, the game offers to download one automatically. Choose between
@@ -627,9 +626,10 @@
     <table>
       <thead><tr><th>Mode</th><th>Materials Required</th></tr></thead>
       <tbody>
-        <tr><td><strong>Short</strong></td><td>Ice Crystal, Metal Shard, Bio Gel</td></tr>
+        <tr><td><strong>Easy</strong></td><td>Ice Crystal, Metal Shard, Bio Gel</td></tr>
         <tr><td><strong>Medium</strong></td><td>+ Circuit Board, Power Cell</td></tr>
-        <tr><td><strong>Long</strong></td><td>+ Thermal Paste, Hull Patch, Antenna Array</td></tr>
+        <tr><td><strong>Hard</strong></td><td>+ Thermal Paste, Hull Patch, Antenna Array</td></tr>
+        <tr><td><strong>Brutal</strong></td><td>+ Power Cell &times;2 (8 materials total)</td></tr>
       </tbody>
     </table>
 
@@ -652,16 +652,18 @@
   <section class="guide-section" id="game-modes">
     <h2>Game Modes</h2>
     <table>
-      <thead><tr><th></th><th>Short</th><th>Medium</th><th>Long</th></tr></thead>
+      <thead><tr><th></th><th>Easy</th><th>Medium</th><th>Hard</th><th>Brutal</th></tr></thead>
       <tbody>
-        <tr><td><strong>Locations</strong></td><td>~8</td><td>~16</td><td>~30</td></tr>
-        <tr><td><strong>Creatures</strong></td><td>5</td><td>12</td><td>20</td></tr>
-        <tr><td><strong>World Radius</strong></td><td>~20 km</td><td>~40 km</td><td>~60 km</td></tr>
-        <tr><td><strong>Repair Materials</strong></td><td>3</td><td>5</td><td>8</td></tr>
-        <tr><td><strong>Estimated Time</strong></td><td>~30 min</td><td>~1&ndash;2 hours</td><td>~3+ hours</td></tr>
+        <tr><td><strong>Locations</strong></td><td>~8</td><td>~16</td><td>~30</td><td>~40</td></tr>
+        <tr><td><strong>Creatures</strong></td><td>5</td><td>12</td><td>20</td><td>25</td></tr>
+        <tr><td><strong>Hostile</strong></td><td>0</td><td>4</td><td>6</td><td>12</td></tr>
+        <tr><td><strong>World Radius</strong></td><td>~20 km</td><td>~40 km</td><td>~60 km</td><td>~80 km</td></tr>
+        <tr><td><strong>Repair Materials</strong></td><td>3</td><td>5</td><td>8</td><td>8</td></tr>
+        <tr><td><strong>Resource Drain</strong></td><td>1&times;</td><td>1&times;</td><td>1&times;</td><td>1.5&times;</td></tr>
+        <tr><td><strong>Estimated Time</strong></td><td>~30 min</td><td>~1&ndash;2 hr</td><td>~3+ hr</td><td>~5+ hr</td></tr>
       </tbody>
     </table>
-    <p>Longer modes have more hostile creatures, greater distances, and require careful resource management.</p>
+    <p>Higher difficulties have more hostile creatures, scarcer resources, and require careful resource management. Brutal mode adds 1.5&times; resource drain.</p>
   </section>
 
   <!-- TIPS -->
