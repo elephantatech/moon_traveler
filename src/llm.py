@@ -432,6 +432,7 @@ def generate_response(creature, player_message: str, translation_quality: str = 
 
 # --- Creature memory system ---
 
+
 def _sanitize_memory(text: str) -> str:
     """Strip instruction-like patterns from creature memory to prevent poisoning.
 
