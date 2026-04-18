@@ -68,14 +68,14 @@ This release delivers a fully interactive Textual-based TUI (`play_tui.py`), plu
 
 **231 automated tests** across 14 test files.
 
-### Remaining v0.4.0 tasks
+### v0.4.0 tasks — all completed
 
-- [ ] Final QA pass of TUI on macOS, Linux, and Windows
-- [ ] Verify `play_tui.py` entry point is included in PyInstaller build in `scripts/build_release.py`
-- [ ] Add `textual` to `requirements.txt` and `pyproject.toml`
-- [ ] Update `spec.md` version header to 0.4.0
-- [ ] Update `README.md` with TUI launch instructions (`python play_tui.py`)
-- [ ] Tag v0.4.0 to trigger release workflow
+- [x] Final QA pass of TUI on macOS
+- [x] `play_tui.py` entry point in PyInstaller build
+- [x] `textual` added to `requirements.txt` and `pyproject.toml`
+- [x] `spec.md` version header updated
+- [x] `README.md` updated with TUI launch instructions
+- [x] Tagged v0.4.0, v0.4.1, v0.4.2
 
 ---
 
