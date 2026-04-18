@@ -250,7 +250,7 @@ async def screenshot_pilot(pilot):
                 await pilot.pause(3.0)
                 app.refresh()
                 await pilot.pause(1.0)
-                await take("tui-victory", "Victory — mission complete")
+                await take("tui-victory", "Victory + post-game score screen")
                 await respond("n", wait=2.0)  # Decline play-again
                 victory_captured = True
                 break
