@@ -201,20 +201,24 @@ async def screenshot_pilot(pilot):
     await send("look", wait=3.0)
     await take("tui-crash-return-look", "Crash site after exploring")
 
-    # Ship repair
-    await send("ship repair", wait=5.0)
+    # Ship repair — send command and immediately start polling for the y/n prompt
+    app.command_queue.put("ship repair")
+    await pilot.pause(1.0)
 
     # Wait for the "Install all? (y/n)" prompt
-    if await wait_for_ask_mode(timeout=10.0):
+    if await wait_for_ask_mode(timeout=15.0):
         await take("tui-repair-prompt", "Repair install prompt")
-        await respond("y", wait=5.0)
-        # Victory sequence: 17 narrated lines × 0.5s = ~9s + install msgs + play-again prompt
-        # Wait for the full sequence to finish rendering, then take screenshot
-        # The play-again prompt means game_loop returned and ask_mode fires again
-        if await wait_for_ask_mode(timeout=30.0):
+        await respond("y", wait=3.0)
+        # Victory sequence: narrated lines + launch art + ally list + MISSION COMPLETE
+        # Wait for the play-again prompt as signal that everything rendered
+        if await wait_for_ask_mode(timeout=45.0):
             await take("tui-victory", "Victory — mission complete")
             await respond("n", wait=2.0)  # Decline play-again
+        else:
+            print("  WARN: play-again prompt not detected, taking screenshot anyway")
+            await take("tui-victory", "Victory (may be incomplete)")
     else:
+        print("  WARN: repair prompt not detected — materials may not be in inventory")
         await take("tui-ship-repair", "Ship repair status")
 
     print(f"\nDone! Screenshots saved to {ASSETS_DIR}/")
