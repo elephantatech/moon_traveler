@@ -178,3 +178,36 @@ class TestDroneCompletion:
         assert "repair" in bays
         assert "storage" in bays
         assert "charging" in bays
+
+
+class TestInspectCompletion:
+    def test_inspect_shows_inventory_items(self):
+        ctx = FakeCtx()
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "inspect ")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Ice Crystal" in names
+        assert "Metal Shard" in names
+
+    def test_examine_alias_works(self):
+        ctx = FakeCtx()
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "examine ")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Ice Crystal" in names
+
+
+class TestAliasCompletion:
+    def test_go_completes_locations(self):
+        ctx = FakeCtx()
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "go ")
+        names = [r.split(" ", 1)[1] for r in results]
+        assert "Crystal Ridge" in names
+
+    def test_repair_alias_shows_bays(self):
+        ctx = FakeCtx()
+        s = GameSuggester(ctx)
+        results = get_suggestions(s, "repair ")
+        bays = [r.split(" ", 1)[1] for r in results]
+        assert "storage" in bays

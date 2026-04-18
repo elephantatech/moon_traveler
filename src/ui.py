@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-_bridge = None  # Set by tui_app when Textual mode is active
+_bridge = None  # Set by tui_app on startup
 
 
 def set_bridge(bridge):
@@ -442,5 +442,5 @@ def render_status_bar(
         names = " ".join(f"[bold]{escape(c.name)}[/bold]" for c in followers)
         markup += f"  [dim]│[/dim]  [dim]Following:[/dim] {names}"
 
-    if _bridge:
+    if _bridge:  # Guard for test/headless contexts where bridge is not set
         _bridge.update_status_bar(markup)

@@ -1833,7 +1833,7 @@ def cmd_upgrade(ctx: GameContext, args: str):
 def cmd_screenshot(ctx: GameContext, args: str):
     """Save a screenshot."""
     if not ui._bridge:
-        ui.error("Screenshots require TUI mode.")
+        ui.error("Screenshot unavailable (display bridge not initialized).")
         return
     try:
         path = ui._bridge.take_screenshot()
