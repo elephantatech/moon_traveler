@@ -81,13 +81,8 @@ HELP_TEXT = """
   [cyan]status[/cyan]               — Show player vitals (food, water, suit, time)
   [cyan]rest[/cyan]                 — Rest 1 hour (+10% food/water, +20% at ship)
 
-[bold]Ship (Crash Site):[/bold]
-  [cyan]ship[/cyan]                 — Ship bays overview
-  [cyan]ship repair[/cyan]          — Install repair materials to fix the ship
-  [cyan]ship storage[/cyan]         — Stash/retrieve items from ship storage
-  [cyan]ship kitchen[/cyan]         — Cook bio_gel (+40% food) or ice_crystal (+40% water)
-  [cyan]ship charging[/cyan]        — Recharge drone battery, overcharge, auto-charge toggle
-  [cyan]ship medical[/cyan]         — Repair suit (costs battery) or rest to recover
+[bold]Ship:[/bold]
+  [cyan]ship[/cyan]                 — Show repair progress (bays available at Crash Site)
 
 [bold]System:[/bold]
   [cyan]save[/cyan] [slot]          — Save game (default: 'manual')
@@ -232,8 +227,20 @@ def parse_command(raw: str) -> tuple[str, str]:
 # --- Command handlers ---
 
 
+SHIP_HELP = """
+[bold]Ship Bays (Crash Site):[/bold]
+  [cyan]ship repair[/cyan]          — Install repair materials to fix the ship
+  [cyan]ship storage[/cyan]         — Stash/retrieve items from ship storage
+  [cyan]ship kitchen[/cyan]         — Cook bio_gel (+40% food) or ice_crystal (+40% water)
+  [cyan]ship charging[/cyan]        — Recharge drone battery, overcharge, auto-charge toggle
+  [cyan]ship medical[/cyan]         — Repair suit (costs battery) or rest to recover
+"""
+
+
 def cmd_help(ctx: GameContext, args: str):
     ui.console.print(HELP_TEXT)
+    if ctx.player.location_name == "Crash Site":
+        ui.console.print(SHIP_HELP)
 
 
 def cmd_look(ctx: GameContext, args: str):
