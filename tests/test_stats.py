@@ -106,16 +106,45 @@ class TestCalculateScore:
         with_allies = s.calculate_score(10, [FakeCreature(trust=60), FakeCreature(trust=70)], {})[0]
         assert with_allies > no_allies
 
-    def test_all_grades_exist(self):
+    def test_grade_a(self):
+        s = SessionStats()
+        s.commands = 50
+        # base=500, allies=250, efficiency=150, repairs=0 => 900 but that's S
+        # Tune: base=400 + allies=250 + efficiency=150 = 800 => A
+        _, grade = s.calculate_score(20, [FakeCreature(80)] * 5, {})
+        assert grade == "A"
+
+    def test_grade_b(self):
+        s = SessionStats()
+        s.commands = 100
+        # base=400 + efficiency=100 + allies=100 = 600 => B
+        _, grade = s.calculate_score(20, [FakeCreature(60)] * 2, {})
+        assert grade == "B"
+
+    def test_grade_c(self):
+        s = SessionStats()
+        s.commands = 150
+        # base=400 + efficiency=50 + allies=0 = 450 => C
+        _, grade = s.calculate_score(20, [], {})
+        assert grade == "C"
+
+    def test_score_capped_at_1000(self):
+        s = SessionStats()
+        s.commands = 5
+        # base=500 + allies=500 + repairs=400 + efficiency=195 = 1595 => clamped to 1000
+        score, grade = s.calculate_score(25, [FakeCreature(80)] * 10, {f"m_{i}": True for i in range(8)})
+        assert score == 1000
+        assert grade == "S"
+
+    def test_score_capped_at_zero(self):
+        s = SessionStats()
+        s.hazards_survived = 100
+        score, _ = s.calculate_score(0, [], {})
+        assert score == 0
+
+    def test_grade_verdicts_exist_for_all_grades(self):
+        from src.data.prompts import GRADE_VERDICTS
+
         for grade in ["S", "A", "B", "C", "D"]:
-            # Ensure each grade is achievable
-            s = SessionStats()
-            if grade == "S":
-                s.commands = 5
-                score, g = s.calculate_score(25, [FakeCreature(80)] * 5, {f"m_{i}": True for i in range(8)})
-            elif grade == "D":
-                s.hazards_survived = 50
-                score, g = s.calculate_score(0, [], {})
-            else:
-                continue  # middle grades are harder to target exactly
-            assert g == grade
+            assert grade in GRADE_VERDICTS, f"Missing verdicts for grade {grade}"
+            assert len(GRADE_VERDICTS[grade]) >= 1, f"Empty verdicts for grade {grade}"

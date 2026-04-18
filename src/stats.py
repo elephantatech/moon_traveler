@@ -31,9 +31,7 @@ class SessionStats:
         bonus = allies * 50 + repairs_done * 50
 
         # Efficiency: reward fewer commands (did more with less)
-        efficiency = 0
-        if self.commands > 0:
-            efficiency = min(200, max(0, 200 - self.commands))
+        efficiency = min(200, max(0, 200 - self.commands))
 
         # Deductions
         deduction = self.hazards_survived * 15
