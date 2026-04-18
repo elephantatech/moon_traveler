@@ -202,8 +202,13 @@ async def screenshot_pilot(pilot):
     # Wait for the "Install all? (y/n)" prompt
     if await wait_for_ask_mode(timeout=10.0):
         await take("tui-repair-prompt", "Repair install prompt")
-        await respond("y", wait=15.0)
-        await take("tui-victory", "Victory — mission complete")
+        await respond("y", wait=5.0)
+        # Victory sequence: 17 narrated lines × 0.5s = ~9s + install msgs + play-again prompt
+        # Wait for the full sequence to finish rendering, then take screenshot
+        # The play-again prompt means game_loop returned and ask_mode fires again
+        if await wait_for_ask_mode(timeout=30.0):
+            await take("tui-victory", "Victory — mission complete")
+            await respond("n", wait=2.0)  # Decline play-again
     else:
         await take("tui-ship-repair", "Ship repair status")
 
