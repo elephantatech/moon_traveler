@@ -22,11 +22,13 @@ All models run on CPU. GPU (CUDA/Metal/Vulkan) is optional for faster inference.
 ## Getting Started
 
 Run the game:
+
 ```
 python play_tui.py
 ```
 
 You'll be asked to choose:
+
 1. **Difficulty** — Easy (~30 min), Medium (~1-2 hours), Hard (~3+ hours), or Brutal (~5+ hours)
 2. **Compute mode** — auto-detected from config (changeable with `config gpu`)
 
@@ -129,6 +131,7 @@ When you `talk` to a creature, you enter the ARIA Communicator — a real-time d
 - **`/give <item> to <creature>`** to hand over an item without leaving the conversation.
 
 During conversations:
+
 - Your **drone whispers private coaching tips** that the creature can't hear. These adapt to the creature's personality, disposition, and how much it trusts you.
 - A **translation frame** occasionally appears, showing the drone working to translate the creature's speech.
 - Each exchange increases trust by **+3 points**.
@@ -149,6 +152,7 @@ If no AI model is loaded, creatures use pre-written dialogue that still responds
 Four meters track your condition. If food, water, or suit integrity reaches zero, you die.
 
 ### Food
+
 - Starts at **100%**
 - Depletes **2% per hour** of travel
 - Replenished to 100% when you visit a location with a food source
@@ -157,6 +161,7 @@ Four meters track your condition. If food, water, or suit integrity reaches zero
 - Creatures may **share food** during conversation (at medium+ trust)
 
 ### Water
+
 - Starts at **100%**
 - Depletes **3% per hour** of travel
 - Replenished to 100% when you visit a location with a water source
@@ -165,6 +170,7 @@ Four meters track your condition. If food, water, or suit integrity reaches zero
 - Creatures may **share water** during conversation (at medium+ trust)
 
 ### Suit Integrity
+
 - Starts at **92%** (damaged in the crash)
 - Degrades **0.5% per hour** of travel
 - Can be repaired in the **Medical Bay** using drone battery (2% suit per 1% battery)
@@ -176,6 +182,7 @@ Four meters track your condition. If food, water, or suit integrity reaches zero
 </p>
 
 ### Warnings
+
 ARIA monitors all resources and fires warnings at **50%**, **30%**, **15%**, and **5%** thresholds. Each warning fires only once per threshold — replenishing a resource resets its warnings.
 
 ---
@@ -185,6 +192,7 @@ ARIA monitors all resources and fires warnings at **50%**, **30%**, **15%**, and
 Your ARIA Scout Drone is your primary tool for exploring and communicating.
 
 ### Battery
+
 - Starts at **100%**
 - Scanning costs **10%**
 - Travel costs **0.5% per km**
@@ -193,6 +201,7 @@ Your ARIA Scout Drone is your primary tool for exploring and communicating.
 - When the battery is depleted, the drone goes silent — no musings, advice, or translation frames
 
 ### Default Stats
+
 | Stat | Starting Value |
 |---|---|
 | Scanner Range | 10 km |
@@ -202,6 +211,7 @@ Your ARIA Scout Drone is your primary tool for exploring and communicating.
 | Battery | 100% |
 
 ### Upgrades
+
 Find these components in the world, then use `upgrade <name>` to install them:
 
 | Upgrade | Effect |
@@ -228,6 +238,7 @@ Better translation quality means creatures speak more clearly and with fewer gar
 Enceladus is inhabited by alien creatures. Each one has a unique name, species, personality, and attitude toward you.
 
 ### Archetypes
+
 Every creature has one of ten archetypes that determine their personality AND what they can provide:
 
 | Archetype | Personality | What They Provide | Trust Needed |
@@ -246,7 +257,9 @@ Every creature has one of ten archetypes that determine their personality AND wh
 Every game guarantees at least one Merchant, one Builder, and one Healer.
 
 ### Dispositions
+
 Each creature starts with one of three dispositions:
+
 - **Friendly** (starts at 25 trust) — open and willing to talk
 - **Neutral** (starts at 10 trust) — cautious but approachable
 - **Hostile** (starts at 0 trust) — aggressive; may block you or chase you away
@@ -258,6 +271,7 @@ Hostile creatures with very low trust (below 15) refuse to talk and force you to
 </p>
 
 ### Trust System
+
 Trust ranges from **0 to 100** and determines what a creature is willing to share:
 
 | Trust Level | Range | Behavior |
@@ -267,11 +281,13 @@ Trust ranges from **0 to 100** and determines what a creature is willing to shar
 | High | 70–100 | Fully cooperative — shares materials and reveals locations |
 
 **Gaining trust:**
+
 - Conversation: **+3 per exchange**
 - Giving gifts: **+15** (friendly/neutral) or **+10** (hostile)
 - Escorting to Crash Site: **+10** bonus
 
 **Role-based thresholds** — each archetype has different trust requirements for different actions:
+
 - **Healers** heal and repair suits at **trust 0** — it's their calling
 - **Wanderers** share food/water at **trust 25**
 - **Builders** give repair materials at **trust 35**
@@ -280,12 +296,14 @@ Trust ranges from **0 to 100** and determines what a creature is willing to shar
 - **Merchants** trade at **trust 20** but never give for free
 
 **At high trust (70+):**
+
 - Creatures may reveal the locations of **food or water sources** you haven't discovered
 - **Builders** may help install materials at the Crash Site
 
 ### Escorting Creatures
 
 At trust **50+**, you can ask a creature to **travel with you** using the `escort` command. Companions:
+
 - Move with you whenever you `travel`
 - Appear in your status bar as "Following"
 - **Actively help when you reach the Crash Site:**
@@ -313,7 +331,9 @@ Movement between locations takes time and consumes resources.
 During travel, you'll see narrated events — atmospheric moments, environmental details, drone observations, and ARIA weather data. Longer trips have more events (1 per ~2 hours, up to 5). On trips of 3+ hours, the drone may suggest a closer waypoint for future reference.
 
 ### Hazards
+
 The environment is dangerous. During travel, you may encounter:
+
 - **Geyser eruptions** — suit damage
 - **Crevasse falls** — suit damage + food loss
 - **Ice storms** — water loss + extra time
@@ -324,7 +344,9 @@ The environment is dangerous. During travel, you may encounter:
 Hazard probability scales with trip length (more rolls on longer trips). ARIA will advise you on what to do after taking damage.
 
 ### Late-Game Weather
+
 After extended time on the moon (30-60 hours depending on game mode), weather deteriorates:
+
 - Hazard probabilities increase
 - Extra water drain during travel
 - Dramatic weather narration
@@ -354,6 +376,7 @@ Your goal is to collect all required repair materials and install them at the Cr
 | **Long** | + Thermal Paste, Hull Patch, Antenna Array |
 
 ### Where to Find Materials
+
 - **From creatures** — the primary source. Each archetype provides different materials at different trust thresholds
 - **Trading with Merchants** — offer items they want in exchange for repair materials
 - **On the ground** at locations — some survival items (ice crystals, bio gel) can be picked up
@@ -412,7 +435,9 @@ If either food or water reaches zero, the game ends.
 The game has two distinct AI companions:
 
 ### ARIA (Ship AI)
+
 Speaks in white: `ARIA: ...`
+
 - Clinical, strategic tone
 - Fires resource warnings at threshold levels
 - Gives periodic objective reminders (every ~10 commands)
@@ -420,7 +445,9 @@ Speaks in white: `ARIA: ...`
 - Shares weather and environmental data during travel
 
 ### Drone (Field Companion)
+
 Speaks in magenta: `DRONE: ...`
+
 - Curious, supportive tone
 - Comments during travel with sensor readings and observations
 - Translates creature dialogue (quality depends on Translator Chip level)
