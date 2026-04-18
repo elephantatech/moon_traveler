@@ -82,7 +82,12 @@ HELP_TEXT = """
   [cyan]rest[/cyan]                 — Rest 1 hour (+10% food/water, +20% at ship)
 
 [bold]Ship (Crash Site):[/bold]
-  [cyan]ship[/cyan]                 — Ship bays menu (repair, storage, kitchen, charging, medical)
+  [cyan]ship[/cyan]                 — Ship bays overview
+  [cyan]ship repair[/cyan]          — Install repair materials to fix the ship
+  [cyan]ship storage[/cyan]         — Stash/retrieve items from ship storage
+  [cyan]ship kitchen[/cyan]         — Cook bio_gel (+40% food) or ice_crystal (+40% water)
+  [cyan]ship charging[/cyan]        — Recharge drone battery, overcharge, auto-charge toggle
+  [cyan]ship medical[/cyan]         — Repair suit (costs battery) or rest to recover
 
 [bold]System:[/bold]
   [cyan]save[/cyan] [slot]          — Save game (default: 'manual')
