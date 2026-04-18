@@ -1,4 +1,4 @@
-"""Tests for super mode, CLI flags, and new commands."""
+"""Tests for super mode, command-line flags, and new commands."""
 
 import random
 
