@@ -18,13 +18,12 @@ from src.tui_app import MoonTravelerApp
 
 ASSETS_DIR = Path("assets")
 
-# Shared game context — set by a hook in game.py init
+# Shared game context — set by a hook in game.py
 _game_ctx = None
 _ctx_ready = threading.Event()
 
-
-# Monkey-patch init_game to capture the context
-_original_init = None
+# Monkey-patch game_loop to capture the context
+_original_game_loop = None
 
 
 def _patched_game_loop(ctx):
@@ -32,7 +31,7 @@ def _patched_game_loop(ctx):
     global _game_ctx
     _game_ctx = ctx
     _ctx_ready.set()
-    return _original_init(ctx)
+    return _original_game_loop(ctx)
 
 
 async def screenshot_pilot(pilot):
@@ -53,19 +52,46 @@ async def screenshot_pilot(pilot):
         await pilot.pause(wait)
 
     async def respond(text, wait=2.0):
+        """Send a response to the ask_queue (for prompts like y/n, menus)."""
         if app._bridge:
             app._bridge.push_response(text)
+        else:
+            # Bridge not ready yet — wait for it
+            for _ in range(20):
+                await pilot.pause(0.5)
+                if app._bridge:
+                    app._bridge.push_response(text)
+                    break
         await pilot.pause(wait)
+
+    async def wait_for_ask_mode(timeout=10.0):
+        """Wait until the app enters ask mode (blocking on a prompt)."""
+        elapsed = 0.0
+        while elapsed < timeout:
+            if app._ask_mode:
+                return True
+            await pilot.pause(0.3)
+            elapsed += 0.3
+        return False
 
     print("Taking TUI screenshots...\n")
 
-    # Wait for app to mount
+    # Wait for app to mount and bridge to be ready
     await pilot.pause(3.0)
     await take("tui-title", "Title screen")
 
-    # New Game → Easy mode
-    await respond("1", wait=2.0)
-    await respond("1", wait=15.0)
+    # The game flow: main() → _run_session() → prompt_choice (if saves exist) → prompt_choice (difficulty)
+    # In --super mode on a fresh install, there may be no saves — goes straight to difficulty.
+    # Wait for ask mode to know when a prompt is active.
+    if await wait_for_ask_mode(timeout=5.0):
+        await respond("1", wait=2.0)  # "New Game" if saves exist, or "Easy" if no saves
+
+    # If that was new/load, we now get the difficulty prompt
+    if await wait_for_ask_mode(timeout=5.0):
+        await respond("1", wait=3.0)  # "Easy" difficulty
+
+    # LLM loading may take a while
+    await pilot.pause(15.0)
 
     # Wait for game context to be available
     _ctx_ready.wait(timeout=30)
@@ -107,8 +133,11 @@ async def screenshot_pilot(pilot):
     await send("config", wait=3.0)
     await take("tui-config", "Config screen")
 
+    # Scan again to discover more locations
+    await send("scan", wait=3.0)
+    await take("tui-scan-2", "Second scan")
+
     # Find a creature to talk to
-    # Get the first location that has a creature
     creature_loc = None
     creature_name = None
     for c in ctx.creatures:
@@ -121,9 +150,7 @@ async def screenshot_pilot(pilot):
         # Travel to the creature's location
         await send(f"travel {creature_loc}", wait=3.0)
         # Travel may ask for confirmation if dangerous
-        # Check if we're in ask mode — if so, confirm
-        await pilot.pause(1.0)
-        if app._ask_mode:
+        if await wait_for_ask_mode(timeout=3.0):
             await respond("y", wait=5.0)
         await take("tui-travel", "Travel to creature location")
 
@@ -135,54 +162,50 @@ async def screenshot_pilot(pilot):
         await send(f"talk {creature_name}", wait=5.0)
         await take("tui-talk-start", "Conversation started")
 
-        # Say hello
-        await respond(
-            "hello, I crashed here and need help fixing my ship",
-            wait=10.0,
-        )
-        await take("tui-conversation-1", "First response")
+        # Say hello — wait for ask mode (conversation input prompt)
+        if await wait_for_ask_mode(timeout=5.0):
+            await respond(
+                "hello, I crashed here and need help fixing my ship",
+                wait=10.0,
+            )
+            await take("tui-conversation-1", "First response")
 
         # Ask them to come help
-        await respond(
-            "would you come to my ship and help me fix it?",
-            wait=10.0,
-        )
-        await take("tui-conversation-2", "Asking for help")
+        if await wait_for_ask_mode(timeout=5.0):
+            await respond(
+                "would you come to my ship and help me fix it?",
+                wait=10.0,
+            )
+            await take("tui-conversation-2", "Asking for help")
 
         # Say bye
-        await respond("bye", wait=3.0)
-        await take("tui-conversation-end", "Conversation ended")
+        if await wait_for_ask_mode(timeout=5.0):
+            await respond("bye", wait=3.0)
+            await take("tui-conversation-end", "Conversation ended")
 
         # Escort the creature (trust is 100 in super mode)
-        await send(f"escort", wait=3.0)
+        await send("escort", wait=3.0)
         await take("tui-escort", "Escort creature")
 
     # Travel back to crash site
     await send("travel Crash Site", wait=3.0)
-    if app._ask_mode:
+    if await wait_for_ask_mode(timeout=3.0):
         await respond("y", wait=5.0)
     await take("tui-return-crash", "Back at crash site")
 
     await send("look", wait=3.0)
     await take("tui-crash-return-look", "Crash site after exploring")
 
-    # Ship repair — "ship repair" is a direct subcommand (no bay menu)
-    # It shows installable materials then prompts "Install all? (y/n)"
-    # send() puts it in command_queue, worker runs _bay_repair(),
-    # which calls console.input() for the y/n confirmation (ask mode).
+    # Ship repair
     await send("ship repair", wait=5.0)
 
-    # Wait for ask mode to be active (worker is blocking on ask_queue)
-    for _ in range(20):
-        if app._ask_mode:
-            break
-        await pilot.pause(0.5)
-
-    await take("tui-repair-prompt", "Repair install prompt")
-
-    # Confirm installation
-    await respond("y", wait=15.0)
-    await take("tui-victory", "Victory — mission complete")
+    # Wait for the "Install all? (y/n)" prompt
+    if await wait_for_ask_mode(timeout=10.0):
+        await take("tui-repair-prompt", "Repair install prompt")
+        await respond("y", wait=15.0)
+        await take("tui-victory", "Victory — mission complete")
+    else:
+        await take("tui-ship-repair", "Ship repair status")
 
     print(f"\nDone! Screenshots saved to {ASSETS_DIR}/")
     app.command_queue.put(None)
@@ -193,7 +216,7 @@ if __name__ == "__main__":
     # Patch game_loop to capture context
     from src import game
 
-    _original_init = game.game_loop
+    _original_game_loop = game.game_loop
     game.game_loop = _patched_game_loop
 
     app = MoonTravelerApp()
