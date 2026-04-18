@@ -1,9 +1,9 @@
-# Moon Traveler CLI — Windows installer (PowerShell)
+# Moon Traveler Terminal — Windows installer (PowerShell)
 # Usage: irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex
 $ErrorActionPreference = "Stop"
 
 $Repo = "elephantatech/moon_traveler"
-$InstallDir = if ($env:MOON_TRAVELER_INSTALL_DIR) { $env:MOON_TRAVELER_INSTALL_DIR } else { "$env:LOCALAPPDATA\Programs\moon-traveler-cli" }
+$InstallDir = if ($env:MOON_TRAVELER_INSTALL_DIR) { $env:MOON_TRAVELER_INSTALL_DIR } else { "$env:LOCALAPPDATA\Programs\moon-traveler" }
 
 Write-Host ""
 Write-Host "Moon Traveler CLI Installer" -ForegroundColor Cyan
@@ -16,7 +16,7 @@ $Version = $Release.tag_name
 Write-Host "  Latest version: $Version" -ForegroundColor DarkGray
 
 # Download
-$Filename = "moon-traveler-cli-$Version-windows.zip"
+$Filename = "moon-traveler-$Version-windows.zip"
 $Url = "https://github.com/$Repo/releases/download/$Version/$Filename"
 $TmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "moon-traveler-install"
 
@@ -42,11 +42,11 @@ Expand-Archive -Path $ZipPath -DestinationPath $TmpDir -Force
 
 # Find and copy the app directory
 $AppContent = Get-ChildItem -Path $TmpDir -Directory -Recurse | Where-Object {
-    Test-Path (Join-Path $_.FullName "moon-traveler-cli.exe")
+    Test-Path (Join-Path $_.FullName "moon-traveler.exe")
 } | Select-Object -First 1
 
 if (-not $AppContent) {
-    Write-Host "  Could not find moon-traveler-cli.exe in archive." -ForegroundColor Red
+    Write-Host "  Could not find moon-traveler.exe in archive." -ForegroundColor Red
     exit 1
 }
 
@@ -71,5 +71,5 @@ Write-Host ""
 Write-Host "  Location: $InstallDir" -ForegroundColor DarkGray
 Write-Host "  Data:     $env:USERPROFILE\.moonwalker\" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "  Run:  moon-traveler-cli" -ForegroundColor White
+Write-Host "  Run:  moon-traveler" -ForegroundColor White
 Write-Host ""

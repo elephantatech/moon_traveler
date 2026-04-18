@@ -16,8 +16,8 @@ place it in the models/ directory next to the executable.
 
 Output:
     dist/
-      moon-traveler-cli-<platform>/
-        moon-traveler-cli[.exe]
+      moon-traveler-<platform>/
+        moon-traveler[.exe]
         models/               (empty, user places .gguf here)
         saves/                (empty, created at runtime)
 """

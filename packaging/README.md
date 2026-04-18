@@ -1,6 +1,6 @@
 # Packaging & Distribution
 
-This directory contains packaging configurations for distributing Moon Traveler CLI via package managers and stores.
+This directory contains packaging configurations for distributing Moon Traveler Terminal via package managers and stores.
 
 ## GitHub Releases (Primary)
 
@@ -15,16 +15,16 @@ This triggers `.github/workflows/release.yml`, which builds standalone executabl
 
 ## Homebrew (macOS/Linux)
 
-**Formula:** `packaging/homebrew/moon-traveler-cli.rb`
+**Formula:** `packaging/homebrew/moon-traveler.rb`
 
 ### To publish to a tap:
 1. Create a tap repo: `elephantatech/homebrew-tap`
-2. Copy the formula: `cp packaging/homebrew/moon-traveler-cli.rb <tap-repo>/Formula/`
+2. Copy the formula: `cp packaging/homebrew/moon-traveler.rb <tap-repo>/Formula/`
 3. Update the `sha256` with the actual archive hash after release
 4. Users install with:
    ```bash
    brew tap elephantatech/tap
-   brew install moon-traveler-cli
+   brew install moon-traveler
    ```
 
 ### To submit to Homebrew core:
@@ -43,11 +43,11 @@ This triggers `.github/workflows/release.yml`, which builds standalone executabl
    ```powershell
    cd packaging/chocolatey
    choco pack
-   choco push moon-traveler-cli.0.3.0.nupkg --api-key YOUR_KEY
+   choco push moon-traveler.0.3.0.nupkg --api-key YOUR_KEY
    ```
 5. Users install with:
    ```powershell
-   choco install moon-traveler-cli
+   choco install moon-traveler
    ```
 
 ## Steam
