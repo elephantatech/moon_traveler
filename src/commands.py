@@ -143,7 +143,10 @@ class GameContext:
         self.should_load = False
         self.loaded_state: dict | None = None
         self.easter_egg_announced = False
-        self.stats = None  # Set by init_game() — SessionStats instance
+
+        from src.stats import SessionStats
+
+        self.stats: SessionStats = SessionStats()
 
     def current_location(self) -> Location:
         for loc in self.locations:
@@ -645,6 +648,11 @@ def cmd_talk(ctx: GameContext, args: str):
             action_msgs = llm.apply_actions(actions, ctx.player, ctx.drone, creature, ctx.repair_checklist)
             for msg in action_msgs:
                 ui.console.print(msg)
+            # Track LLM-initiated trades in session stats
+            if ctx.stats:
+                for act in actions:
+                    if act.get("action") == "TRADE":
+                        ctx.stats.trades += 1
 
         # Trust gain from conversation (scaled by difficulty)
         from src.difficulty import EASTER_EGG_TRUST_MULTIPLIER, check_junk_easter_egg, get_difficulty
@@ -1184,7 +1192,7 @@ def cmd_status(ctx: GameContext, args: str):
 def cmd_stats(ctx: GameContext, args: str):
     """Show session gameplay statistics."""
     if not ctx.stats:
-        ui.info("No session stats available.")
+        ui.error("Session stats failed to initialize. Please report this bug.")
         return
 
     from rich.table import Table
@@ -1944,11 +1952,10 @@ def dispatch(ctx: GameContext, raw_input: str):
     if not cmd:
         return
 
-    if ctx.stats:
-        ctx.stats.commands += 1
-
     handler = COMMANDS.get(cmd)
     if handler:
+        if ctx.stats:
+            ctx.stats.commands += 1
         handler(ctx, args)
     else:
         ui.error(f"Unknown command: '{cmd}'. Type 'help' for available commands.")
