@@ -25,6 +25,7 @@ BASE_COMMANDS = [
     "drone",
     "upgrade",
     "status",
+    "stats",
     "ship",
     "repair",
     "rest",
