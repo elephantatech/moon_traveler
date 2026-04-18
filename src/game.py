@@ -185,8 +185,6 @@ def apply_super_mode(ctx: GameContext):
 
 def init_game(mode: str, seed: int | None = None) -> GameContext:
     """Initialize a new game and return the context."""
-    from src.stats import SessionStats
-
     world = generate_world(mode, seed)
     rng = random.Random(world["seed"])
     creatures = generate_creatures(world, rng, required_materials=REPAIR_MATERIALS[mode])
@@ -210,7 +208,6 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
         tutorial=tutorial,
         dev_mode=dev_mode,
     )
-    ctx.stats = SessionStats()
     return ctx
 
 
@@ -398,8 +395,6 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             if isinstance(tutorial, dict):
                 tutorial = TutorialManager.from_dict(tutorial)
 
-            from src.stats import SessionStats
-
             ctx = GameContext(
                 player=state["player"],
                 drone=state["drone"],
@@ -413,7 +408,6 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
                 tutorial=tutorial,
                 dev_mode=DevMode(),
             )
-            ctx.stats = SessionStats()
             # Sync sound voice state with loaded drone
             try:
                 from src import sound
