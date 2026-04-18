@@ -2,8 +2,6 @@
 
 from textual.suggester import Suggester as _TextualSuggester
 
-from src.drone import UPGRADE_EFFECTS
-
 # Base commands (always available)
 BASE_COMMANDS = [
     "look",
@@ -102,6 +100,24 @@ class GameSuggester(_TextualSuggester):
                 if bay.startswith(arg_lower) and bay != arg_lower
             ]
 
+        # drone → sub-commands (status, upgrade, charge)
+        if cmd == "drone":
+            subs = ["status", "upgrade", "charge"]
+            if not arg_lower or not any(s.startswith(arg_lower) for s in subs):
+                # After "drone upgrade " → complete upgrade names
+                if arg_text.lower().startswith("upgrade "):
+                    upgrade_arg = arg_text[8:].lower()
+                    from src.drone import UPGRADE_EFFECTS
+
+                    return [
+                        cmd_prefix + "upgrade " + key.replace("_", " ").title()
+                        for key in UPGRADE_EFFECTS
+                        if self.ctx.player.has_item(key)
+                        and key.replace("_", " ").title().lower().startswith(upgrade_arg)
+                        and key.replace("_", " ").title().lower() != upgrade_arg
+                    ]
+            return [cmd_prefix + s for s in subs if s.startswith(arg_lower) and s != arg_lower]
+
         # travel / go → known location names (multi-word like "Lunar Lake")
         if cmd in ("travel", "go"):
             return [
@@ -168,10 +184,12 @@ class GameSuggester(_TextualSuggester):
                 and item.replace("_", " ").title().lower() != arg_lower
             ]
 
-        # upgrade → upgrade items in inventory
+        # upgrade → upgrade items in inventory (top-level alias for drone upgrade)
         if cmd == "upgrade":
+            from src.drone import UPGRADE_EFFECTS as _UE
+
             results = []
-            for key in UPGRADE_EFFECTS:
+            for key in _UE:
                 if self.ctx.player.has_item(key):
                     display = key.replace("_", " ").title()
                     if display.lower().startswith(arg_lower) and display.lower() != arg_lower:
