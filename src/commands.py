@@ -694,11 +694,11 @@ def cmd_talk(ctx: GameContext, args: str):
 
         ui.console.print()
 
-    # Update creature memory with full current conversation
+    # Update creature memory with current conversation (capped to avoid context overflow)
     if exchange_count > 0:
         current_convo_len = len(creature.conversation_history) - conversation_start_idx
         try:
-            llm.update_creature_memory(creature, recent_count=max(current_convo_len, 1))
+            llm.update_creature_memory(creature, recent_count=min(max(current_convo_len, 1), 40))
         except Exception:
             pass
 
@@ -1780,9 +1780,9 @@ def cmd_screenshot(ctx: GameContext, args: str):
 
 
 def cmd_quit(ctx: GameContext, args: str):
-    ui.warn("Are you sure? (y/n)")
+    ui.console.print("[bold yellow]Are you sure you want to quit? (y/n)[/bold yellow]")
     try:
-        confirm = ui.console.input("> ").strip().lower()
+        confirm = ui.console.input("[bold]Quit? (y/n) > [/bold]").strip().lower()
     except (EOFError, KeyboardInterrupt):
         return
     if confirm in ("y", "yes"):
