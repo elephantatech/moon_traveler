@@ -416,9 +416,8 @@ def cmd_travel(ctx: GameContext, args: str):
     messages, travel_km, hazards_hit = execute_travel(
         ctx.player, ctx.drone, dest, cur, ctx.rng, ctx.ship_ai, ctx.locations, ctx.world_mode
     )
-    if ctx.stats:
-        ctx.stats.km_traveled += travel_km
-        ctx.stats.hazards_survived += hazards_hit
+    ctx.stats.km_traveled += travel_km
+    ctx.stats.hazards_survived += hazards_hit
     for msg in messages:
         ui.console.print(msg)
 
@@ -488,8 +487,7 @@ def cmd_take(ctx: GameContext, args: str):
         ctx.player.add_item(item_name)
         display = item_name.replace("_", " ").title()
         ui.success(f"Picked up: {display}")
-        if ctx.stats:
-            ctx.stats.items_collected += 1
+        ctx.stats.items_collected += 1
         if ctx.dev_mode:
             ctx.dev_mode.debug("item_pickup", item=item_name, location=loc.name, inventory_count=ctx.player.total_items)
         # Hint if this is a needed repair material
@@ -552,8 +550,7 @@ def cmd_talk(ctx: GameContext, args: str):
         ui.console.print(initial_tip)
         ui.console.print()
 
-    if ctx.stats:
-        ctx.stats.creatures_talked.add(creature.id)
+    ctx.stats.creatures_talked.add(creature.id)
 
     exchange_count = 0
     conversation_start_idx = len(creature.conversation_history)
@@ -649,10 +646,9 @@ def cmd_talk(ctx: GameContext, args: str):
             for msg in action_msgs:
                 ui.console.print(msg)
             # Track LLM-initiated trades in session stats
-            if ctx.stats:
-                for act in actions:
-                    if act.get("action") == "TRADE":
-                        ctx.stats.trades += 1
+            for act in actions:
+                if act.get("action") == "TRADE":
+                    ctx.stats.trades += 1
 
         # Trust gain from conversation (scaled by difficulty)
         from src.difficulty import EASTER_EGG_TRUST_MULTIPLIER, check_junk_easter_egg, get_difficulty
@@ -795,8 +791,7 @@ def cmd_give(ctx: GameContext, args: str):
     ctx.player.remove_item(item_part)
     display = item_part.replace("_", " ").title()
     ui.success(f"You give {display} to {creature.name}.")
-    if ctx.stats:
-        ctx.stats.gifts_given += 1
+    ctx.stats.gifts_given += 1
 
     # Trust increase from gift (scaled by difficulty)
     from src.difficulty import EASTER_EGG_TRUST_MULTIPLIER, check_junk_easter_egg, get_difficulty
@@ -916,8 +911,7 @@ def cmd_trade(ctx: GameContext, args: str):
     give_display = give_item.replace("_", " ").title()
     sound.play("trade")
     ui.success(f"Traded! You gave {give_display} and received {get_display}.")
-    if ctx.stats:
-        ctx.stats.trades += 1
+    ctx.stats.trades += 1
 
     if ctx.dev_mode:
         ctx.dev_mode.debug(
@@ -1954,8 +1948,7 @@ def dispatch(ctx: GameContext, raw_input: str):
 
     handler = COMMANDS.get(cmd)
     if handler:
-        if ctx.stats:
-            ctx.stats.commands += 1
+        ctx.stats.commands += 1
         handler(ctx, args)
     else:
         ui.error(f"Unknown command: '{cmd}'. Type 'help' for available commands.")

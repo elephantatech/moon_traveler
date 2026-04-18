@@ -677,6 +677,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | inspect | examine | Examine item to see description and repair status |
 | charge | — | Toggle drone auto-charge on/off (requires Charge Module) |
 | status | — | Show food/water/suit/repair progress |
+| stats | — | Show session gameplay statistics (commands, km, creatures, trades, gifts, items) |
 | ship | repair | Interactive ship bays at Crash Site |
 | save | — | Save game to named slot (default: "manual") |
 | load | — | Load game from slot |
