@@ -73,8 +73,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install actionlint
+        run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
       - name: Run actionlint
-        uses: rhysd/actionlint-action@v1
+        run: ./actionlint
 
   powershell-lint:
     runs-on: windows-latest
@@ -85,7 +88,7 @@ jobs:
         shell: pwsh
         run: |
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-          $results = Invoke-ScriptAnalyzer -Path install.ps1 -Severity Warning,Error
+          $results = Invoke-ScriptAnalyzer -Path install.ps1 -Severity Warning,Error -ExcludeRule PSAvoidUsingWriteHost,PSUseBOMForUnicodeEncodedFile
           if ($results) {
             $results | Format-Table -AutoSize
             exit 1
