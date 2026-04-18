@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Moon Traveler CLI — cross-platform installer
+# Moon Traveler Terminal — cross-platform installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash
 set -euo pipefail
 
@@ -47,7 +47,7 @@ install() {
   local ext="tar.gz"
   [ "$PLATFORM" = "windows" ] && ext="zip"
 
-  local filename="moon-traveler-cli-${VERSION}-${PLATFORM}.${ext}"
+  local filename="moon-traveler-${VERSION}-${PLATFORM}.${ext}"
   local url="https://github.com/$REPO/releases/download/$VERSION/$filename"
 
   dim "Downloading $filename..."
@@ -69,20 +69,20 @@ install() {
   fi
 
   # Find the extracted binary
-  local bin_name="moon-traveler-cli"
-  [ "$PLATFORM" = "windows" ] && bin_name="moon-traveler-cli.exe"
+  local bin_name="moon-traveler"
+  [ "$PLATFORM" = "windows" ] && bin_name="moon-traveler.exe"
 
   local extracted
   extracted="$(find "$tmpdir" -name "$bin_name" -type f | head -1)"
 
   if [ -z "$extracted" ]; then
     # The archive contains a directory — copy the whole thing
-    local app_dir="$HOME/.local/share/moon-traveler-cli"
+    local app_dir="$HOME/.local/share/moon-traveler"
     mkdir -p "$app_dir"
     local content_dir
     content_dir="$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -1)"
-    if [ -d "$content_dir/moon-traveler-cli" ]; then
-      content_dir="$content_dir/moon-traveler-cli"
+    if [ -d "$content_dir/moon-traveler" ]; then
+      content_dir="$content_dir/moon-traveler"
     fi
     cp -r "$content_dir"/* "$app_dir/"
     extracted="$app_dir/$bin_name"
@@ -90,8 +90,8 @@ install() {
 
   # Symlink to install dir
   mkdir -p "$INSTALL_DIR"
-  local link="$INSTALL_DIR/moon-traveler-cli"
-  [ "$PLATFORM" = "windows" ] && link="$INSTALL_DIR/moon-traveler-cli.exe"
+  local link="$INSTALL_DIR/moon-traveler"
+  [ "$PLATFORM" = "windows" ] && link="$INSTALL_DIR/moon-traveler.exe"
 
   if [ -f "$extracted" ]; then
     chmod +x "$extracted"
@@ -117,7 +117,7 @@ install() {
     echo
   fi
 
-  echo "  Run:  moon-traveler-cli"
+  echo "  Run:  moon-traveler"
   echo
 }
 

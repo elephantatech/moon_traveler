@@ -70,7 +70,7 @@ curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/in
 irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex
 ```
 
-This downloads the latest release, extracts it, and adds `moon-traveler-cli` to your PATH. No Python required.
+This downloads the latest release, extracts it, and adds `moon-traveler` to your PATH. No Python required.
 
 ### From source
 
@@ -78,7 +78,7 @@ This downloads the latest release, extracts it, and adds `moon-traveler-cli` to 
 git clone https://github.com/elephantatech/moon_traveler.git
 cd moon_traveler
 uv sync            # or: pip install -r requirements.txt
-python play.py
+python play_tui.py
 ```
 
 ### 3. LLM Model (optional)
@@ -95,11 +95,10 @@ You can also place any `.gguf` model file manually in `~/.moonwalker/models/`. A
 ## Running
 
 ```bash
-python play.py          # Classic CLI mode
-python play_tui.py      # Textual TUI mode (recommended)
+python play_tui.py
 ```
 
-**TUI mode** features a fixed status bar, scrollable game log, tab-autocomplete with cycling, command history (Up/Down arrows), and F12 screenshots.
+Features a fixed status bar, scrollable game log, tab-autocomplete with cycling, command history (Up/Down arrows), and F12 screenshots.
 
 **Flags:**
 ```bash
@@ -180,9 +179,10 @@ Build trust with creatures to obtain repair materials through conversation and t
 
 | Mode | Locations | Creatures | Radius | Duration |
 |------|-----------|-----------|--------|----------|
-| Short | ~8 | 5 | ~20 km | ~30 min |
+| Easy | ~8 | 5 | ~20 km | ~30 min |
 | Medium | ~16 | 12 | ~40 km | ~1-2 hours |
-| Long | ~30 | 20 | ~60 km | ~3+ hours |
+| Hard | ~30 | 20 | ~60 km | ~3+ hours |
+| Brutal | ~40 | 25 | ~80 km | ~5+ hours |
 
 ## Troubleshooting
 
@@ -241,8 +241,8 @@ ruff check src/ tests/
 ## Project Structure
 
 ```
-moon-traveler-cli/
-  play.py              Entry point
+moon-traveler/
+  play_tui.py          Entry point (Textual TUI)
   src/
     game.py            Main game loop, init, win/lose
     world.py           Procedural world generation

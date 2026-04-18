@@ -55,31 +55,43 @@ HELP_TEXT = """
 [bold yellow]Goal:[/bold yellow] Collect repair materials and install them at the Crash Site to fix your ship.
 [bold yellow]Survive:[/bold yellow] Keep food and water above 0% or you die. Use [cyan]status[/cyan] to check.
 
-[bold]Commands:[/bold]
-
+[bold]Navigation:[/bold]
   [cyan]look[/cyan]                 — Describe current location
   [cyan]scan[/cyan]                 — Use drone to discover nearby locations
   [cyan]gps[/cyan] / [cyan]map[/cyan]             — Show known locations with distances
   [cyan]travel[/cyan] <location>    — Travel to a known location
+
+[bold]Items:[/bold]
   [cyan]take[/cyan] <item>          — Pick up an item at current location
   [cyan]inventory[/cyan] / [cyan]inv[/cyan]       — Show your inventory
+  [cyan]inspect[/cyan] <item>       — Examine an item to see what it's used for
+
+[bold]Creatures:[/bold]
   [cyan]talk[/cyan] <creature>      — Talk to a creature here (LLM dialogue)
   [cyan]give[/cyan] <item> to <creature> — Give an item to build trust
   [cyan]trade[/cyan]                — Trade items with a Merchant creature
-  [cyan]escort[/cyan]               — Ask a creature to travel with you
+  [cyan]escort[/cyan]               — Ask a creature to travel with you (trust 50+)
+
+[bold]Drone:[/bold]
   [cyan]drone[/cyan]                — Show drone status and upgrades
-  [cyan]upgrade[/cyan] <component>  — Install a drone upgrade from inventory
-  [cyan]inspect[/cyan] <item>      — Examine an item to see what it's used for
-  [cyan]status[/cyan]               — Show player status (food, water, time)
-  [cyan]ship[/cyan]                 — Ship bays menu (storage, kitchen, charging, medical, repair)
-  [cyan]rest[/cyan]                 — Rest for 1 hour to recover food/water
-  [cyan]save[/cyan] [slot]          — Save game (default slot: 'manual')
+  [cyan]drone upgrade[/cyan] <part> — Install a drone upgrade from inventory
+  [cyan]drone charge[/cyan]         — Toggle auto-charge (requires Charge Module)
+
+[bold]Player:[/bold]
+  [cyan]status[/cyan]               — Show player vitals (food, water, suit, time)
+  [cyan]rest[/cyan]                 — Rest 1 hour (+10% food/water, +20% at ship)
+
+[bold]Ship:[/bold]
+  [cyan]ship[/cyan]                 — Show repair progress (bays available at Crash Site)
+
+[bold]System:[/bold]
+  [cyan]save[/cyan] [slot]          — Save game (default: 'manual')
   [cyan]load[/cyan] [slot]          — Load a saved game
-  [cyan]sound[/cyan]                — Toggle sound effects on/off
-  [cyan]charge[/cyan]               — Toggle drone auto-charge (requires Charge Module)
+  [cyan]sound[/cyan]                — Toggle sound effects
+  [cyan]screenshot[/cyan]           — Save a screenshot (F12)
+  [cyan]tutorial[/cyan]             — Replay the tutorial
+  [cyan]config[/cyan]               — Game settings (save path, GPU, context)
   [cyan]clear[/cyan] / [cyan]cls[/cyan]          — Clear the screen
-  [cyan]config[/cyan]               — Show/change game settings (e.g. save path)
-  [cyan]dev[/cyan]                  — Toggle developer diagnostics panel
   [cyan]help[/cyan]                 — Show this help message
   [cyan]quit[/cyan] / [cyan]exit[/cyan]           — Exit game
 """
@@ -215,8 +227,20 @@ def parse_command(raw: str) -> tuple[str, str]:
 # --- Command handlers ---
 
 
+SHIP_HELP = """
+[bold]Ship Bays (Crash Site):[/bold]
+  [cyan]ship repair[/cyan]          — Install repair materials to fix the ship
+  [cyan]ship storage[/cyan]         — Stash/retrieve items from ship storage
+  [cyan]ship kitchen[/cyan]         — Cook bio_gel (+40% food) or ice_crystal (+40% water)
+  [cyan]ship charging[/cyan]        — Recharge drone battery, overcharge, auto-charge toggle
+  [cyan]ship medical[/cyan]         — Repair suit (costs battery) or rest to recover
+"""
+
+
 def cmd_help(ctx: GameContext, args: str):
     ui.console.print(HELP_TEXT)
+    if ctx.player.location_name == "Crash Site":
+        ui.console.print(SHIP_HELP)
 
 
 def cmd_look(ctx: GameContext, args: str):
@@ -708,6 +732,10 @@ def cmd_talk(ctx: GameContext, args: str):
         elif creature.trust >= 35:
             ui.console.print(ctx.ship_ai.speak(f"{creature.name} is warming up to you, Commander."))
 
+    # Escort hint when trust is high enough
+    if creature and creature.trust >= 50 and not creature.following:
+        ui.dim(f"Tip: {creature.name} trusts you enough to escort. Type 'escort' to ask.")
+
     ctx.do_auto_save()
 
 
@@ -1055,15 +1083,36 @@ def _companions_help_at_ship(ctx: GameContext, companions: list):
 
 
 def cmd_drone(ctx: GameContext, args: str):
+    """Drone command hub: status, upgrade, charge."""
+    sub = args.strip().lower().split(None, 1) if args else []
+    sub_cmd = sub[0] if sub else ""
+    sub_args = sub[1] if len(sub) > 1 else ""
+
+    if sub_cmd in ("upgrade", "install"):
+        _drone_upgrade(ctx, sub_args)
+    elif sub_cmd in ("charge", "autocharge"):
+        _drone_charge(ctx)
+    elif sub_cmd == "status" or not sub_cmd:
+        _drone_status(ctx)
+    else:
+        # Treat unknown sub-command as upgrade attempt (e.g. "drone range_module")
+        _drone_upgrade(ctx, args)
+
+
+def _drone_status(ctx: GameContext):
+    """Show drone status panel."""
     drone_dict = ctx.drone.to_dict()
     drone_dict["cargo_used"] = ctx.player.total_items
     ui.show_drone_status(drone_dict, title="ARIA Scout Drone")
 
 
-def cmd_upgrade(ctx: GameContext, args: str):
+def _drone_upgrade(ctx: GameContext, args: str):
+    """Install a drone upgrade from inventory."""
     if not args:
-        ui.error("Upgrade with what? Usage: upgrade <component>")
-        ui.info("Upgrade components: " + ", ".join(f"{k.replace('_', ' ').title()}" for k in UPGRADE_EFFECTS))
+        _drone_status(ctx)
+        ui.console.print()
+        ui.info("Usage: drone upgrade <component>")
+        ui.info("Components: " + ", ".join(k.replace("_", " ").title() for k in UPGRADE_EFFECTS))
         return
 
     upgrade_name = args.lower().replace(" ", "_")
@@ -1086,6 +1135,22 @@ def cmd_upgrade(ctx: GameContext, args: str):
     ui.success(f"Installed {display}!")
     if result:
         ui.info(f"Effect: {result}")
+
+
+def _drone_charge(ctx: GameContext):
+    """Toggle auto-charge on/off (requires Charge Module upgrade)."""
+    if not ctx.drone.charge_module_installed:
+        ui.error("No Charge Module installed. Find and install one first.")
+        ui.dim("Tip: Use 'ship charging' at the Crash Site to recharge your drone battery.")
+        return
+    if ctx.drone.auto_charge_enabled:
+        ctx.drone.auto_charge_enabled = False
+        ui.info("Auto-charge: OFF — drone will not recover battery during travel.")
+    else:
+        ctx.drone.auto_charge_enabled = True
+        sound.play("success")
+        ui.success("Auto-charge: ON — drone recovers +5% battery per hour of travel.")
+    ctx.do_auto_save()
 
 
 def cmd_status(ctx: GameContext, args: str):
@@ -1475,7 +1540,9 @@ def _bay_medical(ctx: GameContext):
         ui.dim("  Suit repair unavailable — drone battery too low.")
 
     if food < 100 or water < 100:
-        options.append(("rest", "Rest and recover (+20% food, +20% water) — costs 1 hour"))
+        at_crash = ctx.player.location_name == "Crash Site"
+        gain = 20 if at_crash else 10
+        options.append(("rest", f"Rest and recover (+{gain}% food, +{gain}% water) — costs 1 hour"))
 
     if not options:
         ui.info("No treatments available right now.")
@@ -1503,9 +1570,11 @@ def _bay_medical(ctx: GameContext):
                 ctx.player.food = max(0, ctx.player.food - 2.0)
                 ctx.player.water = max(0, ctx.player.water - 3.0)
                 ctx.player.suit_integrity = max(0, ctx.player.suit_integrity - 0.5)
-                # Then recover
-                ctx.player.food = min(100.0, ctx.player.food + 20.0)
-                ctx.player.water = min(100.0, ctx.player.water + 20.0)
+                # Recover — same location-based gain as standalone rest
+                rest_at_crash = ctx.player.location_name == "Crash Site"
+                rest_gain = 20.0 if rest_at_crash else 10.0
+                ctx.player.food = min(100.0, ctx.player.food + rest_gain)
+                ctx.player.water = min(100.0, ctx.player.water + rest_gain)
                 ctx.player.food_warning_given = False
                 ctx.player.water_warning_given = False
                 ctx.player.hours_elapsed += 1
@@ -1752,30 +1821,25 @@ def cmd_inspect(ctx: GameContext, args: str):
 
 
 def cmd_charge(ctx: GameContext, args: str):
-    """Toggle auto-charge on/off (requires Charge Module upgrade)."""
-    if not ctx.drone.charge_module_installed:
-        ui.error("No advanced charge module detected. Find and install a Charge Module first.")
-        return
-    if ctx.drone.auto_charge_enabled:
-        ctx.drone.auto_charge_enabled = False
-        ui.info("Auto-charge: OFF — drone will not recover battery during travel.")
-    else:
-        ctx.drone.auto_charge_enabled = True
-        sound.play("success")
-        ui.success("Auto-charge: ON — drone recovers +5% battery per hour of travel.")
-    ctx.do_auto_save()
+    """Shortcut for 'drone charge'."""
+    _drone_charge(ctx)
+
+
+def cmd_upgrade(ctx: GameContext, args: str):
+    """Shortcut for 'drone upgrade <component>'."""
+    _drone_upgrade(ctx, args)
 
 
 def cmd_screenshot(ctx: GameContext, args: str):
-    """Save a screenshot (TUI mode only)."""
-    if ui._bridge:
-        try:
-            path = ui._bridge.take_screenshot()
-            ui.success(f"Screenshot saved: {path}")
-        except Exception as e:
-            ui.error(f"Screenshot failed: {e}")
-    else:
-        ui.info("Screenshots are only available in TUI mode (play_tui.py).")
+    """Save a screenshot."""
+    if not ui._bridge:
+        ui.error("Screenshot unavailable (display bridge not initialized).")
+        return
+    try:
+        path = ui._bridge.take_screenshot()
+        ui.success(f"Screenshot saved: {path}")
+    except Exception as e:
+        ui.error(f"Screenshot failed: {e}")
 
 
 def cmd_quit(ctx: GameContext, args: str):

@@ -17,8 +17,7 @@ uv sync
 uv run pytest tests/     # Run tests
 uv run ruff check src/   # Lint
 uv run ruff format src/  # Format
-uv run python play.py    # CLI mode
-uv run python play_tui.py  # TUI mode
+uv run python play_tui.py  # Launch game
 ```
 
 ## Development Workflow
@@ -46,7 +45,7 @@ uv run python play_tui.py  # TUI mode
 ## Architecture
 
 ```
-play.py / play_tui.py    Entry points (CLI / Textual TUI)
+play_tui.py              Entry point (Textual TUI)
 src/
   game.py                Main loop, init, win/lose
   commands.py            Command handlers (the largest file)

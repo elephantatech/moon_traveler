@@ -2,6 +2,32 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.5.0] - 2026-04-18
+
+### Removed
+- **CLI mode** — `play.py` deleted; `play_tui.py` is now the sole entry point
+- **prompt_toolkit** dependency removed (GameCompleter, bottom toolbar, CLI input handler)
+- All CLI fallback paths in `ui.py`, `game.py`, `commands.py` stripped
+- Renamed package `moon-traveler-cli` → `moon-traveler`
+
+### Changed
+- **Drone subcommands** — `drone status`, `drone upgrade <part>`, `drone charge` (upgrade/charge still work as top-level shortcuts)
+- **Help text reorganized** — categorized sections (Navigation, Items, Creatures, Drone, Player, Ship, System)
+- **Ship bays context-aware** — ship sub-commands shown in help only at Crash Site
+- **Rest consistency** — medical bay rest now uses same location-based recovery as standalone rest (+10% away, +20% at ship)
+- Added `[build-system]` and `[project.scripts]` to pyproject.toml — `moon-traveler` command available after `pip install`
+
+### Added
+- Escort hint shown after talk when trust reaches 50+
+- `tutorial` and `screenshot` commands now visible in help text
+- 240 tests (was 236) — inspect, examine, go, repair alias autocomplete coverage
+
+### Fixed
+- Screenshot command guard for missing bridge
+- Autocomplete wiring now logs errors instead of silently swallowing
+- Screenshot script victory capture loop handles companion repair prompts
+- Closes #23 (unify completers — resolved by CLI removal)
+
 ## [0.4.1] - 2026-04-18
 
 ### Fixed
@@ -31,8 +57,8 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - **`inspect` command**: examine any item to see what it's used for (repair status, cooking uses, upgrade effects)
 - **`charge` command**: toggle auto-charge on/off (requires Charge Module upgrade)
 - **`screenshot` command**: save TUI screenshots as SVG files (also F12 hotkey)
-- **`--dev` flag**: start with dev mode enabled (`python play.py --dev`)
-- **`--super` flag**: start with max trust, all items, full drone upgrades (`python play.py --super`)
+- **`--dev` flag**: start with dev mode enabled (`python play_tui.py --dev`)
+- **`--super` flag**: start with max trust, all items, full drone upgrades (`python play_tui.py --super`)
 - **Junk items**: 10 collectible souvenirs found during travel (baseball, rubber duck, fossilized tooth, etc.)
 - **Easter egg**: stash 5+ junk items in ship storage to activate 2x trust multiplier (7 in Brutal mode)
 - **Creature junk reactions**: creatures mock you for trying to give them junk, but hint to keep collecting

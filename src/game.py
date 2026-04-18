@@ -2,7 +2,7 @@
 
 import random
 
-from src import input_handler, llm, ui
+from src import llm, ui
 from src.commands import GameContext, cmd_look, dispatch
 from src.creatures import generate_creatures
 from src.dev_mode import DevMode
@@ -212,9 +212,8 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
 
 def game_loop(ctx: GameContext) -> bool:
     """Main game loop. Returns True if game ended (win/lose), False if player quit."""
-    # Create prompt session — prompt_toolkit for CLI, bridge for Textual
-    use_bridge = ui._bridge is not None
-    session = None if use_bridge else input_handler.create_prompt_session(ctx)
+    if ui._bridge is None:
+        raise RuntimeError("game_loop() requires TUI bridge — launch via play_tui.py")
 
     # Initial look
     cmd_look(ctx, "")
@@ -246,12 +245,9 @@ def game_loop(ctx: GameContext) -> bool:
         followers = [c for c in ctx.creatures if c.following]
         ui.render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers)
 
-        # Prompt with autocomplete (CLI) or bridge (Textual)
+        # Get player command via TUI bridge
         location = ctx.player.location_name
-        if use_bridge:
-            raw = ui._bridge.get_command(location)
-        else:
-            raw = input_handler.get_input(session, location)
+        raw = ui._bridge.get_command(location)
 
         if raw is None:
             ui.console.print()
@@ -316,9 +312,6 @@ def game_loop(ctx: GameContext) -> bool:
                 ctx.tutorial = state["tutorial"]
             ctx.should_load = False
             ctx.loaded_state = None
-            # Rebuild autocomplete session with new state (CLI mode only)
-            if not use_bridge:
-                session = input_handler.create_prompt_session(ctx)
             # Sync sound voice state with drone
             from src import sound
 
@@ -332,7 +325,7 @@ def game_loop(ctx: GameContext) -> bool:
 
 
 def _parse_flags() -> tuple[bool, bool]:
-    """Parse --dev and --super CLI flags. Returns (dev_flag, super_flag)."""
+    """Parse --dev and --super command-line flags. Returns (dev_flag, super_flag)."""
     import sys
 
     dev_flag = "--dev" in sys.argv
@@ -354,11 +347,6 @@ def main():
             _snd.disable()
     except Exception:
         pass
-
-    # Show title only in CLI mode — boot sequence handles it in TUI
-    if not ui._bridge:
-        ui.show_title()
-        ui.console.print()
 
     # First-run: prompt for save location
     from src.config import is_first_run, prompt_save_location
@@ -431,7 +419,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
                 from src.config import set_tutorial_completed
 
                 set_tutorial_completed()
-            # Apply CLI flags on load
+            # Apply command-line flags on load
             if dev_flag and ctx.dev_mode:
                 ctx.dev_mode.toggle()
             if super_flag:
@@ -440,12 +428,11 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             from src.difficulty import check_junk_easter_egg
 
             ctx.easter_egg_announced = check_junk_easter_egg(ctx.player, ctx.world_mode)
-            # Wire Textual autocomplete if in TUI mode
-            if ui._bridge:
-                try:
-                    ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
-                except Exception:
-                    pass
+            # Wire Textual autocomplete
+            try:
+                ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
+            except Exception as e:
+                ui.dim(f"(autocomplete unavailable: {e})")
             return game_loop(ctx)
         else:
             ui.error("Failed to load. Starting new game.")
@@ -462,18 +449,17 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
 
     ctx = init_game(mode_key)
 
-    # Apply CLI flags
+    # Apply command-line flags
     if dev_flag and ctx.dev_mode:
         ctx.dev_mode.toggle()
     if super_flag:
         apply_super_mode(ctx)
 
-    # Wire Textual autocomplete if in TUI mode
-    if ui._bridge:
-        try:
-            ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
-        except Exception:
-            pass
+    # Wire Textual autocomplete
+    try:
+        ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
+    except Exception as e:
+        ui.dim(f"(autocomplete unavailable: {e})")
 
     # Run ARIA boot sequence (replaces old show_intro)
     ctx.tutorial.run_boot_sequence(
