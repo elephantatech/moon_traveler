@@ -137,7 +137,7 @@ During conversations:
 - **Merchants trade** — use `/trade` during conversation or the `trade` command. They show what they have and what they want.
 
 <p align="center">
-  <img src="assets/screenshot-creature-conversation.svg" alt="Creature Conversation" width="700"/>
+  <img src="assets/tui-conversation.svg" alt="Creature Conversation" width="700"/>
 </p>
 
 If no AI model is loaded, creatures use pre-written dialogue that still responds to their personality.
@@ -254,7 +254,7 @@ Each creature starts with one of three dispositions:
 Hostile creatures with very low trust (below 15) refuse to talk and force you to back away. Build trust through gifts before attempting conversation.
 
 <p align="center">
-  <img src="assets/screenshot-giving-a-gift-to-build-trust.svg" alt="Giving a Gift" width="700"/>
+  <img src="assets/tui-conversation-end.svg" alt="Giving a Gift" width="700"/>
 </p>
 
 ### Trust System
@@ -296,7 +296,7 @@ At trust **50+**, you can ask a creature to **travel with you** using the `escor
 - Use `escort dismiss` to choose which follower to release (or dismiss all)
 
 <p align="center">
-  <img src="assets/screenshot-escort-system.svg" alt="Escort System" width="700"/>
+  <img src="assets/tui-escort.svg" alt="Escort System" width="700"/>
 </p>
 
 ---
@@ -336,7 +336,7 @@ There's a **15% chance** of finding a loose item (ice crystal or metal shard) du
 The screen clears when you depart to create a sense of journey. On arrival, use `look` to observe your new surroundings.
 
 <p align="center">
-  <img src="assets/screenshot-traveling-to-a-location.svg" alt="Travel Narration" width="700"/>
+  <img src="assets/tui-travel.svg" alt="Travel Narration" width="700"/>
 </p>
 
 ---
@@ -378,7 +378,7 @@ Once all materials are installed via the Repair Bay, you win.
 </p>
 
 <p align="center">
-  <img src="assets/screenshot-victory.svg" alt="Victory" width="700"/>
+  <img src="assets/tui-victory.svg" alt="Victory" width="700"/>
 </p>
 
 ---
@@ -402,7 +402,7 @@ Higher difficulty means more hostile creatures, slower trust gain, scarcer items
 If either food or water reaches zero, the game ends.
 
 <p align="center">
-  <img src="assets/screenshot-game-over.svg" alt="Game Over" width="700"/>
+  <img src="assets/tui-crash-site.svg" alt="Game Over" width="700"/>
 </p>
 
 ---
