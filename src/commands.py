@@ -1303,7 +1303,7 @@ def _bay_storage(ctx: GameContext):
         ui.success(f"Stashed all: {', '.join(stashed)}")
 
     # Check for junk easter egg (only on stash operations, fire once)
-    if choice in ("1", "3") and not ctx.easter_egg_announced:
+    if choice in ("1", "3") and has_inv and not ctx.easter_egg_announced:
         from src.difficulty import check_junk_easter_egg
 
         if check_junk_easter_egg(ctx.player, ctx.world_mode):
