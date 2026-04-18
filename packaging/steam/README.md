@@ -17,9 +17,9 @@
 3. Organize the output:
    ```
    content/
-     windows/   <- copy from dist/moon-traveler-cli-windows/
-     macos/     <- copy from dist/moon-traveler-cli-macos/
-     linux/     <- copy from dist/moon-traveler-cli-linux/
+     windows/   <- copy from dist/moon-traveler-windows/
+     macos/     <- copy from dist/moon-traveler-macos/
+     linux/     <- copy from dist/moon-traveler-linux/
    ```
 
 ## Upload
@@ -43,8 +43,8 @@ The game's SVG banner and screenshots can be converted to PNG at the required di
 ## Launch Options
 
 In Steamworks, set the launch option to the platform-specific executable:
-- **Windows**: `moon-traveler-cli.exe`
-- **macOS**: `moon-traveler-cli`
-- **Linux**: `moon-traveler-cli`
+- **Windows**: `moon-traveler.exe`
+- **macOS**: `moon-traveler`
+- **Linux**: `moon-traveler`
 
 Mark as "Launch in Terminal" since this is a CLI game.

@@ -953,9 +953,9 @@ python scripts/build_release.py [--platform windows|macos|linux|all] [--no-archi
 
 ```
 dist/
-  moon-traveler-cli-{platform}/
-    moon-traveler-cli/
-      moon-traveler-cli[.exe]
+  moon-traveler-{platform}/
+    moon-traveler/
+      moon-traveler[.exe]
       models/
       saves/
 ```

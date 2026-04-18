@@ -70,7 +70,7 @@ curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/in
 irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex
 ```
 
-This downloads the latest release, extracts it, and adds `moon-traveler-cli` to your PATH. No Python required.
+This downloads the latest release, extracts it, and adds `moon-traveler` to your PATH. No Python required.
 
 ### From source
 
