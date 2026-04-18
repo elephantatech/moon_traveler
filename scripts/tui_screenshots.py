@@ -201,6 +201,19 @@ async def screenshot_pilot(pilot):
     await send("look", wait=3.0)
     await take("tui-crash-return-look", "Crash site after exploring")
 
+    # Drain any stale responses from ask_queue before repair
+    while not app._bridge._ask_queue.empty():
+        try:
+            app._bridge._ask_queue.get_nowait()
+            print("  WARN: drained stale ask_queue entry")
+        except Exception:
+            break
+
+    # Verify we're at crash site with materials
+    print(f"  Location: {ctx.player.location_name}")
+    print(f"  Inventory: {dict(ctx.player.inventory)}")
+    print(f"  Checklist: {ctx.repair_checklist}")
+
     # Ship repair — send command and immediately start polling for the y/n prompt
     app.command_queue.put("ship repair")
     await pilot.pause(1.0)
