@@ -5,12 +5,14 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 ## [0.5.0] - 2026-04-18
 
 ### Removed
+
 - **CLI mode** — `play.py` deleted; `play_tui.py` is now the sole entry point
 - **prompt_toolkit** dependency removed (GameCompleter, bottom toolbar, CLI input handler)
 - All CLI fallback paths in `ui.py`, `game.py`, `commands.py` stripped
 - Renamed package `moon-traveler-cli` → `moon-traveler`
 
 ### Changed
+
 - **Drone subcommands** — `drone status`, `drone upgrade <part>`, `drone charge` (upgrade/charge still work as top-level shortcuts)
 - **Help text reorganized** — categorized sections (Navigation, Items, Creatures, Drone, Player, Ship, System)
 - **Ship bays context-aware** — ship sub-commands shown in help only at Crash Site
@@ -18,11 +20,13 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Added `[build-system]` and `[project.scripts]` to pyproject.toml — `moon-traveler` command available after `pip install`
 
 ### Added
+
 - Escort hint shown after talk when trust reaches 50+
 - `tutorial` and `screenshot` commands now visible in help text
 - 240 tests (was 236) — inspect, examine, go, repair alias autocomplete coverage
 
 ### Fixed
+
 - Screenshot command guard for missing bridge
 - Autocomplete wiring now logs errors instead of silently swallowing
 - Screenshot script victory capture loop handles companion repair prompts
@@ -31,6 +35,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 ## [0.4.1] - 2026-04-18
 
 ### Fixed
+
 - **NPC memory captures full conversation** — memory update now uses the entire current chat session instead of a hardcoded last 6 messages (#35)
 - **Game returns to menu after win/lose** — "Play again?" prompt after win/lose, quit exits the app cleanly (#27)
 - **Status bar updates during conversations** — trust and vitals now refresh after every NPC exchange (#3)
@@ -43,12 +48,14 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - **Quit confirmation** — prompt text visible in both game log and input label in TUI mode
 
 ### Added
+
 - C4 architecture diagrams (Excalidraw) — System Context, Container, and 5 Component-level diagrams in `docs/diagrams/`
 - Section 23 in `spec.md` documenting C4 architecture
 
 ## [0.4.0] - 2026-04-17
 
 ### Added
+
 - **Textual TUI mode** — `play_tui.py` launches a full terminal UI with fixed status bar, scrollable game log, input with tab-autocomplete and command history (Up/Down arrows), F12 screenshots
 - **4 difficulty modes**: Easy (~30 min), Medium (~1-2 hours), Hard (~3+ hours), Brutal (~5+ hours)
 - **Brutal mode**: 40 locations, 25 creatures (12 hostile), 1.5x resource drain, +5% hazard bonus, late-game weather at 25h, scarce item drops
@@ -68,6 +75,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - 36 new tests (195 → 231 total)
 
 ### Fixed
+
 - 40+ TUI bugs across 10 review passes (threading races, markup injection, memory leaks, app exit hangs, etc.)
 - Trust display now shows actual gain (was hardcoded "+3" regardless of difficulty)
 - Auto-charge skipped at crash site (message no longer appears when full recharge supersedes it)
@@ -77,6 +85,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Junk items can only be found once (checks both inventory and storage)
 
 ### Changed
+
 - Game mode menu: Short/Medium/Long renamed to Easy/Medium/Hard + new Brutal mode
 - `_BridgeConsoleShim` routes all console.print/input through Textual when TUI bridge is set
 - Worker thread architecture: game logic runs synchronously while Textual UI stays responsive
@@ -85,6 +94,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 ## [0.3.2] - 2026-04-16
 
 ### Added
+
 - **NPC Memory System** — creatures remember facts about the player across conversations (stored as markdown in SQLite)
 - **Configurable LLM context size** — `config context 16384` (default 8192, range 2048–131072)
 - Guaranteed food/water sources in all world seeds (post-generation pass)
@@ -92,6 +102,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Save version validation on load — warns about incompatible saves
 
 ### Fixed
+
 - LLM TRADE action: `given_items` not tracked when item was only in `can_give_materials` — caused ValueError on re-offer
 - LLM TRADE action: capacity guard used `<=` instead of `<` — inconsistent with all other guards
 - Companion donations could overflow cargo capacity — overflow now goes to ship storage
@@ -103,6 +114,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - macOS `say` subprocess had no timeout — added 5s limit
 
 ### Changed
+
 - Chat history is now unlimited (no pruning) — creatures remember everything
 - LLM receives last 20 messages + structured memory (efficient context usage)
 - Drone upgrades spread across more location types for better availability in short mode
@@ -111,11 +123,13 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 ## [0.3.1] - 2026-04-16
 
 ### Fixed
+
 - Fixed crash when talking to NPCs caused by prompt_toolkit session conflict
 - Fixed GPU Metal segfault on macOS — auto-detects compute mode from config, no startup prompt
 - Sound effects no longer write to stdout (was corrupting Rich console terminal state)
 
 ### Added
+
 - **Sound effects** — beep patterns for game events, spoken voice announcements via Voice Module drone upgrade
 - **Drone upgrades**: Voice Module (spoken announcements) and Autopilot Chip (auto-look/scan on arrival)
 - **`sound` command** — toggle sound effects on/off
@@ -125,6 +139,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - GPU smoke test during model load — catches inference failures before gameplay starts
 
 ### Changed
+
 - Removed GPU/CPU selection prompt at startup — auto-detects or reads from config
 - Removed "Skip tutorial?" prompt — tutorial runs once automatically, then skips
 - All user data defaults to `~/.moonwalker/` (saves, models, config, dev logs)
@@ -134,6 +149,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 ### Added
 
 **Creature-Centric Redesign**
+
 - Creatures are now the primary source of repair materials and survival resources
 - 10 archetypes (added Merchant and Enforcer) with role-based capabilities
 - `ROLE_CAPABILITIES` system: each archetype has specific trust thresholds for what they provide
@@ -144,6 +160,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Natural conversation prompts: creatures feel like real people with lives and communities
 
 **Merchant & Trade System**
+
 - Merchant archetype: trades item-for-item, never gives free
 - `trade` command with interactive menu (pick item to receive + item to give)
 - `[TRADE:offered:wanted]` LLM action tag for in-conversation trades
@@ -151,29 +168,34 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Fallback trade menu when LLM is unavailable
 
 **Enforcer Archetype**
+
 - Authority figure who advises which creatures can help with ship repairs
 - Knows everyone in the area, methodical and fair
 - Provides creature intel at trust 15, materials at trust 60
 
 **Hostile Environment**
+
 - 6 hazardous travel events: geyser eruptions, crevasse falls, ice storms, thin ice collapse, toxic vents, thermal shocks
 - Mechanical effects: suit damage, food/water loss, time delays
 - Hazard probability scales with trip length (1 roll per 2 hours, max 3)
 - Actionable ARIA feedback: suggests medical bay, Healers, or kitchen after damage
 
 **Late-Game Weather Escalation**
+
 - After threshold (30h short, 40h medium, 60h long), weather deteriorates
 - Hazard probabilities increase +5% per 10 hours past threshold
 - Extra water drain during travel in late game
 - Dramatic weather narration during travel
 
 **AI-Powered Drone Hints**
+
 - `get_smart_advice()` replaces static tip pools with context-aware suggestions
 - LLM secondary call for specific question recommendations
 - Smart template fallback: knows what each creature has, what player needs, trust gaps
 - Archetype-specific coaching: "This Healer can help even at low trust"
 
 **UI Improvements**
+
 - Skip tutorial option for returning players (with context before the prompt)
 - Tutorial completion now mentions give, trade, escort, and ship commands
 - GPS shows food/water resource markers (visit-gated) with Resources column
@@ -184,12 +206,14 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Trust tier label consistency ("max trust" everywhere)
 
 **Dev Mode**
+
 - Logs to JSON file (`logs/dev_diagnostics.jsonl`) instead of printing to screen
 - Debug logging across all key actions: commands, travel, trust changes, trades, scans, saves, repairs
 - Full RAM breakdown: RSS, VMS, system RAM, LLM model estimate
 - Never crashes the game (all logging wrapped in try/except)
 
 ### Fixed
+
 - Followers now visible to `talk`, `give`, and `look` commands during escort
 - Autocomplete suggests follower names for `talk` and `give`
 - Material duplication: `can_give_materials` synced with `role_inventory` on all code paths
@@ -206,6 +230,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Removed dead code: `narrate()`, `drone_speak()`, `drone_whisper()` from ui.py
 
 ### Changed
+
 - World item drops reduced: creatures are primary resource source, locations provide 0-1 survival items
 - `cmd_give` no longer auto-dumps materials at trust 70 (materials come through conversation)
 - `LOCATION_ITEMS` simplified: only survival items (ice_crystal, bio_gel, metal_shard) at most locations
@@ -215,6 +240,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - SAVE_VERSION bumped to 4
 
 **Testing**
+
 - 195 tests (up from 170): new tests for role-based trust, trade actions, guaranteed spawns, material coverage, hazard events, dev mode logging
 
 ## [0.2.0] - 2026-04-16
@@ -222,6 +248,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 ### Added
 
 **Ship Bays** (at Crash Site)
+
 - Repair Bay: install repair materials interactively
 - Storage Bay: stash/retrieve items to free drone cargo
 - Kitchen Bay: cook bio_gel into food (+40%) or ice_crystal into water (+40%)
@@ -229,34 +256,40 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Medical Bay: suit repair and rest recovery
 
 **Creature Actions in Conversation**
+
 - NPCs can give water, food, materials, healing, and suit repair via LLM action tags
 - Trust-gated: low trust blocks all actions, medium allows food/water, high allows everything
 - Action tags stripped from displayed text — player sees natural dialogue
 
 **Escort System**
+
 - Ask creatures with trust 50+ to follow you (`escort` command)
 - Companions move with you during travel, shown in status bar
 - At Crash Site: Healers restore vitals, Builders install materials, all donate resources
 - Send companions home or keep them after helping
 
 **Status Bar**
+
 - Full vitals (food, water, suit, battery, ship progress) at Crash Site with bay summary
 - Minimal bar (suit, battery, time) when exploring — food/water appear when below 50%
 - Creature info line with trust bar when NPC is present
 - Follower line when escorting creatures
 
 **Drone Vitals Whisper**
+
 - Drone whispers status updates at every 10% resource drop while exploring
 - Yellow warnings at 30%, red critical alerts at 10%
 - Resets tracking when returning to Crash Site
 
 **Model Selection**
+
 - Default model changed to Qwen3.5 2B (1.3 GB, ~2.3 GB RAM)
 - Gemma 4 E2B remains as optional full-quality model (3.1 GB, ~4.4 GB RAM)
 - First-run model selection menu with system info (platform, RAM, GPU)
 - Low RAM detection recommends lite model
 
 **Save System**
+
 - Migrated from JSON files to SQLite key-value database
 - Chat history stored in dedicated table — NPCs remember conversations across saves
 - Configurable save path (first-run prompt, `config` command)
@@ -264,6 +297,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Silent auto-save (no UI noise)
 
 **UX Improvements**
+
 - `rest` command: recover food/water anywhere (+10%, or +20% at Crash Site)
 - Travel confirmation for trips >=3 hours with estimated resource cost
 - Dangerous trip warning when resources would drop below 10%
@@ -280,32 +314,39 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - `config` command to view/change save directory
 
 **World Generation**
+
 - Rewritten as chain-growth algorithm (all locations reachable by scanning)
 - Scan capped at 3 closest discoveries per scan
 - Cluster limit prevents overcrowding
 
 **Win Sequence**
+
 - Ship launch ASCII art animation
 - Personalized creature recognition naming allies who helped
 
 **Dev Mode**
+
 - Location table with coords, distances, items, creatures, food/water markers
 - Scan reachability tree (2-depth)
 - Chat history panels for all creatures spoken to
 
 **CI/CD**
+
 - GitHub Actions: CI (tests + lint on PR) and Release (cross-platform builds on tag)
 - Build script reads version from pyproject.toml, generates SHA-256 checksums
 - Missing hidden imports added for PyInstaller
 
 **Testing**
+
 - 170 tests (up from 45): player, creatures, drone, LLM actions, world gen, game, save/load, travel
 
 **Assets**
+
 - 19 auto-generated SVG screenshots via Rich export
 - Hand-crafted banner, icon, archetype guide, map visualization, splash
 
 ### Fixed
+
 - Lose condition: changed from AND to OR (can now die from dehydration or starvation alone)
 - Suit integrity=0 is now a lose condition (was cosmetic-only despite fatal ARIA warnings)
 - Duplicate LLM message: player input was sent twice to the model
@@ -327,6 +368,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Save version key matches spec ("save_version" not "version")
 
 ### Changed
+
 - Default model: Qwen3.5 2B (was Gemma 4 E2B)
 - System requirements: 4 GB RAM recommended (was 6 GB)
 
@@ -335,6 +377,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 ### Added
 
 **Core Game**
+
 - Procedural world generation with seeded RNG (Short/Medium/Long modes)
 - Player survival system: food, water, suit integrity meters
 - 8 creature archetypes (Wise Elder, Trickster, Guardian, Healer, Builder, Wanderer, Hermit, Warrior)
@@ -345,6 +388,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Developer diagnostics panel (`dev` command)
 
 **Drone Companion**
+
 - Scout drone with battery, scanner, cargo, and speed boost stats
 - Drone speech system with distinct voice (`DRONE:` in magenta)
 - Travel musings: drone comments during journeys with observations and tips
@@ -355,23 +399,27 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - 5 upgrade types: range module, translator chip, cargo rack, thruster pack, battery cell
 
 **Suit Integrity**
+
 - Suit starts at 92% (damaged from crash landing)
 - Degrades 0.5% per hour of travel
 - Displayed in status command, post-travel summary, and boot diagnostics
 - ARIA warns at 50%, 30%, 15%, 5% thresholds
 
 **GPU/CPU Mode Selection**
+
 - Auto-detects GPU availability (CUDA/Metal/Vulkan) at startup
 - User can choose between "CPU + GPU" and "CPU Only" modes
 - Automatic CPU fallback if GPU loading fails
 
 **LLM Integration**
+
 - Local LLM inference via llama-cpp-python (Gemma 4 E2B GGUF)
 - Context-aware creature dialogue with personality, disposition, trust, and translation quality
 - Pre-written fallback responses when LLM is unavailable
 - Drone message pools (pool-based, no LLM required)
 
 **Travel System**
+
 - Distance-based travel time with drone speed boost
 - Screen clears on departure for immersion
 - Scaled narration: environmental events, atmospheric details, drone musings
@@ -381,6 +429,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Arrival prompt to look around
 
 **UI**
+
 - Rich terminal interface with styled text, panels, and tables
 - ASCII art title screen and crash site illustration
 - Character-by-character narrative animation
@@ -390,20 +439,24 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - Autocomplete for commands, locations, creatures, and items
 
 **ARIA Ship AI**
+
 - Status warnings for food, water, suit integrity, and drone battery
 - Post-travel resource summaries
 - Periodic objective reminders
 - Boot sequence with system diagnostics
 
 **Documentation**
+
 - README with installation, usage, and gameplay guide
 - CLAUDE.md consolidated spec document
 - CHANGELOG tracking all features
 
 **Ship Repair System**
+
 - Repair checklist is materials-only (no creature helper requirements)
 - Interactive `ship` command at Crash Site: install materials and repair suit
 - Suit repair uses drone battery (2% suit per 1% battery)
 
 **Build & Release**
+
 - Cross-platform build script for Windows, macOS, and Linux (PyInstaller)

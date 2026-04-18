@@ -10,6 +10,7 @@ assignees: ''
 A clear description of what happened.
 
 **Steps to reproduce**
+
 1. Start game with `python play_tui.py`
 2. Choose difficulty: ...
 3. Type command: ...
@@ -22,6 +23,7 @@ What should have happened.
 What actually happened. Include any error messages or tracebacks.
 
 **Environment**
+
 - OS: [e.g., macOS 14.5, Ubuntu 24.04, Windows 11]
 - Python: [e.g., 3.11.3]
 - Game version: [e.g., v0.4.0]

@@ -1,0 +1,34 @@
+{
+  "config": {
+    // Allow long lines (tables, URLs, code)
+    "MD013": false,
+    // Allow duplicate headings in different sections
+    "MD024": { "siblings_only": true },
+    // Allow inline HTML (used in HOW_TO_PLAY.md)
+    "MD033": false,
+    // Allow bare URLs
+    "MD034": false,
+    // Allow emphasis as heading (used in ROADMAP tables)
+    "MD036": false,
+    // Disable first-line-heading (not all md files are docs)
+    "MD041": false,
+    // Allow trailing punctuation in headings
+    "MD026": false,
+    // Allow fenced code blocks without language
+    "MD040": false,
+    // Allow compact table style
+    "MD060": false
+  },
+  "ignores": [
+    "docs/**",
+    "media/**",
+    "assets/**",
+    "packaging/**",
+    ".claude/**",
+    ".venv/**",
+    "node_modules/**",
+    "build/**",
+    "dist/**",
+    ".impeccable.md"
+  ]
+}
