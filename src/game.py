@@ -109,6 +109,10 @@ def show_win_sequence(ctx: GameContext):
 
     ui.console.print("[bold green]" + "=" * 60 + "[/bold green]")
     ui.console.print("\n[bold]MISSION COMPLETE[/bold]\n")
+
+    # Post-game stats screen
+    ui.render_stats_screen(ctx.stats, ctx, won=True)
+
     return True  # Signal game ended
 
 
@@ -136,6 +140,10 @@ def show_lose_sequence(ctx: GameContext):
     ui.narrate_lines(lose_lines, pause=0.5)
     ui.console.print("[bold red]" + "=" * 60 + "[/bold red]")
     ui.console.print("\n[bold]GAME OVER[/bold]\n")
+
+    # Post-game stats screen
+    ui.render_stats_screen(ctx.stats, ctx, won=False)
+
     return True  # Signal game ended
 
 
