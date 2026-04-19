@@ -269,9 +269,14 @@ class TestLeaderboardIntegration:
     def test_record_and_retrieve(self):
         from src.save_load import get_top_scores, record_score
 
-        record_score(750, "A", True, "short", 15, 900, 3, 42)
-        scores = get_top_scores(10)
-        assert any(s["score"] == 750 for s in scores)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            os.environ["MOON_TRAVELER_SAVE_DIR"] = tmpdir
+            try:
+                record_score(750, "A", True, "short", 15, 900, 3, 42)
+                scores = get_top_scores(10)
+                assert any(s["score"] == 750 for s in scores)
+            finally:
+                os.environ.pop("MOON_TRAVELER_SAVE_DIR", None)
 
 
 class TestGiveIntegration:
