@@ -150,6 +150,9 @@ async def screenshot_pilot(pilot):
     await send("stats", wait=3.0)
     await take("tui-stats", "Session stats")
 
+    await send("scores", wait=3.0)
+    await take("tui-scores", "Leaderboard")
+
     # Scan again to discover more locations
     await send("scan", wait=3.0)
     await take("tui-scan-2", "Second scan")

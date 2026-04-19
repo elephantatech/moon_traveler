@@ -691,6 +691,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | charge | — | Toggle drone auto-charge on/off (requires Charge Module) |
 | status | — | Show food/water/suit/repair progress |
 | stats | — | Show session gameplay statistics (commands, km, creatures, trades, gifts, items) |
+| scores | leaderboard | View local leaderboard (top 10 scores) |
 | ship | repair | Interactive ship bays at Crash Site |
 | save | — | Save game to named slot (default: "manual") |
 | load | — | Load game from slot |
@@ -1015,9 +1016,11 @@ Setup: `pip install pre-commit && pre-commit install`
 
 ### 19.1 Win
 
-All entries in `repair_checklist` are `True` (all materials installed at Crash Site).
+All entries in `repair_checklist` are `True` (all materials installed at Crash Site). Requires escort assistance — the final repair is blocked until enough creatures have helped at the ship.
 
-**Win sequence:** Narrative about ship repair, thrusters igniting, rising from Enceladus. Shows survival time. "MISSION COMPLETE".
+**Escort requirements:** Easy=1, Medium=2, Hard=3, Brutal=4 creatures must arrive at the crash site via escort. Tracked by `escorts_completed` on GameContext, persisted via `_escorts_completed` key in the repair checklist save data.
+
+**Win sequence:** Narrative about ship repair, thrusters igniting, rising from Enceladus. Shows survival time, post-game score screen with grade and ARIA verdict. "MISSION COMPLETE".
 
 ### 19.2 Lose
 
