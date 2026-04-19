@@ -73,7 +73,7 @@ AVAILABLE_MODELS = [
         "url": "https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
         "size": "1.0 GB",
         "ram": "~1.2 GB",
-        "sha256": None,  # Set after first verified download
+        "sha256": None,  # TODO: populate with known-good hash from HuggingFace
     },
     {
         "name": "Qwen3.5 2B (Recommended — best balance)",
@@ -301,7 +301,7 @@ def maybe_download_model() -> bool:
 
 
 def _download_custom_model() -> bool:
-    """Download a custom GGUF model from a user-provided HuggingFace URL."""
+    """Download a custom GGUF model from a user-provided URL (HuggingFace preferred)."""
     ui.console.print()
     ui.info("Paste a direct link to a .gguf file from HuggingFace.")
     ui.dim("  Example: https://huggingface.co/user/repo/resolve/main/model-Q4_K_M.gguf")
@@ -316,16 +316,20 @@ def _download_custom_model() -> bool:
         ui.dim("No URL provided. Skipping.")
         return False
 
-    # Basic validation
-    if not url.endswith(".gguf"):
+    # Strip query params and fragments for validation
+    clean_url = url.split("?")[0].split("#")[0]
+    if not clean_url.endswith(".gguf"):
         ui.error("URL must point to a .gguf file.")
         return False
 
     if "huggingface.co" not in url and "hf.co" not in url:
         ui.warn("URL does not appear to be from HuggingFace. Proceeding anyway...")
 
-    # Extract filename from URL
-    filename = url.split("/")[-1].split("?")[0]
+    # Extract filename from URL (strips query params)
+    filename = clean_url.split("/")[-1]
+    if not filename or ".." in filename:
+        ui.error("Invalid filename in URL.")
+        return False
     models_dir = _get_models_dir()
     models_dir.mkdir(parents=True, exist_ok=True)
     target = models_dir / filename

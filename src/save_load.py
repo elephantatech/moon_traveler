@@ -267,7 +267,7 @@ def _load_creature_memory(conn: sqlite3.Connection, slot: str) -> dict[str, str]
 
 
 def _validate_chat_history(chat: dict[str, list[dict]]) -> dict[str, list[dict]]:
-    """Validate chat history — ensure roles alternate and content is sane."""
+    """Validate chat history — filter invalid roles, cap content length and message count."""
     validated = {}
     for creature_id, messages in chat.items():
         clean = []
@@ -290,15 +290,19 @@ def _validate_chat_history(chat: dict[str, list[dict]]) -> dict[str, list[dict]]
 
 def _validate_creature_memory(memories: dict[str, str]) -> dict[str, str]:
     """Validate creature memories — cap length and strip injection patterns."""
-    from src.llm import _sanitize_memory
+    try:
+        from src.llm import _sanitize_memory
+    except ImportError:
+        _sanitize_memory = None
 
     validated = {}
     for creature_id, memory in memories.items():
         # Cap memory length
         if len(memory) > 4096:
             memory = memory[:4096]
-        # Strip instruction-like patterns
-        memory = _sanitize_memory(memory)
+        # Strip instruction-like patterns (degrades gracefully if llm module unavailable)
+        if _sanitize_memory is not None:
+            memory = _sanitize_memory(memory)
         validated[creature_id] = memory
     return validated
 
@@ -316,7 +320,7 @@ def _reconstruct_state(
     state["creatures"] = [Creature.from_dict(d) for d in kv["creatures"]]
     state["repair_checklist"] = kv["repair_checklist"]
 
-    # Restore chat history from dedicated table (validated on load)
+    # Restore chat history from dedicated table (overrides JSON-embedded history; validated on load)
     if chat:
         chat = _validate_chat_history(chat)
         for creature in state["creatures"]:
