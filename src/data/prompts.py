@@ -338,3 +338,34 @@ Player needs: {player_needs}
 Recent exchange: {last_exchange}
 
 Specific suggestion:"""
+
+
+# --- Post-game grade verdicts ---
+
+GRADE_VERDICTS = {
+    "S": [
+        "Outstanding, Commander. Enceladus will remember you long after the ice reclaims your footprints.",
+        "A masterclass in survival. Efficient, resourceful, and compassionate. The creatures spoke well of you.",
+        "Perfect execution. You turned a death sentence into a homecoming. I'm proud to have served alongside you.",
+    ],
+    "A": [
+        "Impressive work, Commander. You adapted, survived, and earned real trust out there.",
+        "Strong performance. A few rough patches, but you made it home in one piece. That's what matters.",
+        "Well done. The ice tested you and you answered. Not many could say the same.",
+    ],
+    "B": [
+        "Solid survival instincts, Commander. Room for improvement, but you're alive. That counts.",
+        "You made it. Not the cleanest run, but determination carried you through.",
+        "A respectable effort. The creatures helped where they could. Next time, lean on them earlier.",
+    ],
+    "C": [
+        "You survived, Commander. Barely. But survival is survival.",
+        "That was close. A few more hours and... well. Let's not dwell on it.",
+        "The ice nearly won. Next time, remember: trust is your most valuable resource out here.",
+    ],
+    "D": [
+        "Commander... we need to talk about your approach. The data speaks for itself.",
+        "I've logged this run for future reference. As a cautionary tale.",
+        "The creatures tried to help. Most of them, anyway. Perhaps listen more next time.",
+    ],
+}

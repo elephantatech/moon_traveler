@@ -333,6 +333,62 @@ def show_ship_repair(checklist: dict):
         info(f"Progress: {done_count}/{total}")
 
 
+def render_stats_screen(stats, ctx, won: bool = True):
+    """Display the post-game stats screen with score, grade, and ARIA verdict."""
+    try:
+        _render_stats_screen_inner(stats, ctx, won)
+    except Exception as e:
+        error(f"Could not display stats screen: {e}")
+
+
+def _render_stats_screen_inner(stats, ctx, won: bool):
+    """Inner implementation — separated so errors are caught gracefully."""
+    score, grade = stats.calculate_score(ctx.player.hours_elapsed, ctx.creatures, ctx.repair_checklist)
+
+    grade_colors = {"S": "bold magenta", "A": "bold green", "B": "green", "C": "yellow", "D": "red"}
+    grade_color = grade_colors.get(grade, "white")
+
+    allies = sum(1 for c in ctx.creatures if c.trust > 50)
+
+    table = Table(
+        title=f"{'MISSION COMPLETE' if won else 'MISSION FAILED'} — Final Stats",
+        border_style="yellow" if won else "red",
+        show_header=False,
+    )
+    table.add_column("Stat", style="bold")
+    table.add_column("Value")
+
+    table.add_row("Outcome", "[green]Victory[/green]" if won else "[red]Game Over[/red]")
+    table.add_row("In-game time", f"{ctx.player.hours_elapsed} hours")
+    table.add_row("Real time", stats.elapsed_display)
+    table.add_row("Commands typed", str(stats.commands))
+    table.add_row("Distance traveled", f"{stats.km_traveled:.1f} km")
+    table.add_row("Creatures befriended", f"{allies} (trust > 50)")
+    table.add_row("Creatures talked to", str(len(stats.creatures_talked)))
+    table.add_row("Hazards survived", str(stats.hazards_survived))
+    table.add_row("Trades completed", str(stats.trades))
+    table.add_row("Gifts given", str(stats.gifts_given))
+    table.add_row("Items collected", str(stats.items_collected))
+    table.add_row("", "")
+    table.add_row("Score", f"[{grade_color}]{score}[/{grade_color}] / 1000")
+    table.add_row("Grade", f"[{grade_color}]{grade}[/{grade_color}]")
+
+    console.print()
+    console.print(table)
+
+    # ARIA verdict
+    from src.data.prompts import GRADE_VERDICTS
+
+    verdicts = GRADE_VERDICTS.get(grade, [])
+    if verdicts:
+        import random
+
+        verdict = random.choice(verdicts)
+        console.print()
+        console.print(f"  [dim]ARIA:[/dim] [italic]{verdict}[/italic]")
+    console.print()
+
+
 def creature_speak(name: str, text: str, color: str = "green"):
     from rich.markup import escape
 
