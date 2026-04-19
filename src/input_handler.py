@@ -26,6 +26,8 @@ BASE_COMMANDS = [
     "upgrade",
     "status",
     "stats",
+    "scores",
+    "leaderboard",
     "ship",
     "repair",
     "rest",

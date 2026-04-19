@@ -61,6 +61,20 @@ def _get_db() -> sqlite3.Connection:
             PRIMARY KEY (slot, creature_id)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS leaderboard (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            score INTEGER NOT NULL,
+            grade TEXT NOT NULL,
+            won INTEGER NOT NULL DEFAULT 0,
+            game_mode TEXT NOT NULL,
+            hours_elapsed INTEGER NOT NULL,
+            real_time_seconds INTEGER NOT NULL,
+            creatures_befriended INTEGER NOT NULL DEFAULT 0,
+            world_seed INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     conn.commit()
     return conn
 
@@ -408,3 +422,55 @@ def auto_save(
         tutorial,
         quiet=True,
     )
+
+
+def record_score(
+    score: int,
+    grade: str,
+    won: bool,
+    game_mode: str,
+    hours_elapsed: int,
+    real_time_seconds: int,
+    creatures_befriended: int = 0,
+    world_seed: int | None = None,
+):
+    """Record a completed game to the local leaderboard."""
+    try:
+        conn = _get_db()
+        conn.execute(
+            """INSERT INTO leaderboard
+               (score, grade, won, game_mode, hours_elapsed, real_time_seconds,
+                creatures_befriended, world_seed)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (score, grade, int(won), game_mode, hours_elapsed, real_time_seconds, creatures_befriended, world_seed),
+        )
+        conn.commit()
+    except Exception:
+        pass  # Non-critical — don't block gameplay
+
+
+def get_top_scores(limit: int = 10) -> list[dict]:
+    """Return the top N scores from the leaderboard."""
+    try:
+        conn = _get_db()
+        rows = conn.execute(
+            """SELECT score, grade, won, game_mode, hours_elapsed, real_time_seconds,
+                      creatures_befriended, created_at
+               FROM leaderboard ORDER BY score DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        return [
+            {
+                "score": r[0],
+                "grade": r[1],
+                "won": bool(r[2]),
+                "mode": r[3],
+                "hours": r[4],
+                "real_time": r[5],
+                "allies": r[6],
+                "date": r[7],
+            }
+            for r in rows
+        ]
+    except Exception:
+        return []
