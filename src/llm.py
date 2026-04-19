@@ -73,6 +73,7 @@ AVAILABLE_MODELS = [
         "url": "https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
         "size": "1.0 GB",
         "ram": "~1.2 GB",
+        "sha256": None,  # Set after first verified download
     },
     {
         "name": "Qwen3.5 2B (Recommended — best balance)",
@@ -80,6 +81,7 @@ AVAILABLE_MODELS = [
         "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
         "size": "1.3 GB",
         "ram": "~2.3 GB",
+        "sha256": None,
     },
     {
         "name": "Gemma 4 E2B (Full quality — best dialogue)",
@@ -87,6 +89,7 @@ AVAILABLE_MODELS = [
         "url": "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf",
         "size": "3.1 GB",
         "ram": "~4.4 GB",
+        "sha256": None,
     },
 ]
 
@@ -150,8 +153,32 @@ def find_model_path() -> str | None:
     return None
 
 
-def _download_file(url: str, target: Path) -> bool:
-    """Download a file with progress bar. Returns True on success."""
+def _verify_checksum(file_path: Path, expected_sha256: str | None) -> bool:
+    """Verify SHA-256 checksum of a downloaded file. Returns True if valid or no checksum set."""
+    if not expected_sha256:
+        return True  # No checksum configured — skip verification
+
+    import hashlib
+
+    ui.dim("  Verifying file integrity (SHA-256)...")
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while chunk := f.read(8192):
+            sha256.update(chunk)
+    actual = sha256.hexdigest()
+    if actual != expected_sha256:
+        ui.error("Checksum mismatch!")
+        ui.error(f"  Expected: {expected_sha256[:16]}...")
+        ui.error(f"  Got:      {actual[:16]}...")
+        ui.error("  The downloaded model file may be corrupted or tampered with.")
+        ui.error("  Delete the file and re-download, or verify the source.")
+        return False
+    ui.dim("  Checksum verified.")
+    return True
+
+
+def _download_file(url: str, target: Path, expected_sha256: str | None = None) -> bool:
+    """Download a file with progress bar and optional checksum verification. Returns True on success."""
     try:
 
         def _progress(block_num, block_size, total_size):
@@ -164,6 +191,12 @@ def _download_file(url: str, target: Path) -> bool:
 
         urllib.request.urlretrieve(url, str(target), reporthook=_progress)
         print()
+
+        # Verify checksum after download
+        if not _verify_checksum(target, expected_sha256):
+            target.unlink()
+            return False
+
         return True
     except Exception as e:
         print()
@@ -248,7 +281,7 @@ def maybe_download_model() -> bool:
     ui.dim(f"File: {model['filename']} ({model['size']})")
     ui.console.print()
 
-    if _download_file(model["url"], target):
+    if _download_file(model["url"], target, expected_sha256=model.get("sha256")):
         ui.success(f"Model downloaded to {target}")
         return True
     else:

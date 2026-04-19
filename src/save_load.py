@@ -266,6 +266,43 @@ def _load_creature_memory(conn: sqlite3.Connection, slot: str) -> dict[str, str]
         return {}  # Table may not exist in old saves
 
 
+def _validate_chat_history(chat: dict[str, list[dict]]) -> dict[str, list[dict]]:
+    """Validate chat history — ensure roles alternate and content is sane."""
+    validated = {}
+    for creature_id, messages in chat.items():
+        clean = []
+        for msg in messages:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            # Only allow valid roles
+            if role not in ("user", "assistant"):
+                continue
+            # Cap content length (prevent memory bombs)
+            if len(content) > 4096:
+                content = content[:4096]
+            clean.append({"role": role, "content": content})
+        # Cap total messages per creature
+        if len(clean) > 100:
+            clean = clean[-100:]
+        validated[creature_id] = clean
+    return validated
+
+
+def _validate_creature_memory(memories: dict[str, str]) -> dict[str, str]:
+    """Validate creature memories — cap length and strip injection patterns."""
+    from src.llm import _sanitize_memory
+
+    validated = {}
+    for creature_id, memory in memories.items():
+        # Cap memory length
+        if len(memory) > 4096:
+            memory = memory[:4096]
+        # Strip instruction-like patterns
+        memory = _sanitize_memory(memory)
+        validated[creature_id] = memory
+    return validated
+
+
 def _reconstruct_state(
     kv: dict, chat: dict[str, list[dict]] | None = None, memories: dict[str, str] | None = None
 ) -> dict:
@@ -279,13 +316,16 @@ def _reconstruct_state(
     state["creatures"] = [Creature.from_dict(d) for d in kv["creatures"]]
     state["repair_checklist"] = kv["repair_checklist"]
 
-    # Restore chat history from dedicated table (overrides the JSON-embedded history)
+    # Restore chat history from dedicated table (validated on load)
     if chat:
+        chat = _validate_chat_history(chat)
         for creature in state["creatures"]:
             if creature.id in chat:
                 creature.conversation_history = chat[creature.id]
 
+    # Restore creature memories (validated — caps length, strips injection patterns)
     if memories:
+        memories = _validate_creature_memory(memories)
         for creature in state["creatures"]:
             if creature.id in memories:
                 creature.memory = memories[creature.id]
