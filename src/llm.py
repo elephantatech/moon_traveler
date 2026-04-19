@@ -73,6 +73,7 @@ AVAILABLE_MODELS = [
         "url": "https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
         "size": "1.0 GB",
         "ram": "~1.2 GB",
+        "sha256": None,  # Set after first verified download
     },
     {
         "name": "Qwen3.5 2B (Recommended — best balance)",
@@ -80,6 +81,7 @@ AVAILABLE_MODELS = [
         "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf",
         "size": "1.3 GB",
         "ram": "~2.3 GB",
+        "sha256": None,
     },
     {
         "name": "Gemma 4 E2B (Full quality — best dialogue)",
@@ -87,6 +89,7 @@ AVAILABLE_MODELS = [
         "url": "https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF/resolve/main/gemma-4-E2B-it-Q4_K_M.gguf",
         "size": "3.1 GB",
         "ram": "~4.4 GB",
+        "sha256": None,
     },
 ]
 
@@ -150,8 +153,32 @@ def find_model_path() -> str | None:
     return None
 
 
-def _download_file(url: str, target: Path) -> bool:
-    """Download a file with progress bar. Returns True on success."""
+def _verify_checksum(file_path: Path, expected_sha256: str | None) -> bool:
+    """Verify SHA-256 checksum of a downloaded file. Returns True if valid or no checksum set."""
+    if not expected_sha256:
+        return True  # No checksum configured — skip verification
+
+    import hashlib
+
+    ui.dim("  Verifying file integrity (SHA-256)...")
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while chunk := f.read(8192):
+            sha256.update(chunk)
+    actual = sha256.hexdigest()
+    if actual != expected_sha256:
+        ui.error("Checksum mismatch!")
+        ui.error(f"  Expected: {expected_sha256[:16]}...")
+        ui.error(f"  Got:      {actual[:16]}...")
+        ui.error("  The downloaded model file may be corrupted or tampered with.")
+        ui.error("  Delete the file and re-download, or verify the source.")
+        return False
+    ui.dim("  Checksum verified.")
+    return True
+
+
+def _download_file(url: str, target: Path, expected_sha256: str | None = None) -> bool:
+    """Download a file with progress bar and optional checksum verification. Returns True on success."""
     try:
 
         def _progress(block_num, block_size, total_size):
@@ -164,6 +191,12 @@ def _download_file(url: str, target: Path) -> bool:
 
         urllib.request.urlretrieve(url, str(target), reporthook=_progress)
         print()
+
+        # Verify checksum after download
+        if not _verify_checksum(target, expected_sha256):
+            target.unlink()
+            return False
+
         return True
     except Exception as e:
         print()
@@ -217,8 +250,15 @@ def maybe_download_model() -> bool:
     for i, model in enumerate(AVAILABLE_MODELS, 1):
         ui.console.print(f"  [cyan]{i}[/cyan]. {model['name']}")
         ui.console.print(f"      [dim]Download: {model['size']} | RAM needed: {model['ram']}[/dim]")
-    ui.console.print(f"  [cyan]{len(AVAILABLE_MODELS) + 1}[/cyan]. Skip (use fallback dialogue)")
+    custom_idx = len(AVAILABLE_MODELS) + 1
+    skip_idx = len(AVAILABLE_MODELS) + 2
+    ui.console.print(f"  [cyan]{custom_idx}[/cyan]. Custom model (paste a HuggingFace GGUF URL)")
+    ui.console.print("      [dim]Supports HuggingFace hosted models only.[/dim]")
+    ui.console.print(f"  [cyan]{skip_idx}[/cyan]. Skip (use fallback dialogue)")
     ui.console.print("      [dim]No download needed. Creatures use pre-written dialogue.[/dim]")
+    ui.console.print()
+    models_dir = _get_models_dir()
+    ui.dim(f"  Manual: place any .gguf file in {models_dir} and it will be auto-detected.")
     ui.console.print()
 
     try:
@@ -235,6 +275,10 @@ def maybe_download_model() -> bool:
             ui.dim("Skipping download. Fallback dialogue will be used.")
             return False
 
+    # Custom model — user provides a HuggingFace URL
+    if idx == custom_idx - 1:
+        return _download_custom_model()
+
     if idx < 0 or idx >= len(AVAILABLE_MODELS):
         ui.dim("Skipping download. Fallback dialogue will be used.")
         return False
@@ -248,11 +292,60 @@ def maybe_download_model() -> bool:
     ui.dim(f"File: {model['filename']} ({model['size']})")
     ui.console.print()
 
-    if _download_file(model["url"], target):
+    if _download_file(model["url"], target, expected_sha256=model.get("sha256")):
         ui.success(f"Model downloaded to {target}")
         return True
     else:
         ui.dim("You can manually download a .gguf model and place it in the models/ directory.")
+        return False
+
+
+def _download_custom_model() -> bool:
+    """Download a custom GGUF model from a user-provided URL (HuggingFace preferred)."""
+    ui.console.print()
+    ui.info("Paste a direct link to a .gguf file from HuggingFace.")
+    ui.dim("  Example: https://huggingface.co/user/repo/resolve/main/model-Q4_K_M.gguf")
+    ui.console.print()
+
+    try:
+        url = ui.console.input("[bold]URL > [/bold]").strip()
+    except (EOFError, KeyboardInterrupt):
+        return False
+
+    if not url:
+        ui.dim("No URL provided. Skipping.")
+        return False
+
+    # Strip query params and fragments for validation
+    clean_url = url.split("?")[0].split("#")[0]
+    if not clean_url.endswith(".gguf"):
+        ui.error("URL must point to a .gguf file.")
+        return False
+
+    if "huggingface.co" not in url and "hf.co" not in url:
+        ui.warn("URL does not appear to be from HuggingFace. Proceeding anyway...")
+
+    # Extract filename from URL (strips query params)
+    filename = clean_url.split("/")[-1]
+    if not filename or ".." in filename:
+        ui.error("Invalid filename in URL.")
+        return False
+    models_dir = _get_models_dir()
+    models_dir.mkdir(parents=True, exist_ok=True)
+    target = models_dir / filename
+
+    if target.exists():
+        ui.info(f"Model already exists: {target}")
+        return True
+
+    ui.info(f"Downloading {filename}...")
+    ui.console.print()
+
+    if _download_file(url, target):
+        ui.success(f"Custom model downloaded to {target}")
+        return True
+    else:
+        ui.error("Download failed. Check the URL and try again.")
         return False
 
 
@@ -273,14 +366,22 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
     model_path = find_model_path()
     if not model_path:
         ui.warn("No GGUF model found. Using fallback dialogue.")
+        ui.dim(f"  Place a .gguf model file in: {_get_models_dir()}")
         if callback:
             callback(False)
         return
 
+    # Check if this is a known model or manually placed
+    model_filename = os.path.basename(model_path)
+    known_filenames = {m["filename"] for m in AVAILABLE_MODELS}
+    is_custom = model_filename not in known_filenames
+
     n_gpu_layers = -1 if gpu_mode == "gpu" else 0
     mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
 
-    ui.info(f"Loading LLM model: {os.path.basename(model_path)} ({mode_label})...")
+    ui.info(f"Loading LLM model: {model_filename} ({mode_label})...")
+    if is_custom:
+        ui.dim("  Custom model detected. Integrity not verified — ensure you trust the source.")
     ui.dim("(This may take 30-60 seconds on first load)")
 
     try:
