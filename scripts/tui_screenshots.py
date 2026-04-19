@@ -278,6 +278,50 @@ async def screenshot_pilot(pilot):
         await take("tui-victory", "Victory (may be incomplete)")
 
     log(f"Done! Screenshots saved to {ASSETS_DIR}/")
+
+    # --- Validation: verify screenshots contain expected content ---
+    log("Validating screenshots...")
+    import re as _re
+
+    def _svg_text(path):
+        """Extract visible text from an SVG file."""
+        try:
+            with open(path) as f:
+                return " ".join(
+                    t.replace("&#160;", " ").replace("&#x27;", "'").strip()
+                    for t in _re.findall(r">([^<]+)<", f.read())
+                    if t.strip() and len(t.strip()) > 2
+                )
+        except FileNotFoundError:
+            return ""
+
+    validations = [
+        ("tui-help", "drone upgrade", "Help shows drone subcommands"),
+        ("tui-ship-bays", "Escort", "Ship bays show escort progress"),
+        ("tui-stats", "Commands typed", "Stats shows session metrics"),
+        ("tui-scores", "Score", "Scores command rendered"),
+        ("tui-victory", "Grade", "Victory has score/grade"),
+        ("tui-victory", "ARIA", "Victory has ARIA verdict"),
+        ("tui-escort", "travel with you", "Escort command worked"),
+        ("tui-drone", "Battery", "Drone shows battery"),
+        ("tui-inventory", "Qty", "Inventory table rendered"),
+    ]
+
+    passed = 0
+    failed = 0
+    for name, expected, desc in validations:
+        text = _svg_text(ASSETS_DIR / f"{name}.svg")
+        if expected.lower() in text.lower():
+            log(f"  PASS: {desc}")
+            passed += 1
+        else:
+            log(f"  FAIL: {desc} — expected '{expected}' in {name}.svg")
+            failed += 1
+
+    log(f"Validation: {passed} passed, {failed} failed")
+    if failed:
+        log("WARNING: Some validations failed — check screenshots manually")
+
     # Give the worker time to finish, then force exit
     await pilot.pause(3.0)
     app.exit()
