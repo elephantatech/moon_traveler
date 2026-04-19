@@ -73,7 +73,7 @@ AVAILABLE_MODELS = [
         "url": "https://huggingface.co/bartowski/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
         "size": "1.0 GB",
         "ram": "~1.2 GB",
-        "sha256": None,  # TODO: populate with known-good hash from HuggingFace
+        "sha256": None,  # Set after first verified download
     },
     {
         "name": "Qwen3.5 2B (Recommended — best balance)",
