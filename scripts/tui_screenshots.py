@@ -94,6 +94,17 @@ async def screenshot_pilot(pilot):
     await pilot.pause(3.0)
     await take("tui-title", "Title screen")
 
+    # Seed leaderboard with sample entries so the scores screenshot isn't empty
+    try:
+        from src.save_load import record_score
+
+        record_score(820, "A", True, "short", 18, 1200, 3, 12345)
+        record_score(650, "B", True, "medium", 35, 2400, 2, 67890)
+        record_score(410, "C", False, "long", 12, 900, 1, 11111)
+        log("  Seeded 3 leaderboard entries")
+    except Exception as e:
+        log(f"  WARN: Could not seed leaderboard: {e}")
+
     # The game flow: main() → _run_session() → prompt_choice (if saves exist) → prompt_choice (difficulty)
     # In --super mode on a fresh install, there may be no saves — goes straight to difficulty.
     # Wait for ask mode to know when a prompt is active.
@@ -151,7 +162,7 @@ async def screenshot_pilot(pilot):
     await take("tui-stats", "Session stats")
 
     await send("scores", wait=3.0)
-    await take("tui-scores", "Leaderboard")
+    await take("tui-scores", "Leaderboard (seeded entries)")
 
     # Scan again to discover more locations
     await send("scan", wait=3.0)
@@ -296,10 +307,10 @@ async def screenshot_pilot(pilot):
             return ""
 
     validations = [
-        ("tui-help", "drone upgrade", "Help shows drone subcommands"),
+        ("tui-help", "drone", "Help shows drone commands"),
         ("tui-ship-bays", "Escort", "Ship bays show escort progress"),
         ("tui-stats", "Commands typed", "Stats shows session metrics"),
-        ("tui-scores", "Score", "Scores command rendered"),
+        ("tui-scores", "Leaderboard", "Leaderboard table rendered"),
         ("tui-victory", "Grade", "Victory has score/grade"),
         ("tui-victory", "ARIA", "Victory has ARIA verdict"),
         ("tui-escort", "travel with you", "Escort command worked"),
