@@ -250,7 +250,10 @@ def maybe_download_model() -> bool:
     for i, model in enumerate(AVAILABLE_MODELS, 1):
         ui.console.print(f"  [cyan]{i}[/cyan]. {model['name']}")
         ui.console.print(f"      [dim]Download: {model['size']} | RAM needed: {model['ram']}[/dim]")
-    ui.console.print(f"  [cyan]{len(AVAILABLE_MODELS) + 1}[/cyan]. Skip (use fallback dialogue)")
+    custom_idx = len(AVAILABLE_MODELS) + 1
+    skip_idx = len(AVAILABLE_MODELS) + 2
+    ui.console.print(f"  [cyan]{custom_idx}[/cyan]. Custom model (paste a HuggingFace GGUF URL)")
+    ui.console.print(f"  [cyan]{skip_idx}[/cyan]. Skip (use fallback dialogue)")
     ui.console.print("      [dim]No download needed. Creatures use pre-written dialogue.[/dim]")
     ui.console.print()
 
@@ -267,6 +270,10 @@ def maybe_download_model() -> bool:
         else:
             ui.dim("Skipping download. Fallback dialogue will be used.")
             return False
+
+    # Custom model — user provides a HuggingFace URL
+    if idx == custom_idx - 1:
+        return _download_custom_model()
 
     if idx < 0 or idx >= len(AVAILABLE_MODELS):
         ui.dim("Skipping download. Fallback dialogue will be used.")
@@ -286,6 +293,51 @@ def maybe_download_model() -> bool:
         return True
     else:
         ui.dim("You can manually download a .gguf model and place it in the models/ directory.")
+        return False
+
+
+def _download_custom_model() -> bool:
+    """Download a custom GGUF model from a user-provided HuggingFace URL."""
+    ui.console.print()
+    ui.info("Paste a direct link to a .gguf file from HuggingFace.")
+    ui.dim("  Example: https://huggingface.co/user/repo/resolve/main/model-Q4_K_M.gguf")
+    ui.console.print()
+
+    try:
+        url = ui.console.input("[bold]URL > [/bold]").strip()
+    except (EOFError, KeyboardInterrupt):
+        return False
+
+    if not url:
+        ui.dim("No URL provided. Skipping.")
+        return False
+
+    # Basic validation
+    if not url.endswith(".gguf"):
+        ui.error("URL must point to a .gguf file.")
+        return False
+
+    if "huggingface.co" not in url and "hf.co" not in url:
+        ui.warn("URL does not appear to be from HuggingFace. Proceeding anyway...")
+
+    # Extract filename from URL
+    filename = url.split("/")[-1].split("?")[0]
+    models_dir = _get_models_dir()
+    models_dir.mkdir(parents=True, exist_ok=True)
+    target = models_dir / filename
+
+    if target.exists():
+        ui.info(f"Model already exists: {target}")
+        return True
+
+    ui.info(f"Downloading {filename}...")
+    ui.console.print()
+
+    if _download_file(url, target):
+        ui.success(f"Custom model downloaded to {target}")
+        return True
+    else:
+        ui.error("Download failed. Check the URL and try again.")
         return False
 
 
