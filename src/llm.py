@@ -253,8 +253,12 @@ def maybe_download_model() -> bool:
     custom_idx = len(AVAILABLE_MODELS) + 1
     skip_idx = len(AVAILABLE_MODELS) + 2
     ui.console.print(f"  [cyan]{custom_idx}[/cyan]. Custom model (paste a HuggingFace GGUF URL)")
+    ui.console.print("      [dim]Supports HuggingFace hosted models only.[/dim]")
     ui.console.print(f"  [cyan]{skip_idx}[/cyan]. Skip (use fallback dialogue)")
     ui.console.print("      [dim]No download needed. Creatures use pre-written dialogue.[/dim]")
+    ui.console.print()
+    models_dir = _get_models_dir()
+    ui.dim(f"  Manual: place any .gguf file in {models_dir} and it will be auto-detected.")
     ui.console.print()
 
     try:
@@ -358,14 +362,22 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
     model_path = find_model_path()
     if not model_path:
         ui.warn("No GGUF model found. Using fallback dialogue.")
+        ui.dim(f"  Place a .gguf model file in: {_get_models_dir()}")
         if callback:
             callback(False)
         return
 
+    # Check if this is a known model or manually placed
+    model_filename = os.path.basename(model_path)
+    known_filenames = {m["filename"] for m in AVAILABLE_MODELS}
+    is_custom = model_filename not in known_filenames
+
     n_gpu_layers = -1 if gpu_mode == "gpu" else 0
     mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
 
-    ui.info(f"Loading LLM model: {os.path.basename(model_path)} ({mode_label})...")
+    ui.info(f"Loading LLM model: {model_filename} ({mode_label})...")
+    if is_custom:
+        ui.dim("  Custom model detected. Integrity not verified — ensure you trust the source.")
     ui.dim("(This may take 30-60 seconds on first load)")
 
     try:
