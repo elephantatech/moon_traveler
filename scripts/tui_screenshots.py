@@ -55,42 +55,38 @@ def log_db_state(label=""):
 
         import sqlite3
 
-        conn = sqlite3.connect(str(db_path))
-        # Get all tables
-        tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        table_names = [t[0] for t in tables]
+        with sqlite3.connect(str(db_path)) as conn:
+            tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+            table_names = [t[0] for t in tables]
 
-        log(f"  [DB {label}] Tables: {', '.join(table_names)}")
+            log(f"  [DB {label}] Tables: {', '.join(table_names)}")
 
-        for tname in table_names:
-            count = conn.execute(f"SELECT COUNT(*) FROM {tname}").fetchone()[0]  # noqa: S608
-            log(f"  [DB {label}] {tname}: {count} rows")
+            for tname in table_names:
+                count = conn.execute(f"SELECT COUNT(*) FROM [{tname}]").fetchone()[0]
+                log(f"  [DB {label}] {tname}: {count} rows")
 
-            # Show sample data for key tables
-            if tname == "saves" and count > 0:
-                slots = conn.execute("SELECT DISTINCT slot FROM saves").fetchall()
-                log(f"  [DB {label}]   Save slots: {[s[0] for s in slots]}")
+                if tname == "saves" and count > 0:
+                    slots = conn.execute("SELECT DISTINCT slot FROM saves").fetchall()
+                    log(f"  [DB {label}]   Save slots: {[s[0] for s in slots]}")
 
-            if tname == "leaderboard" and count > 0:
-                rows = conn.execute(
-                    "SELECT score, grade, won, game_mode FROM leaderboard ORDER BY id DESC LIMIT 3"
-                ).fetchall()
-                for r in rows:
-                    log(f"  [DB {label}]   Score={r[0]} Grade={r[1]} Won={r[2]} Mode={r[3]}")
+                if tname == "leaderboard" and count > 0:
+                    rows = conn.execute(
+                        "SELECT score, grade, won, game_mode FROM leaderboard ORDER BY id DESC LIMIT 3"
+                    ).fetchall()
+                    for r in rows:
+                        log(f"  [DB {label}]   Score={r[0]} Grade={r[1]} Won={r[2]} Mode={r[3]}")
 
-            if tname == "creature_memory" and count > 0:
-                mems = conn.execute("SELECT creature_id, LENGTH(memory) FROM creature_memory LIMIT 3").fetchall()
-                for m in mems:
-                    log(f"  [DB {label}]   {m[0]}: {m[1]} chars")
+                if tname == "creature_memory" and count > 0:
+                    mems = conn.execute("SELECT creature_id, LENGTH(memory) FROM creature_memory LIMIT 3").fetchall()
+                    for m in mems:
+                        log(f"  [DB {label}]   {m[0]}: {m[1]} chars")
 
-            if tname == "chat_history" and count > 0:
-                chats = conn.execute(
-                    "SELECT creature_id, COUNT(*) FROM chat_history GROUP BY creature_id LIMIT 3"
-                ).fetchall()
-                for c in chats:
-                    log(f"  [DB {label}]   {c[0]}: {c[1]} messages")
-
-        conn.close()
+                if tname == "chat_history" and count > 0:
+                    chats = conn.execute(
+                        "SELECT creature_id, COUNT(*) FROM chat_history GROUP BY creature_id LIMIT 3"
+                    ).fetchall()
+                    for c in chats:
+                        log(f"  [DB {label}]   {c[0]}: {c[1]} messages")
     except Exception as e:
         log(f"  [DB {label}] Error reading database: {e}")
 
@@ -101,26 +97,29 @@ def log_game_state(ctx, label=""):
         log(f"  [STATE {label}] No context available")
         return
 
-    p = ctx.player
-    log(f"  [STATE {label}] Location: {p.location_name}")
-    log(f"  [STATE {label}] Food={p.food:.0f}% Water={p.water:.0f}% Suit={p.suit_integrity:.0f}%")
-    log(f"  [STATE {label}] Inventory: {dict(p.inventory)}")
-    log(f"  [STATE {label}] Known locations: {len(p.known_locations)}")
+    try:
+        p = ctx.player
+        log(f"  [STATE {label}] Location: {p.location_name}")
+        log(f"  [STATE {label}] Food={p.food:.0f}% Water={p.water:.0f}% Suit={p.suit_integrity:.0f}%")
+        log(f"  [STATE {label}] Inventory: {dict(p.inventory)}")
+        log(f"  [STATE {label}] Known locations: {len(p.known_locations)}")
 
-    done = sum(1 for v in ctx.repair_checklist.values() if v)
-    total = len(ctx.repair_checklist)
-    log(f"  [STATE {label}] Repair: {done}/{total}")
+        done = sum(1 for v in ctx.repair_checklist.values() if v)
+        total = len(ctx.repair_checklist)
+        log(f"  [STATE {label}] Repair: {done}/{total}")
 
-    followers = [c.name for c in ctx.creatures if c.following]
-    if followers:
-        log(f"  [STATE {label}] Followers: {followers}")
+        followers = [c.name for c in ctx.creatures if c.following]
+        if followers:
+            log(f"  [STATE {label}] Followers: {followers}")
 
-    if ctx.stats:
-        s = ctx.stats
-        log(
-            f"  [STATE {label}] Stats: cmds={s.commands} km={s.km_traveled:.1f}"
-            f" talks={len(s.creatures_talked)} hazards={s.hazards_survived}"
-        )
+        if ctx.stats:
+            s = ctx.stats
+            log(
+                f"  [STATE {label}] Stats: cmds={s.commands} km={s.km_traveled:.1f}"
+                f" talks={len(s.creatures_talked)} hazards={s.hazards_survived}"
+            )
+    except Exception as e:
+        log(f"  [STATE {label}] Error reading game state: {e}")
 
 
 async def screenshot_pilot(pilot):

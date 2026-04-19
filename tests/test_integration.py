@@ -5,8 +5,9 @@ with a mock UI bridge that provides scripted responses. No TUI, no
 async, no timing dependencies.
 """
 
-import os
 import tempfile
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -51,7 +52,7 @@ class MockBridge:
             resp = self._responses[self._response_idx]
             self._response_idx += 1
             return resp
-        return ""
+        raise RuntimeError(f"MockBridge.input() exhausted ({self._response_idx} responses used). Prompt: {prompt!r}")
 
     def get_command(self, location):
         return self.input()
@@ -238,8 +239,11 @@ class TestSaveLoadIntegration:
             apply_super_mode(ctx)
 
             with tempfile.TemporaryDirectory() as tmpdir:
-                os.environ["MOON_TRAVELER_SAVE_DIR"] = tmpdir
-                try:
+                tmp = Path(tmpdir)
+                with (
+                    patch("src.save_load._saves_dir", return_value=tmp),
+                    patch("src.save_load._db_path", return_value=tmp / "moon_traveler.db"),
+                ):
                     from src.save_load import load_game, save_game
 
                     save_game(
@@ -258,8 +262,6 @@ class TestSaveLoadIntegration:
                     assert state is not None
                     assert state["world_seed"] == ctx.world_seed
                     assert state["player"].food == ctx.player.food
-                finally:
-                    os.environ.pop("MOON_TRAVELER_SAVE_DIR", None)
         finally:
             _teardown()
 
@@ -270,13 +272,14 @@ class TestLeaderboardIntegration:
         from src.save_load import get_top_scores, record_score
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            os.environ["MOON_TRAVELER_SAVE_DIR"] = tmpdir
-            try:
+            tmp = Path(tmpdir)
+            with (
+                patch("src.save_load._saves_dir", return_value=tmp),
+                patch("src.save_load._db_path", return_value=tmp / "moon_traveler.db"),
+            ):
                 record_score(750, "A", True, "short", 15, 900, 3, 42)
                 scores = get_top_scores(10)
                 assert any(s["score"] == 750 for s in scores)
-            finally:
-                os.environ.pop("MOON_TRAVELER_SAVE_DIR", None)
 
 
 class TestGiveIntegration:
@@ -305,11 +308,11 @@ class TestTravelIntegration:
             dispatch(ctx, "scan")
 
             destinations = [loc for loc in ctx.locations if loc.name != "Crash Site" and loc.discovered]
-            if destinations:
-                dest = destinations[0]
-                dispatch(ctx, f"travel {dest.name}")
-                assert ctx.stats.km_traveled > 0
-                assert ctx.player.location_name == dest.name
+            assert destinations, "scan must discover at least one location with seed=42"
+            dest = destinations[0]
+            dispatch(ctx, f"travel {dest.name}")
+            assert ctx.stats.km_traveled > 0
+            assert ctx.player.location_name == dest.name
         finally:
             _teardown()
 
@@ -321,8 +324,8 @@ class TestTravelIntegration:
             initial_food = ctx.player.food
 
             destinations = [loc for loc in ctx.locations if loc.name != "Crash Site" and loc.discovered]
-            if destinations:
-                dispatch(ctx, f"travel {destinations[0].name}")
-                assert ctx.player.food < initial_food
+            assert destinations, "scan must discover at least one location with seed=42"
+            dispatch(ctx, f"travel {destinations[0].name}")
+            assert ctx.player.food < initial_food
         finally:
             _teardown()
