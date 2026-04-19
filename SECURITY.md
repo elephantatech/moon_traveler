@@ -72,6 +72,37 @@ These are not foolproof — small models (2B parameters) can be gradually jailbr
 - Auto-compaction triggers at 2,048 characters
 - Located in `src/llm.py`, `update_creature_memory()`
 
+### Layer 5: Download Integrity (v0.5.0)
+
+**Model checksum verification** via SHA-256:
+
+- After downloading a model, `_verify_checksum()` computes the SHA-256 hash and compares against a known-good value
+- Mismatched files are deleted automatically
+- Custom/manually-placed models show a warning: "Integrity not verified — ensure you trust the source"
+- Located in `src/llm.py`, `_verify_checksum()` and `_download_file()`
+
+**Custom model downloads** support HuggingFace URLs:
+
+- Users can paste a HuggingFace `.gguf` URL to download any compatible model
+- URL validation strips query parameters, rejects non-`.gguf` files, blocks path traversal
+- Non-HuggingFace URLs proceed with a warning
+
+### Layer 6: Save File Validation (v0.5.0)
+
+**Chat history validation** on every load:
+
+- Only `user` and `assistant` roles allowed (invalid roles stripped)
+- Content capped at 4,096 characters per message
+- Maximum 100 messages per creature
+- Located in `src/save_load.py`, `_validate_chat_history()`
+
+**Creature memory validation** on every load:
+
+- Memory capped at 4,096 characters
+- `_sanitize_memory()` strips instruction-injection patterns
+- Degrades gracefully if LLM module is unavailable
+- Located in `src/save_load.py`, `_validate_creature_memory()`
+
 ## Known Risks and Mitigations
 
 ### Addressed (v0.4.0)
@@ -93,8 +124,8 @@ These are not foolproof — small models (2B parameters) can be gradually jailbr
 |------|----------|--------|-------|
 | LLM memory poisoning via instruction patterns | Medium | **Fixed v0.4.1** — `_sanitize_memory()` | #31 |
 | Unicode action tag smuggling | Medium | **Fixed v0.4.1** — NFKC normalization | #32 |
-| No integrity check on downloaded AI models | Medium | Planned v0.5.0 | #33 |
-| Save file tampering | Medium | Planned v0.5.0 | #34 |
+| No integrity check on downloaded AI models | Medium | **Fixed v0.5.0** — SHA-256 verification on download | #33 |
+| Save file tampering | Medium | **Fixed v0.5.0** — chat/memory validation on load | #34 |
 | Multi-turn LLM jailbreak | Low | Accepted | — |
 
 ### Accepted Risks
