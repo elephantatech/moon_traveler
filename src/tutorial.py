@@ -153,7 +153,7 @@ class TutorialManager:
                 status_text = "FALLBACK — Template dialogue active"
             _boot_line("Service Status", status_text, status_color)
         except Exception:
-            _boot_line("Service Status", "ONLINE", "green")
+            _boot_line("Service Status", "UNKNOWN", "yellow")
         ui.console.print()
         time.sleep(0.3)
 
