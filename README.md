@@ -17,7 +17,9 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 - **Creature-centric gameplay** — creatures are the primary source of repair materials and survival resources, gated by role and trust
 - **10 creature archetypes** including Merchant (trades item-for-item) and Enforcer (advises who to talk to)
 - **Trade system** — barter with Merchant creatures for repair materials
-- **Escort system** — befriend creatures and bring them to your ship for hands-on repair help (per-companion dismiss)
+- **Escort system** — befriend creatures and bring them to your ship for hands-on repair help (required for final repairs)
+- **Post-game score screen** — score (0-1000), letter grade (S-D), ARIA verdict, local leaderboard
+- **Session stats** — tracks commands, distance, creatures, hazards, trades, gifts across each session
 - **AI drone companion** with context-aware hints, alien speech translation, and travel commentary
 - **Hostile environment** — hazardous travel events (geyser eruptions, ice storms, crevasse falls) with late-game weather escalation
 - **Trust-based relationships** with role-specific thresholds (Healers heal at trust 0, Hermits need trust 80)
@@ -162,7 +164,7 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 
 ### Winning
 
-Build trust with creatures to obtain repair materials through conversation and trade. Bring materials to the Crash Site and install them via `ship repair`. Escort friendly creatures to the ship — Builders install materials, Healers restore your vitals.
+Build trust with creatures to obtain repair materials through conversation and trade. Bring materials to the Crash Site and install them via `ship repair`. **You must escort creatures to help at the ship** before final repairs: Easy needs 1, Medium needs 2, Hard needs 3, Brutal needs 4. After winning (or losing), a score screen shows your grade (S-D) and saves to a local leaderboard (`scores` command).
 
 <p align="center">
   <img src="assets/tui-ship-bays.svg" alt="TUI Ship Bays" width="700"/>

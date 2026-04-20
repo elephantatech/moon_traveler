@@ -88,6 +88,7 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 |---|---|---|
 | `status` | — | Show food, water, suit integrity, time elapsed, and repair progress |
 | `stats` | — | Show session gameplay statistics (commands, km, creatures, hazards) |
+| `scores` | `leaderboard` | View local leaderboard (top 10 scores across all games) |
 | `ship` | `repair` | Ship bays menu — or use `ship <bay>` directly |
 | `ship repair` | — | Install repair materials into the ship |
 | `ship storage` | — | Stash/retrieve items from ship storage |
@@ -366,7 +367,18 @@ The screen clears when you depart to create a sense of journey. On arrival, use 
 
 ## Ship Repair — How to Win
 
-Your goal is to collect all required repair materials and install them at the Crash Site.
+Your goal is to collect all required repair materials **and** escort creatures to help at the Crash Site. You cannot complete the final repairs alone — creatures must assist.
+
+### Escort Requirement
+
+| Mode | Escorts Required |
+|---|---|
+| **Easy** | 1 creature |
+| **Medium** | 2 creatures |
+| **Hard** | 3 creatures |
+| **Brutal** | 4 creatures |
+
+Use `escort` to ask a creature with trust 50+ to travel with you. Bring them to the Crash Site and they'll help with repairs, donate materials, and provide support. The ship bay menu shows your escort progress.
 
 ### Materials by Game Mode
 
@@ -395,7 +407,7 @@ At the Crash Site, the `ship` command opens the bay menu. Each bay serves a diff
 | **Charging** | `ship charging` | Full battery recharge (free), or sacrifice a Power Cell for +10% permanent max capacity |
 | **Medical** | `ship medical` | Repair suit using drone battery, or rest to recover food/water (+20% each, costs 1 hour) |
 
-Once all materials are installed via the Repair Bay, you win.
+Once all materials are installed and escort requirements are met, you win. A post-game score screen shows your stats, grade (S-D), and ARIA verdict. Scores are saved to a local leaderboard — type `scores` to view your top 10.
 
 <p align="center">
   <img src="assets/tui-ship-bays.svg" alt="Ship Bays" width="700"/>

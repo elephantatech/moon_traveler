@@ -421,6 +421,7 @@
       <thead><tr><th>Command</th><th>Aliases</th><th>What it does</th></tr></thead>
       <tbody>
         <tr><td><code>status</code></td><td>&mdash;</td><td>Show food, water, suit, time elapsed, repair progress</td></tr>
+        <tr><td><code>scores</code></td><td><code>leaderboard</code></td><td>View local leaderboard (top 10 scores)</td></tr>
         <tr><td><code>ship</code></td><td><code>repair</code></td><td>Ship bays menu (or <code>ship &lt;bay&gt;</code> directly)</td></tr>
         <tr><td><code>ship repair</code></td><td>&mdash;</td><td>Install repair materials into the ship</td></tr>
         <tr><td><code>ship storage</code></td><td>&mdash;</td><td>Stash/retrieve items from ship storage</td></tr>
@@ -620,7 +621,19 @@
   <!-- SHIP REPAIR -->
   <section class="guide-section" id="ship-repair">
     <h2>Ship Repair &mdash; How to Win</h2>
-    <p>Collect all required repair materials and install them at the Crash Site.</p>
+    <p>Collect all required repair materials <strong>and</strong> escort creatures to the Crash Site. You cannot complete the final repairs alone.</p>
+
+    <h3>Escort Requirement</h3>
+    <table>
+      <thead><tr><th>Mode</th><th>Escorts Required</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Easy</strong></td><td>1 creature</td></tr>
+        <tr><td><strong>Medium</strong></td><td>2 creatures</td></tr>
+        <tr><td><strong>Hard</strong></td><td>3 creatures</td></tr>
+        <tr><td><strong>Brutal</strong></td><td>4 creatures</td></tr>
+      </tbody>
+    </table>
+    <p>Use <code>escort</code> to ask a creature with trust 50+ to travel with you. Bring them to the Crash Site &mdash; they will help with repairs, donate materials, and provide support.</p>
 
     <h3>Materials by Game Mode</h3>
     <table>
@@ -645,7 +658,7 @@
         <tr><td><strong>Medical</strong></td><td><code>ship medical</code></td><td>Repair suit or rest (+20% food/water, costs 1 hour)</td></tr>
       </tbody>
     </table>
-    <p>Once all materials are installed via the Repair Bay, you win. After the victory (or game over) sequence, you can choose to play again without restarting the app.</p>
+    <p>Once all materials are installed via the Repair Bay and escort requirements are met, you win. After the victory (or game over) sequence, a <strong>score screen</strong> shows your final stats, score (0&ndash;1000), letter grade (S through D), and an ARIA verdict. Scores are saved to a local leaderboard &mdash; type <code>scores</code> to view your top 10.</p>
   </section>
 
   <!-- GAME MODES -->
@@ -688,7 +701,7 @@
   </main>
 
   <footer>
-    <p class="footer-meta">Moon Traveler Terminal &middot; v0.4.1 &middot; Apache 2.0</p>
+    <p class="footer-meta">Moon Traveler Terminal &middot; v0.5.0 &middot; Apache 2.0</p>
     <nav aria-label="Footer">
       <a href="index.html">Home</a> &middot;
       <a href="story.html">Story</a> &middot;

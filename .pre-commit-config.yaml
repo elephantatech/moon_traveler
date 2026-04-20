@@ -30,6 +30,17 @@ repos:
       - id: yamllint
         args: [-d, "{extends: relaxed, rules: {line-length: {max: 150}}}"]
 
+  # Preprod walkthrough (manual — run with: pre-commit run walkthrough --hook-stage manual)
+  - repo: local
+    hooks:
+      - id: walkthrough
+        name: preprod walkthrough
+        entry: uv run python scripts/tui_walkthrough.py
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages: [manual]
+
   # General file hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

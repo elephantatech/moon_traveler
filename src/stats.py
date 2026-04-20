@@ -26,12 +26,12 @@ class SessionStats:
         base = min(500, hours_elapsed * 20)
 
         # Bonus: creature relationships and repair progress
-        allies = sum(1 for c in creatures if c.trust > 50)
-        repairs_done = sum(1 for v in repair_checklist.values() if v)
+        allies = sum(1 for c in creatures if c.trust >= 50)
+        repairs_done = sum(1 for k, v in repair_checklist.items() if not k.startswith("_") and v)
         bonus = allies * 50 + repairs_done * 50
 
-        # Efficiency: reward fewer commands (did more with less)
-        efficiency = min(200, max(0, 200 - self.commands))
+        # Efficiency: no penalty under 100 commands; linear penalty above, down to 0 at 300+
+        efficiency = min(200, max(0, 200 - max(0, self.commands - 100)))
 
         # Deductions
         deduction = self.hazards_survived * 15

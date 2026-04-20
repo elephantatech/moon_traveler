@@ -42,11 +42,19 @@ class TestCheckWin:
         ctx = _make_ctx()
         assert check_win(ctx) is False
 
-    def test_won_when_all_done(self):
+    def test_won_when_all_done_and_escorts_met(self):
         ctx = _make_ctx()
         for key in ctx.repair_checklist:
             ctx.repair_checklist[key] = True
+        ctx.escorts_completed = 1  # Easy mode requires 1
         assert check_win(ctx) is True
+
+    def test_not_won_without_escorts(self):
+        ctx = _make_ctx()
+        for key in ctx.repair_checklist:
+            ctx.repair_checklist[key] = True
+        ctx.escorts_completed = 0
+        assert check_win(ctx) is False
 
     def test_not_won_with_one_remaining(self):
         ctx = _make_ctx()
@@ -54,6 +62,23 @@ class TestCheckWin:
         for k in keys[:-1]:
             ctx.repair_checklist[k] = True
         assert check_win(ctx) is False
+
+    def test_win_ignores_escorts_sentinel_in_checklist(self):
+        """check_win must filter _escorts_completed sentinel from save/load."""
+        ctx = _make_ctx()
+        for key in ctx.repair_checklist:
+            ctx.repair_checklist[key] = True
+        ctx.escorts_completed = 1
+        # Simulate sentinel left in checklist (falsy value would block win)
+        ctx.repair_checklist["_escorts_completed"] = 0
+        assert check_win(ctx) is True
+
+    def test_win_with_over_requirement(self):
+        ctx = _make_ctx()
+        for key in ctx.repair_checklist:
+            ctx.repair_checklist[key] = True
+        ctx.escorts_completed = 5  # Way over the 1 required for Easy
+        assert check_win(ctx) is True
 
 
 class TestCheckLose:

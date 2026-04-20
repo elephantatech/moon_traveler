@@ -80,6 +80,7 @@ HELP_TEXT = """
 [bold]Player:[/bold]
   [cyan]status[/cyan]               — Show player vitals (food, water, suit, time)
   [cyan]stats[/cyan]                — Show session gameplay statistics
+  [cyan]scores[/cyan]               — View local leaderboard (top 10)
   [cyan]rest[/cyan]                 — Rest 1 hour (+10% food/water, +20% at ship)
 
 [bold]Ship:[/bold]
@@ -143,6 +144,7 @@ class GameContext:
         self.should_load = False
         self.loaded_state: dict | None = None
         self.easter_egg_announced = False
+        self.escorts_completed: int = 0
 
         from src.stats import SessionStats
 
@@ -205,6 +207,10 @@ class GameContext:
     def do_auto_save(self):
         from src.save_load import auto_save
 
+        # Include escorts_completed in checklist for persistence
+        checklist_with_escorts = dict(self.repair_checklist)
+        checklist_with_escorts["_escorts_completed"] = self.escorts_completed
+
         auto_save(
             self.player,
             self.drone,
@@ -212,7 +218,7 @@ class GameContext:
             self.creatures,
             self.world_seed,
             self.world_mode,
-            self.repair_checklist,
+            checklist_with_escorts,
             self.ship_ai,
             self.tutorial,
         )
@@ -1078,6 +1084,7 @@ def _companions_help_at_ship(ctx: GameContext, companions: list):
     # Mark all companions as having helped (prevents repeat exploit)
     for creature in companions:
         creature.helped_at_ship = True
+        ctx.escorts_completed += 1
 
     # Ask if companions should stay or return home
     ui.console.print()
@@ -1207,6 +1214,58 @@ def cmd_stats(ctx: GameContext, args: str):
     ui.console.print(table)
 
 
+def cmd_scores(ctx: GameContext, args: str):
+    """Show the local leaderboard (top 10 scores)."""
+    from rich.table import Table
+
+    from src.save_load import get_top_scores
+
+    scores = get_top_scores(10)
+    if not scores:
+        ui.info("No scores recorded yet. Complete a game to see your leaderboard.")
+        return
+
+    table = Table(title="Leaderboard — Top 10", border_style="yellow")
+    table.add_column("#", style="dim", justify="right")
+    table.add_column("Score", style="bold yellow")
+    table.add_column("Grade", justify="center")
+    table.add_column("Result")
+    table.add_column("Mode")
+    table.add_column("Time", style="dim")
+    table.add_column("Allies", justify="right")
+    table.add_column("Date", style="dim")
+
+    grade_colors = {"S": "bold magenta", "A": "bold green", "B": "green", "C": "yellow", "D": "red"}
+
+    for i, s in enumerate(scores, 1):
+        gc = grade_colors.get(s["grade"], "white")
+        result = "[green]Win[/green]" if s["won"] else "[red]Loss[/red]"
+        mode_map = {"short": "Easy", "medium": "Medium", "long": "Hard", "brutal": "Brutal"}
+        mode = mode_map.get(s["mode"], s["mode"])
+        # Format real time
+        rt = s["real_time"]
+        if rt < 60:
+            time_str = f"{rt}s"
+        elif rt < 3600:
+            time_str = f"{rt // 60}m"
+        else:
+            time_str = f"{rt // 3600}h {(rt % 3600) // 60}m"
+        game_time = f"{s['hours']}h / {time_str}"
+        date = s["date"][:10] if s["date"] else ""
+        table.add_row(
+            str(i),
+            str(s["score"]),
+            f"[{gc}]{s['grade']}[/{gc}]",
+            result,
+            mode,
+            game_time,
+            str(s["allies"]),
+            date,
+        )
+
+    ui.console.print(table)
+
+
 def cmd_ship(ctx: GameContext, args: str):
     at_crash = ctx.player.location_name == "Crash Site"
 
@@ -1279,13 +1338,21 @@ def _show_bay_menu(ctx: GameContext):
     med_status = "[yellow]Treatment available[/yellow]" if needs_med else "[green]All vitals full[/green]"
     table.add_row("ship medical", "Heal, restore suit and vitals", med_status)
 
+    # Escort progress
+    from src.game import ESCORT_REQUIREMENTS
+
+    req = ESCORT_REQUIREMENTS.get(ctx.world_mode, 1)
+    esc = ctx.escorts_completed
+    esc_color = "green" if esc >= req else "yellow" if esc > 0 else "red"
+    table.add_row("Escort help", "Creatures who assisted at ship", f"[{esc_color}]{esc}/{req}[/{esc_color}]")
+
     ui.console.print(table)
     ui.dim("Usage: ship <bay>  (e.g. 'ship kitchen', 'ship storage')")
 
 
 def _bay_repair(ctx: GameContext):
     """Install repair materials into the ship."""
-    from src.game import REPAIR_MATERIALS
+    from src.game import ESCORT_REQUIREMENTS, REPAIR_MATERIALS
 
     installable = []
     for mat in REPAIR_MATERIALS[ctx.world_mode]:
@@ -1297,6 +1364,23 @@ def _bay_repair(ctx: GameContext):
     if not installable:
         ui.info("No repair materials in inventory to install.")
         ui.show_ship_repair(ctx.repair_checklist)
+        return
+
+    # Check escort requirement — block if installing would complete repairs but escorts not met
+    material_items = {k: v for k, v in ctx.repair_checklist.items() if not k.startswith("_")}
+    already_done = sum(1 for v in material_items.values() if v)
+    remaining = len(material_items) - already_done
+    req = ESCORT_REQUIREMENTS.get(ctx.world_mode, 1)
+
+    if len(installable) >= remaining and ctx.escorts_completed < req:
+        ui.console.print("\n[bold]Materials ready to install:[/bold]")
+        for mat in installable:
+            display = mat.replace("_", " ").title()
+            ui.console.print(f"  [yellow]{display}[/yellow]")
+        ui.console.print()
+        ui.warn(f"You need help from {req - ctx.escorts_completed} more creature(s) to complete final repairs.")
+        ui.dim(f"  Escort progress: {ctx.escorts_completed}/{req}")
+        ui.dim("  Use 'escort' to ask a trusted creature to travel with you, then return here.")
         return
 
     ui.console.print("\n[bold]Materials ready to install:[/bold]")
@@ -1676,6 +1760,9 @@ def cmd_save(ctx: GameContext, args: str):
         return
     if ctx.dev_mode:
         ctx.dev_mode.debug("save", slot=slot, hours=ctx.player.hours_elapsed)
+    # Embed escorts_completed into checklist for persistence (same as do_auto_save)
+    checklist_with_escorts = dict(ctx.repair_checklist)
+    checklist_with_escorts["_escorts_completed"] = ctx.escorts_completed
     save_game(
         slot,
         ctx.player,
@@ -1684,7 +1771,7 @@ def cmd_save(ctx: GameContext, args: str):
         ctx.creatures,
         ctx.world_seed,
         ctx.world_mode,
-        ctx.repair_checklist,
+        checklist_with_escorts,
         ctx.ship_ai,
         ctx.tutorial,
     )
@@ -1919,6 +2006,8 @@ COMMANDS = {
     "upgrade": cmd_upgrade,
     "status": cmd_status,
     "stats": cmd_stats,
+    "scores": cmd_scores,
+    "leaderboard": cmd_scores,
     "ship": cmd_ship,
     "repair": cmd_ship,
     "rest": cmd_rest,

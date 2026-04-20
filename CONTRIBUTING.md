@@ -36,7 +36,13 @@ uv run python play_tui.py  # Launch game
    uv run pytest tests/
    ```
 
-6. **Open a pull request** against `main` with a clear description
+6. **Run walkthrough** (optional, before releases) — 3-session integration test:
+
+   ```bash
+   pre-commit run walkthrough --hook-stage manual
+   ```
+
+7. **Open a pull request** against `main` with a clear description
 
 ### CI Pipeline
 
@@ -87,7 +93,7 @@ src/
   tutorial.py            Boot sequence, tutorial hints
   world.py               Procedural world generation
   data/                  Name pools, LLM prompts, fallbacks
-tests/                   240+ tests across 17 files
+tests/                   260+ tests across 18 files
 docs/                    GitHub Pages site
 docs/diagrams/           C4 architecture diagrams (Excalidraw)
 ```

@@ -12,6 +12,14 @@ from src.ship_ai import ShipAI
 from src.tutorial import TutorialManager
 from src.world import generate_world
 
+# Escort requirements by mode — creatures that must help at the ship
+ESCORT_REQUIREMENTS = {
+    "short": 1,
+    "medium": 2,
+    "long": 3,
+    "brutal": 4,
+}
+
 # Ship repair requirements by mode
 REPAIR_MATERIALS = {
     "short": ["ice_crystal", "metal_shard", "bio_gel"],
@@ -48,7 +56,12 @@ def build_repair_checklist(mode: str, creatures: list | None = None) -> dict:
 
 
 def check_win(ctx: GameContext) -> bool:
-    return all(ctx.repair_checklist.values())
+    # Filter out non-material keys (e.g. _escorts_completed sentinel from save/load)
+    material_values = [v for k, v in ctx.repair_checklist.items() if not k.startswith("_")]
+    if not material_values or not all(material_values):
+        return False
+    req = ESCORT_REQUIREMENTS.get(ctx.world_mode, 1)
+    return ctx.escorts_completed >= req
 
 
 def check_lose(ctx: GameContext) -> bool:
@@ -110,8 +123,9 @@ def show_win_sequence(ctx: GameContext):
     ui.console.print("[bold green]" + "=" * 60 + "[/bold green]")
     ui.console.print("\n[bold]MISSION COMPLETE[/bold]\n")
 
-    # Post-game stats screen
+    # Post-game stats screen and leaderboard
     ui.render_stats_screen(ctx.stats, ctx, won=True)
+    _record_to_leaderboard(ctx, won=True)
 
     return True  # Signal game ended
 
@@ -141,10 +155,29 @@ def show_lose_sequence(ctx: GameContext):
     ui.console.print("[bold red]" + "=" * 60 + "[/bold red]")
     ui.console.print("\n[bold]GAME OVER[/bold]\n")
 
-    # Post-game stats screen
+    # Post-game stats screen and leaderboard
     ui.render_stats_screen(ctx.stats, ctx, won=False)
+    _record_to_leaderboard(ctx, won=False)
 
     return True  # Signal game ended
+
+
+def _record_to_leaderboard(ctx: GameContext, won: bool):
+    """Record the game result to the local leaderboard."""
+    from src.save_load import record_score
+
+    score, grade = ctx.stats.calculate_score(ctx.player.hours_elapsed, ctx.creatures, ctx.repair_checklist)
+    allies = sum(1 for c in ctx.creatures if c.trust >= 50)
+    record_score(
+        score=score,
+        grade=grade,
+        won=won,
+        game_mode=ctx.world_mode,
+        hours_elapsed=ctx.player.hours_elapsed,
+        real_time_seconds=int(ctx.stats.elapsed_seconds),
+        creatures_befriended=allies,
+        world_seed=ctx.world_seed,
+    )
 
 
 def _prompt_play_again() -> bool:
@@ -311,7 +344,11 @@ def game_loop(ctx: GameContext) -> bool:
             ctx.creatures = state["creatures"]
             ctx.world_seed = state["world_seed"]
             ctx.world_mode = state["world_mode"]
-            ctx.repair_checklist = state["repair_checklist"]
+            checklist = state["repair_checklist"]
+            raw_escorts = checklist.pop("_escorts_completed", 0)
+            max_escorts = max(ESCORT_REQUIREMENTS.values())
+            ctx.escorts_completed = max(0, min(int(raw_escorts), max_escorts))
+            ctx.repair_checklist = checklist
             import time as _time
 
             ctx.rng = random.Random(state["world_seed"] ^ int(_time.time()))
@@ -403,6 +440,10 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             if isinstance(tutorial, dict):
                 tutorial = TutorialManager.from_dict(tutorial)
 
+            load_checklist = state["repair_checklist"]
+            raw_load_escorts = load_checklist.pop("_escorts_completed", 0)
+            load_escorts = max(0, min(int(raw_load_escorts), max(ESCORT_REQUIREMENTS.values())))
+
             ctx = GameContext(
                 player=state["player"],
                 drone=state["drone"],
@@ -410,12 +451,13 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
                 creatures=state["creatures"],
                 world_seed=state["world_seed"],
                 world_mode=state["world_mode"],
-                repair_checklist=state["repair_checklist"],
+                repair_checklist=load_checklist,
                 rng=random.Random(state["world_seed"] ^ int(__import__("time").time())),
                 ship_ai=ship_ai,
                 tutorial=tutorial,
                 dev_mode=DevMode(),
             )
+            ctx.escorts_completed = load_escorts
             # Sync sound voice state with loaded drone
             try:
                 from src import sound

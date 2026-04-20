@@ -691,6 +691,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | charge | — | Toggle drone auto-charge on/off (requires Charge Module) |
 | status | — | Show food/water/suit/repair progress |
 | stats | — | Show session gameplay statistics (commands, km, creatures, trades, gifts, items) |
+| scores | leaderboard | View local leaderboard (top 10 scores) |
 | ship | repair | Interactive ship bays at Crash Site |
 | save | — | Save game to named slot (default: "manual") |
 | load | — | Load game from slot |
@@ -728,11 +729,13 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 
 ### 11.3 Ship Repair (cmd_ship)
 
-At Crash Site:
+At Crash Site — 5 bays:
 
-1. Shows repair checklist table
-2. Lists installable materials from inventory → prompts to install
-3. Offers suit repair using drone battery (if suit <100% and battery >=10%)
+1. **Repair Bay:** Shows repair checklist table, lists installable materials → prompts to install. Escort gate blocks final installation until `escorts_completed >= escorts_required` for the difficulty mode.
+2. **Storage Bay:** Stash/retrieve items from ship storage
+3. **Kitchen Bay:** Consume food items from inventory to restore food/water
+4. **Charging Bay:** Recharge drone battery to full (free at Crash Site), overcharge with Power Cell, toggle auto-charge
+5. **Medical Bay:** Suit repair using drone battery (if suit <100% and battery >=10%); rest to recover food/water (+20% at ship, 1 hr)
 
 Away from Crash Site:
 
@@ -847,8 +850,9 @@ Non-blocking: wrong commands don't nag.
 - `save_meta` table: `(slot, save_version, updated_at)` — metadata
 - `chat_history` table: `(slot, creature_id, seq, role, content)` — persists conversations
 - `creature_memory` table: `(slot, creature_id, memory)` — NPC structured memory
+- `leaderboard` table: `(id, score, grade, won, game_mode, hours_elapsed, real_time_seconds, creatures_befriended, world_seed, created_at)` — local score history
 
-Keys stored: `world_seed`, `world_mode`, `player`, `drone`, `locations`, `creatures`, `repair_checklist`, `ship_ai`, `tutorial`
+Keys stored in saves: `world_seed`, `world_mode`, `player`, `drone`, `locations`, `creatures`, `repair_checklist` (includes `_escorts_completed`), `ship_ai`, `tutorial`
 
 ### 14.3 Auto-save
 
@@ -1015,15 +1019,62 @@ Setup: `pip install pre-commit && pre-commit install`
 
 ### 19.1 Win
 
-All entries in `repair_checklist` are `True` (all materials installed at Crash Site).
+All entries in `repair_checklist` are `True` (all materials installed at Crash Site). Requires escort assistance — the final repair is blocked until enough creatures have helped at the ship.
 
-**Win sequence:** Narrative about ship repair, thrusters igniting, rising from Enceladus. Shows survival time. "MISSION COMPLETE".
+**Escort requirements:** Easy=1, Medium=2, Hard=3, Brutal=4 creatures must arrive at the crash site via escort. Tracked by `escorts_completed` on GameContext, persisted via `_escorts_completed` key in the repair checklist save data.
+
+**Win sequence:** Narrative about ship repair, thrusters igniting, rising from Enceladus. Shows survival time, post-game score screen with grade and ARIA verdict. "MISSION COMPLETE".
 
 ### 19.2 Lose
 
 `player.food <= 0 OR player.water <= 0 OR player.suit_integrity <= 0`
 
-**Lose sequence:** Narrative about exhaustion and collapse. Shows survival time. "GAME OVER".
+**Lose sequence:** Narrative about exhaustion and collapse. Shows survival time, post-game score screen with grade and ARIA verdict. "GAME OVER".
+
+### 19.3 Post-Game Score (`src/stats.py`)
+
+**SessionStats** tracks per-session metrics (not persisted to save files):
+
+- `commands` — total commands entered
+- `km_traveled` — total distance traveled
+- `creatures_talked` — set of unique creature IDs talked to
+- `hazards_survived` — hazard events survived during travel
+- `trades` — successful trades completed
+- `gifts_given` — items gifted to creatures
+- `items_collected` — items picked up
+
+**Score formula** (`calculate_score`):
+
+```
+base       = min(500, hours_elapsed × 20)           # reward survival time
+allies     = count(creatures with trust >= 50) × 50  # reward relationships
+repairs    = count(installed materials) × 50          # reward progress
+efficiency = min(200, max(0, 200 - max(0, commands - 100)))  # reward concise play
+deduction  = hazards_survived × 15                   # penalize damage taken
+score      = clamp(base + allies + repairs + efficiency - deduction, 0, 1000)
+```
+
+**Letter grades:** S (≥900), A (≥750), B (≥600), C (≥450), D (<450)
+
+**ARIA verdicts:** 3 randomized lines per grade in `GRADE_VERDICTS` (src/data/prompts.py). Displayed after score on both win and loss screens.
+
+**Leaderboard recording:** `record_score()` writes to the `leaderboard` SQLite table after every win or loss. Display via `scores` command (top 10, sorted by score descending).
+
+### 19.4 Preprod Walkthrough Test
+
+Three-session integration test simulating full gameplay across process boundaries.
+
+**Architecture:** `scripts/tui_walkthrough.py` orchestrator launches 3 sub-scripts as separate processes via `subprocess.run`:
+
+1. **Session 1** (`_walkthrough_session1.py`): Easy mode — explore, scan, talk to 2 creatures, give gifts, install materials, save to "walkthrough" slot
+2. **Session 2** (`_walkthrough_session2.py`): Load "walkthrough" with `--super` — escort creature, repair ship, achieve victory
+3. **Session 3** (`_walkthrough_session3.py`): Load "walkthrough_loss" (copy with depleted resources) — travel to trigger game over
+
+**DB operations:** Orchestrator copies the Session 1 save slot, depletes food/water/suit to 1%/1%/1% via direct SQLite update, then validates 9 dimensions after all sessions complete: save slots, data completeness, player state, creature data, chat history, creature memory, repair checklist, leaderboard entries, and save_meta timestamps.
+
+**Cleanup:** Only walkthrough-specific entries are created and removed — existing player saves are never touched. Entries are cleaned up after successful completion; left in DB on failure for debugging.
+
+**Pre-commit hook:** Available as manual stage: `pre-commit run walkthrough --hook-stage manual`
 
 ---
 
@@ -1040,7 +1091,11 @@ CONTRIBUTING.md            Contributor guide
 spec.md                    This document
 scripts/
   build_release.py         Cross-platform build script (PyInstaller)
-  tui_screenshots.py       Automated TUI screenshot capture
+  tui_screenshots.py       Automated TUI screenshot capture (30 screenshots, 9 validations)
+  tui_walkthrough.py       Preprod 3-session integration test orchestrator
+  _walkthrough_session1.py Session 1: play Easy mode, explore, save
+  _walkthrough_session2.py Session 2: load + super mode, escort, win
+  _walkthrough_session3.py Session 3: load depleted save, trigger loss
 src/
   __init__.py              Package marker
   __main__.py              Module entry point
@@ -1051,7 +1106,7 @@ src/
   drone.py                 9 upgrades, battery, speech, advice, auto-charge
   travel.py                Movement, hazards, auto-charge, junk finds, drain multipliers
   commands.py              25+ command handlers, GameContext, conversation loop
-  difficulty.py            MODE_DIFFICULTY scaling, junk items, easter egg
+  difficulty.py            MODE_DIFFICULTY scaling, junk items
   llm.py                   LLM loading, inference, NPC memory, action tags, prompt injection defense
   ship_ai.py               ARIA warnings, summaries, +/- delta display
   ui.py                    Rich output, _BridgeConsoleShim, status bar (dual mode)
@@ -1059,7 +1114,8 @@ src/
   tui_bridge.py            Queue bridge, ask mode, console shim connector
   game.tcss                Textual CSS layout
   tutorial.py              Boot sequence, auto-skip, replay command
-  save_load.py             SQLite save/load, creature_memory table, version validation
+  stats.py                 SessionStats dataclass, calculate_score, grades
+  save_load.py             SQLite save/load, creature_memory table, leaderboard, version validation
   input_handler.py         GameSuggester (Textual tab-autocomplete)
   config.py                ~/.moonwalker/ config (save_dir, gpu, context, sound, tutorial)
   sound.py                 Cross-platform sound (22 events, beeps + voice via say)
@@ -1096,10 +1152,12 @@ tests/
   test_super_mode.py        apply_super_mode, easter egg flag
   test_travel.py            Travel time, hazards, auto-charge, brutal drain
   test_tutorial.py          Tutorial progression, serialization
+  test_stats.py             SessionStats, calculate_score, grades, verdicts
+  test_integration.py       MockBridge integration tests (dispatch, save/load, super mode)
   test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
-**Total test count:** 231
+**Total test count:** 282
 
 ---
 

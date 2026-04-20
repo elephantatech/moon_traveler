@@ -108,30 +108,29 @@ class TestCalculateScore:
 
     def test_grade_a(self):
         s = SessionStats()
-        s.commands = 50
-        # base=500, allies=250, efficiency=150, repairs=0 => 900 but that's S
-        # Tune: base=400 + allies=250 + efficiency=150 = 800 => A
+        s.commands = 200
+        # base=400 + allies=250 + efficiency=100 = 750 => A
         _, grade = s.calculate_score(20, [FakeCreature(80)] * 5, {})
         assert grade == "A"
 
     def test_grade_b(self):
         s = SessionStats()
-        s.commands = 100
-        # base=400 + efficiency=100 + allies=100 = 600 => B
-        _, grade = s.calculate_score(20, [FakeCreature(60)] * 2, {})
+        s.commands = 250
+        # base=400 + efficiency=50 + allies=100 + repairs=50 = 600 => B
+        _, grade = s.calculate_score(20, [FakeCreature(60)] * 2, {"m_0": True})
         assert grade == "B"
 
     def test_grade_c(self):
         s = SessionStats()
-        s.commands = 150
-        # base=400 + efficiency=50 + allies=0 = 450 => C
-        _, grade = s.calculate_score(20, [], {})
+        s.commands = 300
+        # base=400 + efficiency=0 + allies=50 = 450 => C
+        _, grade = s.calculate_score(20, [FakeCreature(60)], {})
         assert grade == "C"
 
     def test_score_capped_at_1000(self):
         s = SessionStats()
         s.commands = 5
-        # base=500 + allies=500 + repairs=400 + efficiency=195 = 1595 => clamped to 1000
+        # base=500 + allies=500 + repairs=400 + efficiency=200 = 1600 => clamped to 1000
         score, grade = s.calculate_score(25, [FakeCreature(80)] * 10, {f"m_{i}": True for i in range(8)})
         assert score == 1000
         assert grade == "S"
@@ -141,6 +140,26 @@ class TestCalculateScore:
         s.hazards_survived = 100
         score, _ = s.calculate_score(0, [], {})
         assert score == 0
+
+    def test_score_ignores_sentinel_keys_in_checklist(self):
+        """_escorts_completed sentinel in checklist must not inflate repair count."""
+        s = SessionStats()
+        s.commands = 50
+        # Clean checklist: 2 repairs done
+        clean = {"m_0": True, "m_1": True, "m_2": False}
+        score_clean, _ = s.calculate_score(10, [], clean)
+        # With sentinel: should produce same score (sentinel is truthy int, would inflate if not filtered)
+        dirty = {"m_0": True, "m_1": True, "m_2": False, "_escorts_completed": 2}
+        score_dirty, _ = s.calculate_score(10, [], dirty)
+        assert score_clean == score_dirty
+
+    def test_allies_threshold_is_gte_50(self):
+        """Creatures at exactly trust=50 should count as allies."""
+        s = SessionStats()
+        s.commands = 50
+        score_49, _ = s.calculate_score(10, [FakeCreature(49)], {})
+        score_50, _ = s.calculate_score(10, [FakeCreature(50)], {})
+        assert score_50 > score_49  # trust=50 counts, trust=49 does not
 
     def test_grade_verdicts_exist_for_all_grades(self):
         from src.data.prompts import GRADE_VERDICTS
