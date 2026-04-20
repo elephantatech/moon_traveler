@@ -30,9 +30,13 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - **Custom model download** — paste a HuggingFace URL to download any GGUF model
 - **Pre-commit hooks** — 12 hooks: ruff, markdownlint, shellcheck, yamllint, file hygiene
 - **CI pipeline** — 6 jobs: test, lint, markdown, shellcheck, powershell-lint, actionlint
+- **Player name** — prompted at game start, creatures address you by name, persisted in save/load, `name` command to change (#50)
+- **Drone boot messages** — immersive boot sequence showing model name, variant, context window, inference mode (#2)
+- **Responsive status bar** — wraps to 2-3 lines on narrow terminals instead of truncating (#1)
+- **Screen clear** — clears mode selection UI before boot sequence for clean startup
 - Escort hint shown after talk when trust reaches 50+
-- `tutorial`, `screenshot`, `stats`, `scores` commands visible in help text
-- 282 tests (was 240) — integration tests, score calculation, sentinel filtering, autocomplete coverage
+- `tutorial`, `screenshot`, `stats`, `scores`, `name` commands visible in help text
+- 285 tests (was 240) — integration tests, score calculation, sentinel filtering, player name, autocomplete coverage
 
 ### Fixed
 

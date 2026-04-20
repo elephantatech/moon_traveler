@@ -111,11 +111,13 @@ async def session1_pilot(pilot):
 
     await pilot.pause(3.0)
 
-    # New Game → Easy
+    # New Game → Easy → Name
     if await wait_ask(timeout=5.0):
         await respond("1", wait=2.0)
     if await wait_ask(timeout=5.0):
-        await respond("1", wait=3.0)
+        await respond("1", wait=2.0)
+    if await wait_ask(timeout=5.0):
+        await respond("Walkthrough", wait=3.0)  # Player name
 
     log("  Waiting for LLM...")
     await pilot.pause(15.0)

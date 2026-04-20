@@ -349,10 +349,11 @@ def _download_custom_model() -> bool:
         return False
 
 
-def load_model(callback=None, gpu_mode: str = "cpu"):
+def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
     """Load the LLM model.
 
     gpu_mode: "cpu" for CPU only, "gpu" for GPU offload.
+    quiet: suppress info/success messages (boot sequence handles display).
     Call callback(success: bool) when done.
     """
     global _llm_model, _llm_available
@@ -379,10 +380,13 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
     n_gpu_layers = -1 if gpu_mode == "gpu" else 0
     mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
 
-    ui.info(f"Loading LLM model: {model_filename} ({mode_label})...")
-    if is_custom:
-        ui.dim("  Custom model detected. Integrity not verified — ensure you trust the source.")
-    ui.dim("(This may take 30-60 seconds on first load)")
+    if quiet:
+        ui.dim(f"[dim]Initializing translation service: {model_filename}...[/dim]")
+    else:
+        ui.info(f"Loading LLM model: {model_filename} ({mode_label})...")
+        if is_custom:
+            ui.dim("  Custom model detected. Integrity not verified — ensure you trust the source.")
+        ui.dim("(This may take 30-60 seconds on first load)")
 
     try:
         _llm_model = Llama(
@@ -405,7 +409,10 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
                 ui.warn(f"GPU inference test failed: {e}")
                 raise  # Trigger the CPU fallback below
         _llm_available = True
-        ui.success(f"LLM model loaded successfully! ({mode_label})")
+        if quiet:
+            ui.console.print("[green]Translation service online.[/green]")
+        else:
+            ui.success(f"LLM model loaded successfully! ({mode_label})")
     except Exception as e:
         ui.error(f"Failed to load LLM model: {e}")
         if gpu_mode == "gpu":
@@ -419,13 +426,22 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
                     verbose=False,
                 )
                 _llm_available = True
-                ui.success("LLM model loaded successfully! (CPU fallback)")
+                if quiet:
+                    ui.console.print("[yellow]Translation service online (CPU fallback).[/yellow]")
+                else:
+                    ui.success("LLM model loaded successfully! (CPU fallback)")
             except Exception as e2:
                 ui.error(f"CPU fallback also failed: {e2}")
-                ui.warn("Using fallback dialogue.")
+                if quiet:
+                    ui.console.print("[yellow]Translation service offline — template dialogue active.[/yellow]")
+                else:
+                    ui.warn("Using fallback dialogue.")
                 _llm_available = False
         else:
-            ui.warn("Using fallback dialogue.")
+            if quiet:
+                ui.console.print("[yellow]Translation service offline — template dialogue active.[/yellow]")
+            else:
+                ui.warn("Using fallback dialogue.")
             _llm_available = False
 
     if callback:
@@ -436,7 +452,28 @@ def is_available() -> bool:
     return _llm_available
 
 
-def build_system_prompt(creature) -> str:
+def get_model_info() -> dict:
+    """Return info about the loaded model for boot sequence display."""
+    ctx_size = _get_context_size()
+    if _llm_model is None:
+        return {"name": "No model", "variant": "N/A", "context_size": ctx_size, "status": "FALLBACK"}
+    path = getattr(_llm_model, "model_path", None)
+    if not path:
+        return {"name": "Unknown model", "variant": "N/A", "context_size": ctx_size, "status": "ONLINE"}
+    filename = os.path.basename(path)
+    # Extract variant from filename (e.g. "Q4_K_M" from "Qwen3.5-2B-Q4_K_M.gguf")
+    parts = filename.replace(".gguf", "").split("-")
+    variant = parts[-1] if len(parts) > 1 else "standard"
+    # Find display name from AVAILABLE_MODELS
+    display_name = filename
+    for m in AVAILABLE_MODELS:
+        if m["filename"] == filename:
+            display_name = m["name"].split("(")[0].strip()
+            break
+    return {"name": display_name, "variant": variant, "context_size": ctx_size, "status": "ONLINE"}
+
+
+def build_system_prompt(creature, player_name: str = "Commander") -> str:
     """Build a system prompt for a creature based on its attributes."""
     personality_detail = PERSONALITY_DETAILS.get(creature.archetype, "")
     disposition_instruction = DISPOSITION_INSTRUCTIONS.get(creature.disposition, "")
@@ -469,6 +506,7 @@ def build_system_prompt(creature) -> str:
         inventory_description=inventory_description,
         trust_instruction=trust_instruction,
         translation_instruction="",
+        player_name=player_name,
     )
 
     # Add creature memory (long-term recall of the player and world)
@@ -493,19 +531,21 @@ def build_system_prompt(creature) -> str:
     return base + action_instructions
 
 
-def build_system_prompt_with_translation(creature, translation_quality: str) -> str:
+def build_system_prompt_with_translation(creature, translation_quality: str, player_name: str = "Commander") -> str:
     """Build system prompt with translation quality factored in."""
-    base = build_system_prompt(creature)
+    base = build_system_prompt(creature, player_name=player_name)
     translation_mod = TRANSLATION_QUALITY.get(translation_quality, "")
     return base + translation_mod
 
 
-def generate_response(creature, player_message: str, translation_quality: str = "low") -> str:
+def generate_response(
+    creature, player_message: str, translation_quality: str = "low", player_name: str = "Commander"
+) -> str:
     """Generate a response from a creature. Uses LLM if available, fallback otherwise."""
     if not _llm_available or _llm_model is None:
         return fallback_response(creature)
 
-    system_prompt = build_system_prompt_with_translation(creature, translation_quality)
+    system_prompt = build_system_prompt_with_translation(creature, translation_quality, player_name=player_name)
 
     # Build messages from conversation history
     messages = [{"role": "system", "content": system_prompt}]

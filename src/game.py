@@ -177,6 +177,7 @@ def _record_to_leaderboard(ctx: GameContext, won: bool):
         real_time_seconds=int(ctx.stats.elapsed_seconds),
         creatures_befriended=allies,
         world_seed=ctx.world_seed,
+        player_name=ctx.player.name,
     )
 
 
@@ -496,9 +497,20 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     _mode_map = {"easy": "short", "medium": "medium", "hard": "long", "brutal": "brutal"}
     mode_key = _mode_map.get(mode.split()[0].lower(), "short")
 
+    # Prompt for player name
+    try:
+        raw_name = ui.console.input("[bold]Enter your name (Enter for 'Commander'): [/bold]").strip()
+        player_name = _sanitize_player_name(raw_name)
+    except (EOFError, KeyboardInterrupt):
+        player_name = "Commander"
+
+    # Clear the mode selection UI before boot sequence
+    ui.console.clear()
+
     _ensure_llm_loaded()
 
     ctx = init_game(mode_key)
+    ctx.player.name = player_name
 
     # Apply command-line flags
     if dev_flag and ctx.dev_mode:
@@ -525,6 +537,17 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     return game_loop(ctx)
 
 
+def _sanitize_player_name(raw: str) -> str:
+    """Sanitize player name: strip markup/format chars, max 20 chars, default Commander."""
+    import re
+
+    name = raw.strip()[:20]
+    # Remove format/markup chars and collapse whitespace (prevents prompt injection via newlines)
+    name = re.sub(r"[\r\n\t]", " ", name)
+    name = re.sub(r"[{}\[\]%]", "", name).strip()
+    return name if name else "Commander"
+
+
 def _ensure_llm_loaded():
     """Load the LLM model if not already loaded. Skips reload on play-again."""
     if llm.is_available():
@@ -537,8 +560,5 @@ def _ensure_llm_loaded():
         gpu_mode = "gpu" if gpu_info["available"] else "cpu"
     else:
         gpu_mode = gpu_setting
-    mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
-    ui.dim(f"Compute mode: {mode_label} (change with 'config gpu cpu' or 'config gpu auto')")
-
     llm.maybe_download_model()
-    llm.load_model(gpu_mode=gpu_mode)
+    llm.load_model(gpu_mode=gpu_mode, quiet=True)
