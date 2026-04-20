@@ -500,7 +500,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     # Prompt for player name
     try:
         raw_name = ui.console.input("[bold]Enter your name (Enter for 'Commander'): [/bold]").strip()
-        player_name = raw_name[:20] if raw_name else "Commander"
+        player_name = _sanitize_player_name(raw_name)
     except (EOFError, KeyboardInterrupt):
         player_name = "Commander"
 
@@ -532,6 +532,16 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     )
 
     return game_loop(ctx)
+
+
+def _sanitize_player_name(raw: str) -> str:
+    """Sanitize player name: strip markup/format chars, max 20 chars, default Commander."""
+    import re
+
+    name = raw.strip()[:20]
+    # Remove curly braces (str.format injection) and square brackets (Rich markup)
+    name = re.sub(r"[{}\[\]]", "", name).strip()
+    return name if name else "Commander"
 
 
 def _ensure_llm_loaded():

@@ -1826,11 +1826,18 @@ def cmd_clear(ctx: GameContext, args: str):
 def cmd_name(ctx: GameContext, args: str):
     """Set or show the player's name."""
     if args.strip():
-        new_name = args.strip()[:20]
+        import re
+
+        new_name = re.sub(r"[{}\[\]]", "", args.strip()[:20]).strip()
+        if not new_name:
+            ui.error("Invalid name. Use letters, numbers, spaces, or hyphens.")
+            return
         ctx.player.name = new_name
         ui.success(f"Name set to: {new_name}")
     else:
-        ui.info(f"Your name: [bold]{ctx.player.name}[/bold]")
+        from rich.markup import escape
+
+        ui.info(f"Your name: [bold]{escape(ctx.player.name)}[/bold]")
         ui.dim("  Usage: name <new name>")
 
 

@@ -438,10 +438,13 @@ def is_available() -> bool:
 
 def get_model_info() -> dict:
     """Return info about the loaded model for boot sequence display."""
+    ctx_size = _get_context_size()
     if _llm_model is None:
-        return {"name": "No model", "variant": "N/A", "status": "FALLBACK"}
-    path = getattr(_llm_model, "model_path", "")
-    filename = os.path.basename(path) if path else "unknown"
+        return {"name": "No model", "variant": "N/A", "context_size": ctx_size, "status": "FALLBACK"}
+    path = getattr(_llm_model, "model_path", None)
+    if not path:
+        return {"name": "Unknown model", "variant": "N/A", "context_size": ctx_size, "status": "ONLINE"}
+    filename = os.path.basename(path)
     # Extract variant from filename (e.g. "Q4_K_M" from "Qwen3.5-2B-Q4_K_M.gguf")
     parts = filename.replace(".gguf", "").split("-")
     variant = parts[-1] if len(parts) > 1 else "standard"
@@ -451,7 +454,7 @@ def get_model_info() -> dict:
         if m["filename"] == filename:
             display_name = m["name"].split("(")[0].strip()
             break
-    return {"name": display_name, "variant": variant, "status": "ONLINE"}
+    return {"name": display_name, "variant": variant, "context_size": ctx_size, "status": "ONLINE"}
 
 
 def build_system_prompt(creature, player_name: str = "Commander") -> str:
