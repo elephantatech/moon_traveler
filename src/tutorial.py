@@ -119,8 +119,8 @@ class TutorialManager:
         time.sleep(0.3)
 
         # Repair status
-        done = sum(1 for v in repair_checklist.values() if v)
-        total = len(repair_checklist)
+        done = sum(1 for k, v in repair_checklist.items() if not k.startswith("_") and v)
+        total = sum(1 for k in repair_checklist if not k.startswith("_"))
         ui.console.print("[bold]═══ REPAIR ASSESSMENT ═══[/bold]")
         _boot_line("Components Needed", str(total), "yellow")
         _boot_line("Components Found", str(done), "red" if done == 0 else "yellow")

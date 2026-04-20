@@ -32,7 +32,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - **CI pipeline** — 6 jobs: test, lint, markdown, shellcheck, powershell-lint, actionlint
 - Escort hint shown after talk when trust reaches 50+
 - `tutorial`, `screenshot`, `stats`, `scores` commands visible in help text
-- 260 tests (was 240) — integration tests, score calculation, autocomplete coverage
+- 282 tests (was 240) — integration tests, score calculation, sentinel filtering, autocomplete coverage
 
 ### Fixed
 

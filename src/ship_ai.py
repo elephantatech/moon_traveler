@@ -125,8 +125,8 @@ class ShipAI:
         self.command_count += 1
         if self.command_count % OBJECTIVE_INTERVAL != 0:
             return None
-        done = sum(1 for v in repair_checklist.values() if v)
-        total = len(repair_checklist)
+        done = sum(1 for k, v in repair_checklist.items() if not k.startswith("_") and v)
+        total = sum(1 for k in repair_checklist if not k.startswith("_"))
         if done == total:
             return self.speak("All repairs complete. You should be able to launch, Commander.")
         return self.speak(f"Repair progress: {done}/{total}. Materials and crew assistance are still needed.")
