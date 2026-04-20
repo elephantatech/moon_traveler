@@ -21,9 +21,18 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 
 ### Added
 
+- **Escort requirement for ship repair** — Easy=1, Medium=2, Hard=3, Brutal=4 creatures must help at the ship before final repairs (#28)
+- **Local leaderboard** — scores saved to SQLite after every win/lose; `scores` command shows top 10 (#45)
+- **Session stats tracker** — tracks commands, km traveled, creatures talked, hazards, trades, gifts, items (#7)
+- **Post-game score screen** — score (0-1000), letter grade (S-D), ARIA verdict after win/lose (#8)
+- **Model checksum verification** — SHA-256 verification on downloaded models (#33)
+- **Save file validation** — chat history and creature memory validated on load (#34)
+- **Custom model download** — paste a HuggingFace URL to download any GGUF model
+- **Pre-commit hooks** — 12 hooks: ruff, markdownlint, shellcheck, yamllint, file hygiene
+- **CI pipeline** — 6 jobs: test, lint, markdown, shellcheck, powershell-lint, actionlint
 - Escort hint shown after talk when trust reaches 50+
-- `tutorial` and `screenshot` commands now visible in help text
-- 240 tests (was 236) — inspect, examine, go, repair alias autocomplete coverage
+- `tutorial`, `screenshot`, `stats`, `scores` commands visible in help text
+- 260 tests (was 240) — integration tests, score calculation, autocomplete coverage
 
 ### Fixed
 
