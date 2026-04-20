@@ -320,6 +320,8 @@ def show_ship_repair(checklist: dict):
     table.add_column("Status", justify="center")
 
     for req, done in checklist.items():
+        if req.startswith("_"):
+            continue
         status = "[green]DONE[/green]" if done else "[red]NEEDED[/red]"
         display = req.removeprefix("material_").replace("_", " ").title()
         table.add_row(display, status)
