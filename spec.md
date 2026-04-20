@@ -72,7 +72,7 @@ Supports:
 1. Parse `--dev` and `--super` flags
 2. TUI boot sequence displays title and ARIA intro
 3. Check for existing saves → offer "New Game" / "Load Game"
-4. If new game: prompt difficulty (Easy/Medium/Hard/Brutal), auto-detect GPU from config, load LLM, init world, apply `--super` if flagged, run boot sequence (skipped if tutorial_completed), start game loop
+4. If new game: prompt difficulty (Easy/Medium/Hard/Brutal), prompt player name (default "Commander"), clear screen, load LLM (quiet mode — drone-style messages), init world, apply `--super` if flagged, run boot sequence (skipped if tutorial_completed), start game loop
 5. If load game: auto-detect GPU from config, load LLM, restore state, sync sound/voice settings, derive easter egg state, apply flags, start game loop
 
 ---
@@ -823,18 +823,21 @@ Non-blocking: wrong commands don't nag.
 
 ### 13.3 Boot Sequence
 
-1. Title screen
-2. **Auto-skip for returning players**: if `tutorial_completed` is true in config, shows "Welcome back, Commander." and skips to gameplay. No prompt.
+Screen clears after mode/name selection. LLM loads with drone-style messages ("Initializing translation service...", "Translation service online.").
+
+1. Title screen (Moon Traveler ASCII art)
+2. **Auto-skip for returning players**: if `tutorial_completed` is true in config, shows "Welcome back, {name}." and skips to gameplay. No prompt.
 3. First-time players see crash art + full boot sequence:
 4. `ARIA SYSTEM v4.2.1 — INITIALIZING`
 5. Ship Diagnostics: hull 23%, life support degraded, propulsion/nav/comms offline, power backup
 6. Environment Scan: temp -201C, gravity 0.0113g, atmosphere trace, radiation low
 7. Crew Vitals: food%, water%, suit%
 8. Repair Assessment: components needed, components found, repair class
-9. Drone deployment: `"Deploying ARIA Scout Drone..."`
-10. `CONNECTION ESTABLISHED`
-11. Drone intro: `"Online and operational. I'll handle translation, scanning, and keeping you alive out there."`
-12. ARIA opening lines + tutorial hint
+9. `DRONE SERVICE BOOT`: Translation Service (model name), Model Variant, Context Window, Inference Mode, Service Status
+10. Drone deployment: `"Deploying ARIA Scout Drone..."`
+11. `CONNECTION ESTABLISHED`
+12. Drone intro: `"Online and operational, {name}. I'll handle translation, scanning, and keeping you alive."`
+13. ARIA opening lines + tutorial hint
 
 ---
 
@@ -1159,7 +1162,7 @@ tests/
   test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
-**Total test count:** 282
+**Total test count:** 285
 
 ---
 
