@@ -56,7 +56,10 @@ def build_repair_checklist(mode: str, creatures: list | None = None) -> dict:
 
 
 def check_win(ctx: GameContext) -> bool:
-    return all(ctx.repair_checklist.values())
+    if not all(ctx.repair_checklist.values()):
+        return False
+    req = ESCORT_REQUIREMENTS.get(ctx.world_mode, 1)
+    return ctx.escorts_completed >= req
 
 
 def check_lose(ctx: GameContext) -> bool:

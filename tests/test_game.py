@@ -42,11 +42,19 @@ class TestCheckWin:
         ctx = _make_ctx()
         assert check_win(ctx) is False
 
-    def test_won_when_all_done(self):
+    def test_won_when_all_done_and_escorts_met(self):
         ctx = _make_ctx()
         for key in ctx.repair_checklist:
             ctx.repair_checklist[key] = True
+        ctx.escorts_completed = 1  # Easy mode requires 1
         assert check_win(ctx) is True
+
+    def test_not_won_without_escorts(self):
+        ctx = _make_ctx()
+        for key in ctx.repair_checklist:
+            ctx.repair_checklist[key] = True
+        ctx.escorts_completed = 0
+        assert check_win(ctx) is False
 
     def test_not_won_with_one_remaining(self):
         ctx = _make_ctx()
