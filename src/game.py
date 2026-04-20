@@ -177,6 +177,7 @@ def _record_to_leaderboard(ctx: GameContext, won: bool):
         real_time_seconds=int(ctx.stats.elapsed_seconds),
         creatures_befriended=allies,
         world_seed=ctx.world_seed,
+        player_name=ctx.player.name,
     )
 
 
@@ -496,9 +497,17 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     _mode_map = {"easy": "short", "medium": "medium", "hard": "long", "brutal": "brutal"}
     mode_key = _mode_map.get(mode.split()[0].lower(), "short")
 
+    # Prompt for player name
+    try:
+        raw_name = ui.console.input("[bold]Enter your name (Enter for 'Commander'): [/bold]").strip()
+        player_name = raw_name[:20] if raw_name else "Commander"
+    except (EOFError, KeyboardInterrupt):
+        player_name = "Commander"
+
     _ensure_llm_loaded()
 
     ctx = init_game(mode_key)
+    ctx.player.name = player_name
 
     # Apply command-line flags
     if dev_flag and ctx.dev_mode:

@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class Player:
+    name: str = "Commander"
     location_name: str = "Crash Site"
     inventory: dict[str, int] = field(default_factory=dict)
     ship_storage: dict[str, int] = field(default_factory=dict)
@@ -74,6 +75,7 @@ class Player:
 
     def to_dict(self) -> dict:
         return {
+            "name": self.name,
             "location_name": self.location_name,
             "inventory": dict(self.inventory),
             "ship_storage": dict(self.ship_storage),

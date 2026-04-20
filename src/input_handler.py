@@ -34,6 +34,7 @@ BASE_COMMANDS = [
     "save",
     "load",
     "help",
+    "name",
     "config",
     "inspect",
     "examine",

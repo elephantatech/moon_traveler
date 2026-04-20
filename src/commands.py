@@ -81,6 +81,7 @@ HELP_TEXT = """
   [cyan]status[/cyan]               — Show player vitals (food, water, suit, time)
   [cyan]stats[/cyan]                — Show session gameplay statistics
   [cyan]scores[/cyan]               — View local leaderboard (top 10)
+  [cyan]name[/cyan] [name]          — Set or show your name
   [cyan]rest[/cyan]                 — Rest 1 hour (+10% food/water, +20% at ship)
 
 [bold]Ship:[/bold]
@@ -536,7 +537,9 @@ def cmd_talk(ctx: GameContext, args: str):
 
     # Hostile and low trust — chase away
     if creature.disposition == "hostile" and creature.trust < 15:
-        response = llm.generate_response(creature, "(approaching)", ctx.drone.translation_quality)
+        response = llm.generate_response(
+            creature, "(approaching)", ctx.drone.translation_quality, player_name=ctx.player.name
+        )
         ui.creature_speak(creature.name, response, creature.color)
         ui.warn(f"{creature.name} forces you to back away. Build trust by giving gifts first.")
         return
@@ -620,7 +623,9 @@ def cmd_talk(ctx: GameContext, args: str):
             clean_input = player_input  # Fallback if everything was stripped
 
         creature.add_message("user", clean_input)
-        raw_response = llm.generate_response(creature, clean_input, ctx.drone.translation_quality)
+        raw_response = llm.generate_response(
+            creature, clean_input, ctx.drone.translation_quality, player_name=ctx.player.name
+        )
 
         # Parse action tags from LLM response (e.g. [GIVE_WATER], [HEAL])
         response, actions = llm.parse_actions(raw_response)
@@ -1227,6 +1232,7 @@ def cmd_scores(ctx: GameContext, args: str):
 
     table = Table(title="Leaderboard — Top 10", border_style="yellow")
     table.add_column("#", style="dim", justify="right")
+    table.add_column("Name", style="cyan")
     table.add_column("Score", style="bold yellow")
     table.add_column("Grade", justify="center")
     table.add_column("Result")
@@ -1254,6 +1260,7 @@ def cmd_scores(ctx: GameContext, args: str):
         date = s["date"][:10] if s["date"] else ""
         table.add_row(
             str(i),
+            s.get("name", "Commander"),
             str(s["score"]),
             f"[{gc}]{s['grade']}[/{gc}]",
             result,
@@ -1816,6 +1823,17 @@ def cmd_clear(ctx: GameContext, args: str):
     ui.console.clear()
 
 
+def cmd_name(ctx: GameContext, args: str):
+    """Set or show the player's name."""
+    if args.strip():
+        new_name = args.strip()[:20]
+        ctx.player.name = new_name
+        ui.success(f"Name set to: {new_name}")
+    else:
+        ui.info(f"Your name: [bold]{ctx.player.name}[/bold]")
+        ui.dim("  Usage: name <new name>")
+
+
 def cmd_config(ctx: GameContext, args: str):
     """Show or change game configuration."""
     from pathlib import Path
@@ -2007,6 +2025,7 @@ COMMANDS = {
     "status": cmd_status,
     "stats": cmd_stats,
     "scores": cmd_scores,
+    "name": cmd_name,
     "leaderboard": cmd_scores,
     "ship": cmd_ship,
     "repair": cmd_ship,

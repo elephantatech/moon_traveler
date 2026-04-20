@@ -76,6 +76,12 @@ def _get_db() -> sqlite3.Connection:
         )
     """)
     conn.commit()
+    # Schema migrations for existing databases
+    try:
+        conn.execute("ALTER TABLE leaderboard ADD COLUMN player_name TEXT DEFAULT 'Commander'")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     return conn
 
 
@@ -477,6 +483,7 @@ def record_score(
     real_time_seconds: int,
     creatures_befriended: int = 0,
     world_seed: int | None = None,
+    player_name: str = "Commander",
 ):
     """Record a completed game to the local leaderboard."""
     conn = None
@@ -485,9 +492,19 @@ def record_score(
         conn.execute(
             """INSERT INTO leaderboard
                (score, grade, won, game_mode, hours_elapsed, real_time_seconds,
-                creatures_befriended, world_seed)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (score, grade, int(won), game_mode, hours_elapsed, real_time_seconds, creatures_befriended, world_seed),
+                creatures_befriended, world_seed, player_name)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                score,
+                grade,
+                int(won),
+                game_mode,
+                hours_elapsed,
+                real_time_seconds,
+                creatures_befriended,
+                world_seed,
+                player_name,
+            ),
         )
         conn.commit()
     except Exception:
@@ -504,7 +521,7 @@ def get_top_scores(limit: int = 10) -> list[dict]:
         conn = _get_db()
         rows = conn.execute(
             """SELECT score, grade, won, game_mode, hours_elapsed, real_time_seconds,
-                      creatures_befriended, created_at
+                      creatures_befriended, created_at, player_name
                FROM leaderboard ORDER BY score DESC LIMIT ?""",
             (limit,),
         ).fetchall()
@@ -518,6 +535,7 @@ def get_top_scores(limit: int = 10) -> list[dict]:
                 "real_time": r[5],
                 "allies": r[6],
                 "date": r[7],
+                "name": r[8] or "Commander",
             }
             for r in rows
         ]

@@ -436,7 +436,7 @@ def is_available() -> bool:
     return _llm_available
 
 
-def build_system_prompt(creature) -> str:
+def build_system_prompt(creature, player_name: str = "Commander") -> str:
     """Build a system prompt for a creature based on its attributes."""
     personality_detail = PERSONALITY_DETAILS.get(creature.archetype, "")
     disposition_instruction = DISPOSITION_INSTRUCTIONS.get(creature.disposition, "")
@@ -469,6 +469,7 @@ def build_system_prompt(creature) -> str:
         inventory_description=inventory_description,
         trust_instruction=trust_instruction,
         translation_instruction="",
+        player_name=player_name,
     )
 
     # Add creature memory (long-term recall of the player and world)
@@ -493,19 +494,21 @@ def build_system_prompt(creature) -> str:
     return base + action_instructions
 
 
-def build_system_prompt_with_translation(creature, translation_quality: str) -> str:
+def build_system_prompt_with_translation(creature, translation_quality: str, player_name: str = "Commander") -> str:
     """Build system prompt with translation quality factored in."""
-    base = build_system_prompt(creature)
+    base = build_system_prompt(creature, player_name=player_name)
     translation_mod = TRANSLATION_QUALITY.get(translation_quality, "")
     return base + translation_mod
 
 
-def generate_response(creature, player_message: str, translation_quality: str = "low") -> str:
+def generate_response(
+    creature, player_message: str, translation_quality: str = "low", player_name: str = "Commander"
+) -> str:
     """Generate a response from a creature. Uses LLM if available, fallback otherwise."""
     if not _llm_available or _llm_model is None:
         return fallback_response(creature)
 
-    system_prompt = build_system_prompt_with_translation(creature, translation_quality)
+    system_prompt = build_system_prompt_with_translation(creature, translation_quality, player_name=player_name)
 
     # Build messages from conversation history
     messages = [{"role": "system", "content": system_prompt}]
