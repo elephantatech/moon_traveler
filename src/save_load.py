@@ -504,6 +504,7 @@ def get_top_scores(limit: int = 10) -> list[dict]:
                FROM leaderboard ORDER BY score DESC LIMIT ?""",
             (limit,),
         ).fetchall()
+        conn.close()
         return [
             {
                 "score": r[0],

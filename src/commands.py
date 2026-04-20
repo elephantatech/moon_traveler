@@ -1367,8 +1367,9 @@ def _bay_repair(ctx: GameContext):
         return
 
     # Check escort requirement — block if installing would complete repairs but escorts not met
-    already_done = sum(1 for v in ctx.repair_checklist.values() if v)
-    remaining = len(ctx.repair_checklist) - already_done
+    material_items = {k: v for k, v in ctx.repair_checklist.items() if not k.startswith("_")}
+    already_done = sum(1 for v in material_items.values() if v)
+    remaining = len(material_items) - already_done
     req = ESCORT_REQUIREMENTS.get(ctx.world_mode, 1)
 
     if len(installable) >= remaining and ctx.escorts_completed < req:

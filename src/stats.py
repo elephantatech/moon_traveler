@@ -27,7 +27,7 @@ class SessionStats:
 
         # Bonus: creature relationships and repair progress
         allies = sum(1 for c in creatures if c.trust > 50)
-        repairs_done = sum(1 for v in repair_checklist.values() if v)
+        repairs_done = sum(1 for k, v in repair_checklist.items() if not k.startswith("_") and v)
         bonus = allies * 50 + repairs_done * 50
 
         # Efficiency: reward concise play (baseline 100 commands, bonus for doing less)
