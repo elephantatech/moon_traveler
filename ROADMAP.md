@@ -937,27 +937,43 @@ These are bugs and quick wins that should ship before any new features:
 
 ### v0.5.0 — Gameplay & Diagnostics (next major, 2-3 weeks)
 
-Core gameplay improvements that make the game harder and more interesting, plus diagnostics:
+Core gameplay improvements that make the game harder and more interesting, plus polish:
+
+| Priority | Issue | Effort | Status |
+|----------|-------|--------|--------|
+| ~~P0~~ | ~~#28 Required creature escorts for ship repair~~ | ~~M~~ | **Shipped** — Easy=1, Medium=2, Hard=3, Brutal=4 |
+| ~~P0~~ | ~~#7 Session stats tracker~~ | ~~S~~ | **Shipped** — commands, km, creatures, hazards, trades, gifts |
+| ~~P0~~ | ~~#8 Post-game stats screen with score~~ | ~~M~~ | **Shipped** — score 0-1000, grades S/A/B/C/D, ARIA verdicts |
+| ~~P0~~ | ~~#45 Local leaderboard~~ | ~~M~~ | **Shipped** — SQLite, `scores` command, top 10 |
+| ~~P1~~ | ~~#33 Model download integrity — SHA-256 checksums~~ | ~~S~~ | **Shipped** — hash verification on .gguf files |
+| ~~P1~~ | ~~#34 Save file integrity — validate on load~~ | ~~M~~ | **Shipped** — input sanitization, bounds validation |
+| ~~P1~~ | ~~#43 CI pipeline + pre-commit~~ | ~~M~~ | **Shipped** — 15 hooks, 6 CI jobs |
+| ~~P1~~ | ~~#51 Integration tests~~ | ~~S~~ | **Shipped** — MockBridge, 3-session walkthrough |
+| **P0** | #1 Responsive status bar | S | Wrap on narrow terminals |
+| **P0** | #2 Drone boot messages | S | Immersive LLM loading: "booting service [model] v[ver]" |
+| **P0** | #50 Player name on leaderboard | S | Prompt for name after win/lose, store with score |
+| *Deferred* | #9 LLM perf diagnostics | S | *Moved to v0.5.1* |
+| *Deferred* | #4 Screen reader mode | M | *Moved to v0.5.1* |
+| *Deferred* | #5 Text-to-speech output | L | *Moved to v0.6.0+* |
+| *Deferred* | #6 Voice input via Whisper.cpp | XL | *Moved to v0.7.0+* |
+
+### v0.5.1 — Upgrade System & Diagnostics
+
+In-place upgrade and deferred v0.5.0 polish:
 
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
-| ~~P0~~ | ~~#28 Required creature escorts for ship repair~~ | ~~M~~ | **Shipped v0.5.0** — Easy=1, Medium=2, Hard=3, Brutal=4 |
-| **P0** | #7 Session stats tracker | S | Foundation for post-game screen and achievements |
-| **P0** | #8 Post-game stats screen with score | M | Depends on #7. Gives players a goal beyond "win" |
-| **P1** | #33 Model download integrity — SHA-256 checksums | S | No hash verification on .gguf files |
-| **P1** | #34 Save file integrity — validate on load | M | Tampered saves can inject LLM prompts |
+| **P0** | #49 In-place upgrade | M | Update game without losing saves. Foundation for content delivery. |
 | **P1** | #9 LLM performance diagnostics in dev mode | S | Needed for optimization work |
 | **P1** | #4 Screen reader mode | M | Accessibility — important for wider audience |
-| **P2** | #5 Text-to-speech output mode | L | Accessibility — depends on #4 |
-| ~~P2~~ | ~~#23 Unify GameCompleter and GameSuggester~~ | ~~S~~ | **Done** — CLI removed, only GameSuggester remains |
-| **P3** | #6 Voice input via Whisper.cpp | XL | Cool but complex — can wait |
 
 ### v0.6.0 — World Expansion (6-8 weeks)
 
-New gameplay systems that add depth and replayability:
+New gameplay systems, starting with creature economy delivered via the upgrade system (#49):
 
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
+| **P0** | #47 Creature economy | L | Food/water trading, merchant maps, creature items. First content update via `upgrade` command. |
 | **P0** | #12 Creature relationships | L | Social graph, vouching, location reveals |
 | **P0** | #15 Location events | M | One-time narrative scenes with bonuses |
 | **P1** | #10 ASCII minimap in GPS view | M | Visual navigation aid |
