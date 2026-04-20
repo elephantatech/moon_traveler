@@ -407,7 +407,7 @@ At the Crash Site, the `ship` command opens the bay menu. Each bay serves a diff
 | **Charging** | `ship charging` | Full battery recharge (free), or sacrifice a Power Cell for +10% permanent max capacity |
 | **Medical** | `ship medical` | Repair suit using drone battery, or rest to recover food/water (+20% each, costs 1 hour) |
 
-Once all materials are installed via the Repair Bay, you win.
+Once all materials are installed and escort requirements are met, you win. A post-game score screen shows your stats, grade (S-D), and ARIA verdict. Scores are saved to a local leaderboard — type `scores` to view your top 10.
 
 <p align="center">
   <img src="assets/tui-ship-bays.svg" alt="Ship Bays" width="700"/>
