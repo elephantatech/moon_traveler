@@ -43,6 +43,85 @@ def log(msg):
         f.write(msg + "\n")
 
 
+def log_db_state(label=""):
+    """Log current SQLite database state — tables, row counts, key data."""
+    try:
+        from src.config import get_data_dir
+
+        db_path = Path(get_data_dir()) / "saves" / "moon_traveler.db"
+        if not db_path.exists():
+            log(f"  [DB {label}] No database file yet")
+            return
+
+        import sqlite3
+
+        with sqlite3.connect(str(db_path)) as conn:
+            tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+            table_names = [t[0] for t in tables]
+
+            log(f"  [DB {label}] Tables: {', '.join(table_names)}")
+
+            for tname in table_names:
+                count = conn.execute(f"SELECT COUNT(*) FROM [{tname}]").fetchone()[0]
+                log(f"  [DB {label}] {tname}: {count} rows")
+
+                if tname == "saves" and count > 0:
+                    slots = conn.execute("SELECT DISTINCT slot FROM saves").fetchall()
+                    log(f"  [DB {label}]   Save slots: {[s[0] for s in slots]}")
+
+                if tname == "leaderboard" and count > 0:
+                    rows = conn.execute(
+                        "SELECT score, grade, won, game_mode FROM leaderboard ORDER BY id DESC LIMIT 3"
+                    ).fetchall()
+                    for r in rows:
+                        log(f"  [DB {label}]   Score={r[0]} Grade={r[1]} Won={r[2]} Mode={r[3]}")
+
+                if tname == "creature_memory" and count > 0:
+                    mems = conn.execute("SELECT creature_id, LENGTH(memory) FROM creature_memory LIMIT 3").fetchall()
+                    for m in mems:
+                        log(f"  [DB {label}]   {m[0]}: {m[1]} chars")
+
+                if tname == "chat_history" and count > 0:
+                    chats = conn.execute(
+                        "SELECT creature_id, COUNT(*) FROM chat_history GROUP BY creature_id LIMIT 3"
+                    ).fetchall()
+                    for c in chats:
+                        log(f"  [DB {label}]   {c[0]}: {c[1]} messages")
+    except Exception as e:
+        log(f"  [DB {label}] Error reading database: {e}")
+
+
+def log_game_state(ctx, label=""):
+    """Log key game state from the live GameContext."""
+    if not ctx:
+        log(f"  [STATE {label}] No context available")
+        return
+
+    try:
+        p = ctx.player
+        log(f"  [STATE {label}] Location: {p.location_name}")
+        log(f"  [STATE {label}] Food={p.food:.0f}% Water={p.water:.0f}% Suit={p.suit_integrity:.0f}%")
+        log(f"  [STATE {label}] Inventory: {dict(p.inventory)}")
+        log(f"  [STATE {label}] Known locations: {len(p.known_locations)}")
+
+        done = sum(1 for v in ctx.repair_checklist.values() if v)
+        total = len(ctx.repair_checklist)
+        log(f"  [STATE {label}] Repair: {done}/{total}")
+
+        followers = [c.name for c in ctx.creatures if c.following]
+        if followers:
+            log(f"  [STATE {label}] Followers: {followers}")
+
+        if ctx.stats:
+            s = ctx.stats
+            log(
+                f"  [STATE {label}] Stats: cmds={s.commands} km={s.km_traveled:.1f}"
+                f" talks={len(s.creatures_talked)} hazards={s.hazards_survived}"
+            )
+    except Exception as e:
+        log(f"  [STATE {label}] Error reading game state: {e}")
+
+
 async def screenshot_pilot(pilot):
     """Inject commands via queue and capture screenshots."""
 
@@ -116,12 +195,15 @@ async def screenshot_pilot(pilot):
         return
 
     await take("tui-crash-site", "Crash site after boot")
+    log_game_state(ctx, "GAME_START")
+    log_db_state("GAME_START")
 
     await send("look", wait=3.0)
     await take("tui-look", "Look at crash site")
 
     await send("scan", wait=3.0)
     await take("tui-scan", "Scan results")
+    log_game_state(ctx, "AFTER_SCAN")
 
     await send("gps", wait=3.0)
     await take("tui-gps", "GPS map")
@@ -175,6 +257,7 @@ async def screenshot_pilot(pilot):
         if await wait_for_ask_mode(timeout=3.0):
             await respond("y", wait=5.0)
         await take("tui-travel", "Travel to creature location")
+        log_game_state(ctx, "AFTER_TRAVEL")
 
         await send("look", wait=3.0)
         await take("tui-location-creature", "Location with creature")
@@ -204,6 +287,8 @@ async def screenshot_pilot(pilot):
         if await wait_for_ask_mode(timeout=5.0):
             await respond("bye", wait=3.0)
             await take("tui-conversation-end", "Conversation ended")
+            log_game_state(ctx, "AFTER_TALK")
+            log_db_state("AFTER_TALK")
 
         # Escort the creature (trust is 100 in super mode)
         await send("escort", wait=3.0)
@@ -251,6 +336,8 @@ async def screenshot_pilot(pilot):
                 app.refresh()
                 await pilot.pause(1.0)
                 await take("tui-victory", "Victory + post-game score screen")
+                log_game_state(ctx, "VICTORY")
+                log_db_state("VICTORY")
                 await respond("n", wait=2.0)  # Decline play-again
                 victory_captured = True
                 break
