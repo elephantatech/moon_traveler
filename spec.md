@@ -729,12 +729,13 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 
 ### 11.3 Ship Repair (cmd_ship)
 
-At Crash Site — 4 bays:
+At Crash Site — 5 bays:
 
 1. **Repair Bay:** Shows repair checklist table, lists installable materials → prompts to install. Escort gate blocks final installation until `escorts_completed >= escorts_required` for the difficulty mode.
-2. **Medical Bay:** Suit repair using drone battery (if suit <100% and battery >=10%)
-3. **Charging Bay:** Recharge drone battery (+50%, costs 2 in-game hours)
-4. **Kitchen Bay:** Consume food items from inventory to restore food/water
+2. **Storage Bay:** Stash/retrieve items from ship storage
+3. **Kitchen Bay:** Consume food items from inventory to restore food/water
+4. **Charging Bay:** Recharge drone battery to full (free at Crash Site), overcharge with Power Cell, toggle auto-charge
+5. **Medical Bay:** Suit repair using drone battery (if suit <100% and battery >=10%); rest to recover food/water (+20% at ship, 1 hr)
 
 Away from Crash Site:
 
@@ -1046,7 +1047,7 @@ All entries in `repair_checklist` are `True` (all materials installed at Crash S
 
 ```
 base       = min(500, hours_elapsed × 20)           # reward survival time
-allies     = count(creatures with trust > 50) × 50   # reward relationships
+allies     = count(creatures with trust >= 50) × 50  # reward relationships
 repairs    = count(installed materials) × 50          # reward progress
 efficiency = min(200, max(0, 200 - max(0, commands - 100)))  # reward concise play
 deduction  = hazards_survived × 15                   # penalize damage taken
@@ -1156,7 +1157,7 @@ tests/
   test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
-**Total test count:** 261
+**Total test count:** 282
 
 ---
 

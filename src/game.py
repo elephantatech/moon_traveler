@@ -164,23 +164,20 @@ def show_lose_sequence(ctx: GameContext):
 
 def _record_to_leaderboard(ctx: GameContext, won: bool):
     """Record the game result to the local leaderboard."""
-    try:
-        from src.save_load import record_score
+    from src.save_load import record_score
 
-        score, grade = ctx.stats.calculate_score(ctx.player.hours_elapsed, ctx.creatures, ctx.repair_checklist)
-        allies = sum(1 for c in ctx.creatures if c.trust >= 50)
-        record_score(
-            score=score,
-            grade=grade,
-            won=won,
-            game_mode=ctx.world_mode,
-            hours_elapsed=ctx.player.hours_elapsed,
-            real_time_seconds=int(ctx.stats.elapsed_seconds),
-            creatures_befriended=allies,
-            world_seed=ctx.world_seed,
-        )
-    except Exception:
-        pass  # Non-critical
+    score, grade = ctx.stats.calculate_score(ctx.player.hours_elapsed, ctx.creatures, ctx.repair_checklist)
+    allies = sum(1 for c in ctx.creatures if c.trust >= 50)
+    record_score(
+        score=score,
+        grade=grade,
+        won=won,
+        game_mode=ctx.world_mode,
+        hours_elapsed=ctx.player.hours_elapsed,
+        real_time_seconds=int(ctx.stats.elapsed_seconds),
+        creatures_befriended=allies,
+        world_seed=ctx.world_seed,
+    )
 
 
 def _prompt_play_again() -> bool:
