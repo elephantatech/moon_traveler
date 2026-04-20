@@ -141,6 +141,26 @@ class TestCalculateScore:
         score, _ = s.calculate_score(0, [], {})
         assert score == 0
 
+    def test_score_ignores_sentinel_keys_in_checklist(self):
+        """_escorts_completed sentinel in checklist must not inflate repair count."""
+        s = SessionStats()
+        s.commands = 50
+        # Clean checklist: 2 repairs done
+        clean = {"m_0": True, "m_1": True, "m_2": False}
+        score_clean, _ = s.calculate_score(10, [], clean)
+        # With sentinel: should produce same score (sentinel is truthy int, would inflate if not filtered)
+        dirty = {"m_0": True, "m_1": True, "m_2": False, "_escorts_completed": 2}
+        score_dirty, _ = s.calculate_score(10, [], dirty)
+        assert score_clean == score_dirty
+
+    def test_allies_threshold_is_gte_50(self):
+        """Creatures at exactly trust=50 should count as allies."""
+        s = SessionStats()
+        s.commands = 50
+        score_49, _ = s.calculate_score(10, [FakeCreature(49)], {})
+        score_50, _ = s.calculate_score(10, [FakeCreature(50)], {})
+        assert score_50 > score_49  # trust=50 counts, trust=49 does not
+
     def test_grade_verdicts_exist_for_all_grades(self):
         from src.data.prompts import GRADE_VERDICTS
 

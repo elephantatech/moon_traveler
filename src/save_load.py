@@ -479,6 +479,7 @@ def record_score(
     world_seed: int | None = None,
 ):
     """Record a completed game to the local leaderboard."""
+    conn = None
     try:
         conn = _get_db()
         conn.execute(
@@ -489,13 +490,16 @@ def record_score(
             (score, grade, int(won), game_mode, hours_elapsed, real_time_seconds, creatures_befriended, world_seed),
         )
         conn.commit()
-        conn.close()
     except Exception:
         pass  # Non-critical — don't block gameplay
+    finally:
+        if conn:
+            conn.close()
 
 
 def get_top_scores(limit: int = 10) -> list[dict]:
     """Return the top N scores from the leaderboard."""
+    conn = None
     try:
         conn = _get_db()
         rows = conn.execute(
@@ -504,7 +508,6 @@ def get_top_scores(limit: int = 10) -> list[dict]:
                FROM leaderboard ORDER BY score DESC LIMIT ?""",
             (limit,),
         ).fetchall()
-        conn.close()
         return [
             {
                 "score": r[0],
@@ -520,3 +523,6 @@ def get_top_scores(limit: int = 10) -> list[dict]:
         ]
     except Exception:
         return []
+    finally:
+        if conn:
+            conn.close()
