@@ -848,8 +848,9 @@ Non-blocking: wrong commands don't nag.
 - `save_meta` table: `(slot, save_version, updated_at)` — metadata
 - `chat_history` table: `(slot, creature_id, seq, role, content)` — persists conversations
 - `creature_memory` table: `(slot, creature_id, memory)` — NPC structured memory
+- `leaderboard` table: `(id, score, grade, won, game_mode, hours_elapsed, real_time_seconds, creatures_befriended, world_seed, created_at)` — local score history
 
-Keys stored: `world_seed`, `world_mode`, `player`, `drone`, `locations`, `creatures`, `repair_checklist`, `ship_ai`, `tutorial`
+Keys stored in saves: `world_seed`, `world_mode`, `player`, `drone`, `locations`, `creatures`, `repair_checklist` (includes `_escorts_completed`), `ship_ai`, `tutorial`
 
 ### 14.3 Auto-save
 

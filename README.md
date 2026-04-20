@@ -164,7 +164,7 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 
 ### Winning
 
-Build trust with creatures to obtain repair materials through conversation and trade. Bring materials to the Crash Site and install them via `ship repair`. Escort friendly creatures to the ship — Builders install materials, Healers restore your vitals.
+Build trust with creatures to obtain repair materials through conversation and trade. Bring materials to the Crash Site and install them via `ship repair`. **You must escort creatures to help at the ship** before final repairs: Easy needs 1, Medium needs 2, Hard needs 3, Brutal needs 4. After winning (or losing), a score screen shows your grade (S-D) and saves to a local leaderboard (`scores` command).
 
 <p align="center">
   <img src="assets/tui-ship-bays.svg" alt="TUI Ship Bays" width="700"/>

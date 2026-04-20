@@ -1,8 +1,8 @@
 # Moon Traveler Terminal — Product Roadmap
 
-**Last updated:** 2026-04-18
+**Last updated:** 2026-04-19
 **Current version:** v0.5.0 (released)
-**Next:** v0.5.0 (gameplay + diagnostics)
+**Next:** v0.6.0 (world expansion)
 
 This roadmap covers planned development from the current dev build through v1.0.0 (full release). Each feature entry includes a description, technical approach grounded in the existing architecture, effort estimate, dependencies, and affected files.
 
@@ -941,7 +941,7 @@ Core gameplay improvements that make the game harder and more interesting, plus 
 
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
-| **P0** | #28 Required creature escorts for ship repair | M | Game too easy without forced relationships |
+| ~~P0~~ | ~~#28 Required creature escorts for ship repair~~ | ~~M~~ | **Shipped v0.5.0** — Easy=1, Medium=2, Hard=3, Brutal=4 |
 | **P0** | #7 Session stats tracker | S | Foundation for post-game screen and achievements |
 | **P0** | #8 Post-game stats screen with score | M | Depends on #7. Gives players a goal beyond "win" |
 | **P1** | #33 Model download integrity — SHA-256 checksums | S | No hash verification on .gguf files |
@@ -976,7 +976,7 @@ Social and competitive features:
 | **P0** | #20 Achievement system | L | 30+ milestones, unlock notifications |
 | **P1** | #18 Seed sharing | S | Challenge runs, community engagement |
 | **P1** | #21 Challenge modes | M | Speedrun, ironman, pacifist |
-| **P2** | #17 Leaderboards | L | Local + optional cloud |
+| ~~P2~~ | ~~#17 Leaderboards~~ | ~~L~~ | **Local shipped v0.5.0** (#45). Cloud leaderboard remains future. |
 | **P3** | #19 Mod support | XL | YAML custom archetypes/locations |
 
 ### Infrastructure (ongoing)

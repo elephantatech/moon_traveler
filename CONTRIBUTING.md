@@ -87,7 +87,7 @@ src/
   tutorial.py            Boot sequence, tutorial hints
   world.py               Procedural world generation
   data/                  Name pools, LLM prompts, fallbacks
-tests/                   240+ tests across 17 files
+tests/                   260+ tests across 18 files
 docs/                    GitHub Pages site
 docs/diagrams/           C4 architecture diagrams (Excalidraw)
 ```
