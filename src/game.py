@@ -56,7 +56,9 @@ def build_repair_checklist(mode: str, creatures: list | None = None) -> dict:
 
 
 def check_win(ctx: GameContext) -> bool:
-    if not all(ctx.repair_checklist.values()):
+    # Filter out non-material keys (e.g. _escorts_completed sentinel from save/load)
+    material_values = [v for k, v in ctx.repair_checklist.items() if not k.startswith("_")]
+    if not material_values or not all(material_values):
         return False
     req = ESCORT_REQUIREMENTS.get(ctx.world_mode, 1)
     return ctx.escorts_completed >= req
@@ -166,7 +168,7 @@ def _record_to_leaderboard(ctx: GameContext, won: bool):
         from src.save_load import record_score
 
         score, grade = ctx.stats.calculate_score(ctx.player.hours_elapsed, ctx.creatures, ctx.repair_checklist)
-        allies = sum(1 for c in ctx.creatures if c.trust > 50)
+        allies = sum(1 for c in ctx.creatures if c.trust >= 50)
         record_score(
             score=score,
             grade=grade,
@@ -346,7 +348,9 @@ def game_loop(ctx: GameContext) -> bool:
             ctx.world_seed = state["world_seed"]
             ctx.world_mode = state["world_mode"]
             checklist = state["repair_checklist"]
-            ctx.escorts_completed = checklist.pop("_escorts_completed", 0)
+            raw_escorts = checklist.pop("_escorts_completed", 0)
+            max_escorts = max(ESCORT_REQUIREMENTS.values())
+            ctx.escorts_completed = max(0, min(int(raw_escorts), max_escorts))
             ctx.repair_checklist = checklist
             import time as _time
 
@@ -440,7 +444,8 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
                 tutorial = TutorialManager.from_dict(tutorial)
 
             load_checklist = state["repair_checklist"]
-            load_escorts = load_checklist.pop("_escorts_completed", 0)
+            raw_load_escorts = load_checklist.pop("_escorts_completed", 0)
+            load_escorts = max(0, min(int(raw_load_escorts), max(ESCORT_REQUIREMENTS.values())))
 
             ctx = GameContext(
                 player=state["player"],

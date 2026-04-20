@@ -36,7 +36,13 @@ uv run python play_tui.py  # Launch game
    uv run pytest tests/
    ```
 
-6. **Open a pull request** against `main` with a clear description
+6. **Run walkthrough** (optional, before releases) — 3-session integration test:
+
+   ```bash
+   pre-commit run walkthrough --hook-stage manual
+   ```
+
+7. **Open a pull request** against `main` with a clear description
 
 ### CI Pipeline
 
