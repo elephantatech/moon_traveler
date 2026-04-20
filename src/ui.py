@@ -274,8 +274,8 @@ def show_status(
                 else:
                     material_lines.append(f"  [red]{display} — NEEDED[/red]")
 
-        done_count = sum(1 for v in repair_checklist.values() if v)
-        total = len(repair_checklist)
+        done_count = sum(1 for k, v in repair_checklist.items() if not k.startswith("_") and v)
+        total = sum(1 for k in repair_checklist if not k.startswith("_"))
         table.add_row("Repair", f"{done_count}/{total}")
         console.print(table)
 
@@ -324,8 +324,8 @@ def show_ship_repair(checklist: dict):
         display = req.removeprefix("material_").replace("_", " ").title()
         table.add_row(display, status)
 
-    done_count = sum(1 for v in checklist.values() if v)
-    total = len(checklist)
+    done_count = sum(1 for k, v in checklist.items() if not k.startswith("_") and v)
+    total = sum(1 for k in checklist if not k.startswith("_"))
     console.print(table)
     if done_count == total:
         success(f"All repairs complete! ({done_count}/{total})")
@@ -459,8 +459,8 @@ def render_status_bar(
     followers=None,
 ):
     """Update the fixed bottom status bar widget."""
-    done = sum(1 for v in repair_checklist.values() if v)
-    total = len(repair_checklist)
+    done = sum(1 for k, v in repair_checklist.items() if not k.startswith("_") and v)
+    total = sum(1 for k in repair_checklist if not k.startswith("_"))
 
     hours = player.hours_elapsed
     time_str = f"{hours}h" if hours < 24 else f"{hours // 24}d{hours % 24}h"
