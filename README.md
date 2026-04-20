@@ -17,7 +17,9 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 - **Creature-centric gameplay** — creatures are the primary source of repair materials and survival resources, gated by role and trust
 - **10 creature archetypes** including Merchant (trades item-for-item) and Enforcer (advises who to talk to)
 - **Trade system** — barter with Merchant creatures for repair materials
-- **Escort system** — befriend creatures and bring them to your ship for hands-on repair help (per-companion dismiss)
+- **Escort system** — befriend creatures and bring them to your ship for hands-on repair help (required for final repairs)
+- **Post-game score screen** — score (0-1000), letter grade (S-D), ARIA verdict, local leaderboard
+- **Session stats** — tracks commands, distance, creatures, hazards, trades, gifts across each session
 - **AI drone companion** with context-aware hints, alien speech translation, and travel commentary
 - **Hostile environment** — hazardous travel events (geyser eruptions, ice storms, crevasse falls) with late-game weather escalation
 - **Trust-based relationships** with role-specific thresholds (Healers heal at trust 0, Hermits need trust 80)
