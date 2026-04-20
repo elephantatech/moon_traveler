@@ -177,9 +177,9 @@ async def screenshot_pilot(pilot):
     try:
         from src.save_load import record_score
 
-        record_score(820, "A", True, "short", 18, 1200, 3, 12345)
-        record_score(650, "B", True, "medium", 35, 2400, 2, 67890)
-        record_score(410, "C", False, "long", 12, 900, 1, 11111)
+        record_score(820, "A", True, "short", 18, 1200, 3, 12345, player_name="Ripley")
+        record_score(650, "B", True, "medium", 35, 2400, 2, 67890, player_name="Dallas")
+        record_score(410, "C", False, "long", 12, 900, 1, 11111, player_name="Lambert")
         log("  Seeded 3 leaderboard entries")
     except Exception as e:
         log(f"  WARN: Could not seed leaderboard: {e}")

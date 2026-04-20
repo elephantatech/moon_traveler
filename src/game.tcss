@@ -23,7 +23,7 @@ Screen {
 
 #status-bar {
     height: auto;
-    max-height: 3;
+    max-height: 4;
     background: #111525;
     color: #8890b0;
     padding: 0 2;

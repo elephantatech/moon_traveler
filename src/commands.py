@@ -1219,6 +1219,13 @@ def cmd_stats(ctx: GameContext, args: str):
     ui.console.print(table)
 
 
+def _escape_name(name: str) -> str:
+    """Escape a player name for safe Rich markup rendering."""
+    from rich.markup import escape
+
+    return escape(name)
+
+
 def cmd_scores(ctx: GameContext, args: str):
     """Show the local leaderboard (top 10 scores)."""
     from rich.table import Table
@@ -1260,7 +1267,7 @@ def cmd_scores(ctx: GameContext, args: str):
         date = s["date"][:10] if s["date"] else ""
         table.add_row(
             str(i),
-            s.get("name", "Commander"),
+            _escape_name(s.get("name", "Commander")),
             str(s["score"]),
             f"[{gc}]{s['grade']}[/{gc}]",
             result,
@@ -1828,7 +1835,8 @@ def cmd_name(ctx: GameContext, args: str):
     if args.strip():
         import re
 
-        new_name = re.sub(r"[{}\[\]]", "", args.strip()[:20]).strip()
+        cleaned = re.sub(r"[\r\n\t]", " ", args.strip()[:20])
+        new_name = re.sub(r"[{}\[\]%]", "", cleaned).strip()
         if not new_name:
             ui.error("Invalid name. Use letters, numbers, spaces, or hyphens.")
             return

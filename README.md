@@ -141,6 +141,9 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 | `inspect <item>` | Examine an item to see what it's used for |
 | `charge` | Toggle drone auto-charge (requires Charge Module) |
 | `status` | Show food, water, suit, and repair progress |
+| `stats` | Show session gameplay statistics |
+| `scores` | View local leaderboard (top 10) |
+| `name <name>` | Set or show your name (used by creatures and leaderboard) |
 | `ship` | Ship bays menu (repair, storage, kitchen, charging, medical) |
 | `save` / `load` | Save or load game |
 | `sound` | Toggle sound effects on/off |

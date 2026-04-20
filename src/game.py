@@ -542,8 +542,9 @@ def _sanitize_player_name(raw: str) -> str:
     import re
 
     name = raw.strip()[:20]
-    # Remove curly braces (str.format injection) and square brackets (Rich markup)
-    name = re.sub(r"[{}\[\]]", "", name).strip()
+    # Remove format/markup chars and collapse whitespace (prevents prompt injection via newlines)
+    name = re.sub(r"[\r\n\t]", " ", name)
+    name = re.sub(r"[{}\[\]%]", "", name).strip()
     return name if name else "Commander"
 
 
