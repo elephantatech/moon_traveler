@@ -349,10 +349,11 @@ def _download_custom_model() -> bool:
         return False
 
 
-def load_model(callback=None, gpu_mode: str = "cpu"):
+def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
     """Load the LLM model.
 
     gpu_mode: "cpu" for CPU only, "gpu" for GPU offload.
+    quiet: suppress info/success messages (boot sequence handles display).
     Call callback(success: bool) when done.
     """
     global _llm_model, _llm_available
@@ -379,10 +380,13 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
     n_gpu_layers = -1 if gpu_mode == "gpu" else 0
     mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
 
-    ui.info(f"Loading LLM model: {model_filename} ({mode_label})...")
-    if is_custom:
-        ui.dim("  Custom model detected. Integrity not verified — ensure you trust the source.")
-    ui.dim("(This may take 30-60 seconds on first load)")
+    if quiet:
+        ui.dim(f"[dim]Initializing translation service: {model_filename}...[/dim]")
+    else:
+        ui.info(f"Loading LLM model: {model_filename} ({mode_label})...")
+        if is_custom:
+            ui.dim("  Custom model detected. Integrity not verified — ensure you trust the source.")
+        ui.dim("(This may take 30-60 seconds on first load)")
 
     try:
         _llm_model = Llama(
@@ -405,7 +409,10 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
                 ui.warn(f"GPU inference test failed: {e}")
                 raise  # Trigger the CPU fallback below
         _llm_available = True
-        ui.success(f"LLM model loaded successfully! ({mode_label})")
+        if quiet:
+            ui.console.print("[green]Translation service online.[/green]")
+        else:
+            ui.success(f"LLM model loaded successfully! ({mode_label})")
     except Exception as e:
         ui.error(f"Failed to load LLM model: {e}")
         if gpu_mode == "gpu":
@@ -419,13 +426,22 @@ def load_model(callback=None, gpu_mode: str = "cpu"):
                     verbose=False,
                 )
                 _llm_available = True
-                ui.success("LLM model loaded successfully! (CPU fallback)")
+                if quiet:
+                    ui.console.print("[yellow]Translation service online (CPU fallback).[/yellow]")
+                else:
+                    ui.success("LLM model loaded successfully! (CPU fallback)")
             except Exception as e2:
                 ui.error(f"CPU fallback also failed: {e2}")
-                ui.warn("Using fallback dialogue.")
+                if quiet:
+                    ui.console.print("[yellow]Translation service offline — template dialogue active.[/yellow]")
+                else:
+                    ui.warn("Using fallback dialogue.")
                 _llm_available = False
         else:
-            ui.warn("Using fallback dialogue.")
+            if quiet:
+                ui.console.print("[yellow]Translation service offline — template dialogue active.[/yellow]")
+            else:
+                ui.warn("Using fallback dialogue.")
             _llm_available = False
 
     if callback:

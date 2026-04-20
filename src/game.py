@@ -504,6 +504,9 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     except (EOFError, KeyboardInterrupt):
         player_name = "Commander"
 
+    # Clear the mode selection UI before boot sequence
+    ui.console.clear()
+
     _ensure_llm_loaded()
 
     ctx = init_game(mode_key)
@@ -557,4 +560,4 @@ def _ensure_llm_loaded():
     else:
         gpu_mode = gpu_setting
     llm.maybe_download_model()
-    llm.load_model(gpu_mode=gpu_mode)
+    llm.load_model(gpu_mode=gpu_mode, quiet=True)
