@@ -77,9 +77,41 @@ class TutorialManager:
 
         ui.show_crash()
         ui.console.print()
-        ui.console.print("[dim]You've crash-landed on Enceladus, Saturn's icy moon.[/dim]")
-        ui.console.print("[dim]Your ship is damaged. You'll need to find materials and allies to repair it.[/dim]")
+
+        # --- Narrative intro ---
+        import time as _t
+
+        _t.sleep(0.6)
+        ui.console.print("[bold bright_white]   ░░░ FLIGHT RECORDER — LAST ENTRY ░░░[/bold bright_white]")
         ui.console.print()
+        _t.sleep(0.4)
+        narrative = [
+            "[dim]Enceladus approach vector was nominal until it wasn't.[/dim]",
+            "[dim]A micro-meteor shower shredded the starboard thrusters mid-descent.[/dim]",
+            "[dim]The ship hit the ice shelf at 340 m/s. You shouldn't be alive.[/dim]",
+            "",
+            "[dim italic]But you are — barely.[/dim italic]",
+            "",
+            "[dim]The hull is torn open. Most supplies vented into the vacuum on impact.[/dim]",
+            "[dim]What little food and water remains won't last long.[/dim]",
+            "[dim]Outside, cryovolcanic storms blast the surface with ice particulates[/dim]",
+            "[dim]that are grinding your suit down hour by hour.[/dim]",
+            "",
+            "[dim]If the suit fails, you freeze in seconds.[/dim]",
+            "[dim]If the food runs out, you starve in days.[/dim]",
+            "[dim]If you can't repair this ship — you die here.[/dim]",
+            "",
+            "[yellow]No rescue is coming. No one knows you crashed.[/yellow]",
+            "[yellow]Find materials. Find allies. Fix the ship. Get off this moon.[/yellow]",
+        ]
+        for line in narrative:
+            ui.console.print(f"  {line}")
+            if line:
+                _t.sleep(0.18)
+            else:
+                _t.sleep(0.1)
+        ui.console.print()
+        _t.sleep(0.5)
 
         # --- System boot ---
         ui.console.print("[bold bright_white]ARIA SYSTEM v4.2.1 — INITIALIZING[/bold bright_white]")
