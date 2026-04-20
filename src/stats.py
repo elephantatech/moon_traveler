@@ -30,8 +30,8 @@ class SessionStats:
         repairs_done = sum(1 for v in repair_checklist.values() if v)
         bonus = allies * 50 + repairs_done * 50
 
-        # Efficiency: reward fewer commands (did more with less)
-        efficiency = min(200, max(0, 200 - self.commands))
+        # Efficiency: reward concise play (baseline 100 commands, bonus for doing less)
+        efficiency = min(200, max(0, 200 - max(0, self.commands - 100)))
 
         # Deductions
         deduction = self.hazards_survived * 15

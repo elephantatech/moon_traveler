@@ -31,9 +31,9 @@ def _patched_game_loop(ctx):
 
 def log_db():
     try:
-        from src.config import get_data_dir
+        from src.save_load import _db_path
 
-        db_path = Path(get_data_dir()) / "saves" / "moon_traveler.db"
+        db_path = _db_path()
         if not db_path.exists():
             log("  [DB] No database")
             return
