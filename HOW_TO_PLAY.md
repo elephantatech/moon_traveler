@@ -1,6 +1,14 @@
 # How to Play — Moon Traveler Terminal
 
-You've crash-landed on Enceladus, Saturn's frozen moon. Your ship is wrecked. Your supplies are limited. Alien creatures inhabit the ice, and a small drone is your only companion. Gather repair materials, survive the cold, and get off this moon.
+Enceladus approach vector was nominal until it wasn't. A micro-meteor shower shredded the starboard thrusters mid-descent. The ship hit the ice shelf at 340 m/s. You shouldn't be alive.
+
+But you are — barely.
+
+The hull is torn open. Most supplies vented into the vacuum on impact. What little food and water remains won't last long. Outside, cryovolcanic storms blast the surface with ice particulates that are grinding your suit down hour by hour.
+
+If the suit fails, you freeze in seconds. If the food runs out, you starve in days. If you can't repair this ship — you die here.
+
+No rescue is coming. No one knows you crashed. Find materials. Find allies. Fix the ship. Get off this moon.
 
 ---
 

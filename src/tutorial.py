@@ -67,22 +67,19 @@ class TutorialManager:
             ui.show_title()
             ui.console.print()
 
-            # Returning player — short welcome, skip boot sequence
-            if is_tutorial_completed():
-                ui.console.print(drone.speak("Systems online. Welcome back, Commander."))
-                ui.console.print()
-                self.step = TutorialStep.COMPLETED
-                ship_ai.boot_complete = True
-                return
+        import time as _t
 
         ui.show_crash()
         ui.console.print()
 
-        # --- Narrative intro ---
-        import time as _t
+        # Drone comes online first
+        _t.sleep(0.4)
+        ui.console.print(drone.speak(f"Online and scanning, {player.name}. Pulling last sensor data..."))
+        ui.console.print()
+        _t.sleep(0.8)
 
-        _t.sleep(0.6)
-        ui.console.print("[bold bright_white]   ░░░ FLIGHT RECORDER — LAST ENTRY ░░░[/bold bright_white]")
+        # --- Narrative intro — drone relays scan findings (always shown) ---
+        ui.console.print("[bold bright_white]   ░░░ DRONE SCAN REPORT — SITUATION BRIEF ░░░[/bold bright_white]")
         ui.console.print()
         _t.sleep(0.4)
         narrative = [
@@ -92,10 +89,18 @@ class TutorialManager:
             "",
             "[dim italic]But you are — barely.[/dim italic]",
             "",
+            "[dim]Surface temp: [cyan]-201°C[/cyan]. Atmosphere: not breathable. Gravity: 0.0113g.[/dim]",
             "[dim]The hull is torn open. Most supplies vented into the vacuum on impact.[/dim]",
-            "[dim]What little food and water remains won't last long.[/dim]",
+            (
+                f"[dim]Food reserves: [green]{player.food:.0f}%[/green]."
+                f" Water: [green]{player.water:.0f}%[/green]. Won't last long.[/dim]"
+            ),
             "[dim]Outside, cryovolcanic storms blast the surface with ice particulates[/dim]",
-            "[dim]that are grinding your suit down hour by hour.[/dim]",
+            (
+                f"[dim]that are grinding your suit down hour by hour."
+                f" Suit integrity: [{_suit_color(player)}]{player.suit_integrity:.0f}%"
+                f"[/{_suit_color(player)}].[/dim]"
+            ),
             "",
             "[dim]If the suit fails, you freeze in seconds.[/dim]",
             "[dim]If the food runs out, you starve in days.[/dim]",
@@ -112,6 +117,14 @@ class TutorialManager:
                 _t.sleep(0.1)
         ui.console.print()
         _t.sleep(0.5)
+
+        # Returning player — skip detailed diagnostics
+        if not replay and is_tutorial_completed():
+            ui.console.print(drone.speak("Scan complete. Systems holding. Let's get to work, Commander."))
+            ui.console.print()
+            self.step = TutorialStep.COMPLETED
+            ship_ai.boot_complete = True
+            return
 
         # --- System boot ---
         ui.console.print("[bold bright_white]ARIA SYSTEM v4.2.1 — INITIALIZING[/bold bright_white]")
@@ -248,6 +261,15 @@ class TutorialManager:
         except ValueError:
             t.step = TutorialStep.COMPLETED
         return t
+
+
+def _suit_color(player) -> str:
+    """Return a Rich color name based on suit integrity level."""
+    if player.suit_integrity > 60:
+        return "green"
+    elif player.suit_integrity > 30:
+        return "yellow"
+    return "red"
 
 
 def _boot_line(label: str, value: str, color: str):

@@ -119,8 +119,12 @@ async def session1_pilot(pilot):
     if await wait_ask(timeout=5.0):
         await respond("Walkthrough", wait=3.0)  # Player name
 
-    log("  Waiting for LLM...")
-    await pilot.pause(15.0)
+    log("  Waiting for boot sequence + LLM...")
+    # Capture the narrative intro after it renders (~5s of sleep in boot)
+    await pilot.pause(10.0)
+    app.save_screenshot("assets/tui-intro.svg")
+    log("  Saved: assets/tui-intro.svg — Flight recorder narrative intro")
+    await pilot.pause(5.0)
 
     _ctx_ready.wait(timeout=30)
     ctx = _game_ctx

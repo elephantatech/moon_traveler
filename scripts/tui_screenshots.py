@@ -198,8 +198,12 @@ async def screenshot_pilot(pilot):
     if await wait_for_ask_mode(timeout=5.0):
         await respond("Screenshot", wait=3.0)  # Player name
 
-    # LLM loading may take a while
-    await pilot.pause(15.0)
+    # LLM loading may take a while — capture the narrative intro mid-boot
+    # Narrative takes ~5s to render (sleep calls), then LLM loads
+    await pilot.pause(12.0)
+    await take("tui-intro", "Flight recorder narrative intro")
+
+    await pilot.pause(5.0)
 
     # Wait for game context to be available
     _ctx_ready.wait(timeout=30)
@@ -398,6 +402,7 @@ async def screenshot_pilot(pilot):
             return ""
 
     validations = [
+        ("tui-intro", "rescue", "Intro narrative displayed"),
         ("tui-help", "drone", "Help shows drone commands"),
         ("tui-ship-bays", "Escort", "Ship bays show escort progress"),
         ("tui-stats", "Commands typed", "Stats shows session metrics"),
