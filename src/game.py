@@ -546,8 +546,5 @@ def _ensure_llm_loaded():
         gpu_mode = "gpu" if gpu_info["available"] else "cpu"
     else:
         gpu_mode = gpu_setting
-    mode_label = "CPU + GPU" if gpu_mode == "gpu" else "CPU only"
-    ui.dim(f"Compute mode: {mode_label} (change with 'config gpu cpu' or 'config gpu auto')")
-
     llm.maybe_download_model()
     llm.load_model(gpu_mode=gpu_mode)

@@ -129,6 +129,27 @@ class TutorialManager:
         ui.console.print()
         time.sleep(0.3)
 
+        # Drone service boot
+        ui.console.print("[bold]═══ DRONE SERVICE BOOT ═══[/bold]")
+        from src import llm
+        from src.config import get_gpu_mode
+
+        model_info = llm.get_model_info()
+        context_size = llm._get_context_size()
+        gpu_setting = get_gpu_mode()
+        inference_mode = "CPU + GPU" if gpu_setting == "gpu" else "CPU only"
+        _boot_line("Translation Service", model_info["name"], "cyan")
+        _boot_line("Model Variant", model_info["variant"], "cyan")
+        _boot_line("Context Window", f"{context_size} tokens", "cyan")
+        _boot_line("Inference Mode", inference_mode, "cyan")
+        status_color = "green" if model_info["status"] == "ONLINE" else "yellow"
+        status_text = model_info["status"]
+        if status_text == "FALLBACK":
+            status_text = "FALLBACK — Template dialogue active"
+        _boot_line("Service Status", status_text, status_color)
+        ui.console.print()
+        time.sleep(0.3)
+
         # Drone deployment
         ui.console.print("[dim]Deploying ARIA Scout Drone...[/dim]")
         time.sleep(0.6)
@@ -136,7 +157,7 @@ class TutorialManager:
         ui.console.print()
 
         # Drone introduction
-        intro = "Online and operational. I'll handle translation, scanning, and keeping you alive."
+        intro = f"Online and operational, {player.name}. I'll handle translation, scanning, and keeping you alive."
         ui.console.print(drone.speak(intro))
         ui.console.print()
 

@@ -470,33 +470,43 @@ def render_status_bar(
 
     ship_color = "green" if done == total else "yellow" if done > 0 else "red"
 
-    parts = [
+    # Line 1: vitals (fits in ~65 chars)
+    vitals = [
         _rich_vital("Food", player.food, "green"),
         _rich_vital("Water", player.water, "cyan"),
         _rich_vital("Suit", player.suit_integrity, "#c89450"),
         _rich_vital("Batt", drone.battery, "#a080d0"),
+    ]
+    line1 = "  ".join(vitals)
+
+    # Line 2: ship + inventory + time + creature info
+    info_parts = [
         f"[{ship_color}]Ship {done}/{total}[/{ship_color}]",
         f"[dim]Inv {inv_count}/{inv_max}[/dim]",
         f"[dim]⏱ {time_str}[/dim]",
     ]
-    markup = "  ".join(parts)
-
     if creature and not creature.following:
         from rich.markup import escape
 
         trust_bar = _bar(creature.trust, 5)
         dc = {"friendly": "green", "neutral": "yellow", "hostile": "red"}.get(creature.disposition, "dim")
-        markup += (
-            f"  [dim]│[/dim]  [bold]{escape(creature.name)}[/bold] "
+        info_parts.append(
+            f"[dim]│[/dim] [bold]{escape(creature.name)}[/bold] "
             f"[dim]{escape(creature.archetype)}[/dim] [{dc}]{creature.disposition}[/{dc}] "
             f"Trust {trust_bar} [dim]{creature.trust}[/dim]"
         )
+    line2 = "  ".join(info_parts)
 
+    lines = [line1, line2]
+
+    # Line 3: followers (only when present)
     if followers:
         from rich.markup import escape
 
         names = " ".join(f"[bold]{escape(c.name)}[/bold]" for c in followers)
-        markup += f"  [dim]│[/dim]  [dim]Following:[/dim] {names}"
+        lines.append(f"[dim]Following:[/dim] {names}")
+
+    markup = "\n".join(lines)
 
     if _bridge:  # Guard for test/headless contexts where bridge is not set
         _bridge.update_status_bar(markup)
