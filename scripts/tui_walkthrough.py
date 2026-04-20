@@ -283,7 +283,7 @@ def _validate_db(db_path, walkthrough_slots):
                 world_seed = json.loads(seed_row[0])
                 lb_entries = conn.execute(
                     "SELECT score, grade, won, game_mode, hours_elapsed, "
-                    "real_time_seconds, creatures_befriended FROM leaderboard "
+                    "real_time_seconds, creatures_befriended, player_name FROM leaderboard "
                     "WHERE world_seed = ? ORDER BY id",
                     (world_seed,),
                 ).fetchall()
@@ -291,11 +291,11 @@ def _validate_db(db_path, walkthrough_slots):
                 log(f"  [OK] Leaderboard: {len(lb_entries)} entries for seed {world_seed}")
                 has_win = False
                 has_loss = False
-                for score, grade, won, mode, hours, real_time, allies in lb_entries:
+                for score, grade, won, mode, hours, real_time, allies, name in lb_entries:
                     status = "WIN" if won else "LOSS"
                     log(
                         f"       {status}: score={score} grade={grade} mode={mode} "
-                        f"hours={hours} time={real_time:.0f}s allies={allies}"
+                        f"hours={hours} time={real_time:.0f}s allies={allies} name={name}"
                     )
                     # Validate score range
                     if not (0 <= score <= 1000):

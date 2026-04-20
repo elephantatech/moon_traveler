@@ -279,9 +279,10 @@ class TestLeaderboardIntegration:
                 patch("src.save_load._saves_dir", return_value=tmp),
                 patch("src.save_load._db_path", return_value=tmp / "moon_traveler.db"),
             ):
-                record_score(750, "A", True, "short", 15, 900, 3, 42)
+                record_score(750, "A", True, "short", 15, 900, 3, 42, player_name="TestPilot")
                 scores = get_top_scores(10)
                 assert any(s["score"] == 750 for s in scores)
+                assert any(s["name"] == "TestPilot" for s in scores)
 
 
 class TestGiveIntegration:

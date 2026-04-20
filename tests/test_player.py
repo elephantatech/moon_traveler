@@ -157,6 +157,35 @@ class TestSerialization:
         assert p.suit_integrity == 92.0
         assert p.ship_storage == {}
 
+    def test_round_trip_preserves_name(self):
+        p = Player()
+        p.name = "Ripley"
+        d = p.to_dict()
+        assert d["name"] == "Ripley"
+        p2 = Player.from_dict(d)
+        assert p2.name == "Ripley"
+
+    def test_from_dict_backwards_compat_no_name(self):
+        """Old saves without name field get default 'Commander'."""
+        d = {
+            "location_name": "Crash Site",
+            "inventory": {},
+            "ship_storage": {},
+            "food": 100.0,
+            "water": 100.0,
+            "suit_integrity": 92.0,
+            "hours_elapsed": 0,
+            "known_locations": ["Crash Site"],
+            "food_warning_given": False,
+            "water_warning_given": False,
+        }
+        p = Player.from_dict(d)
+        assert p.name == "Commander"
+
+    def test_default_name(self):
+        p = Player()
+        assert p.name == "Commander"
+
     def test_from_dict_backwards_compat_no_storage(self):
         d = {
             "location_name": "Crash Site",

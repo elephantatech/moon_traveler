@@ -168,6 +168,7 @@ Euclidean distance: `sqrt((x1-x2)^2 + (y1-y2)^2)` in kilometers.
 ```python
 @dataclass
 class Player:
+    name: str = "Commander"       # prompted at game start, used by creatures and leaderboard
     location_name: str = "Crash Site"
     inventory: dict[str, int]     # item_name → quantity
     food: float = 100.0           # percentage
@@ -692,6 +693,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | status | — | Show food/water/suit/repair progress |
 | stats | — | Show session gameplay statistics (commands, km, creatures, trades, gifts, items) |
 | scores | leaderboard | View local leaderboard (top 10 scores) |
+| name | — | Set or show player name (used by creatures and leaderboard) |
 | ship | repair | Interactive ship bays at Crash Site |
 | save | — | Save game to named slot (default: "manual") |
 | load | — | Load game from slot |
@@ -850,7 +852,7 @@ Non-blocking: wrong commands don't nag.
 - `save_meta` table: `(slot, save_version, updated_at)` — metadata
 - `chat_history` table: `(slot, creature_id, seq, role, content)` — persists conversations
 - `creature_memory` table: `(slot, creature_id, memory)` — NPC structured memory
-- `leaderboard` table: `(id, score, grade, won, game_mode, hours_elapsed, real_time_seconds, creatures_befriended, world_seed, created_at)` — local score history
+- `leaderboard` table: `(id, score, grade, won, game_mode, hours_elapsed, real_time_seconds, creatures_befriended, world_seed, player_name, created_at)` — local score history
 
 Keys stored in saves: `world_seed`, `world_mode`, `player`, `drone`, `locations`, `creatures`, `repair_checklist` (includes `_escorts_completed`), `ship_ai`, `tutorial`
 

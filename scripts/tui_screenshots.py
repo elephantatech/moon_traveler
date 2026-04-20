@@ -192,7 +192,11 @@ async def screenshot_pilot(pilot):
 
     # If that was new/load, we now get the difficulty prompt
     if await wait_for_ask_mode(timeout=5.0):
-        await respond("1", wait=3.0)  # "Easy" difficulty
+        await respond("1", wait=2.0)  # "Easy" difficulty
+
+    # Player name prompt
+    if await wait_for_ask_mode(timeout=5.0):
+        await respond("Screenshot", wait=3.0)  # Player name
 
     # LLM loading may take a while
     await pilot.pause(15.0)
