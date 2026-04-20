@@ -1759,6 +1759,9 @@ def cmd_save(ctx: GameContext, args: str):
         return
     if ctx.dev_mode:
         ctx.dev_mode.debug("save", slot=slot, hours=ctx.player.hours_elapsed)
+    # Embed escorts_completed into checklist for persistence (same as do_auto_save)
+    checklist_with_escorts = dict(ctx.repair_checklist)
+    checklist_with_escorts["_escorts_completed"] = ctx.escorts_completed
     save_game(
         slot,
         ctx.player,
@@ -1767,7 +1770,7 @@ def cmd_save(ctx: GameContext, args: str):
         ctx.creatures,
         ctx.world_seed,
         ctx.world_mode,
-        ctx.repair_checklist,
+        checklist_with_escorts,
         ctx.ship_ai,
         ctx.tutorial,
     )

@@ -489,6 +489,7 @@ def record_score(
             (score, grade, int(won), game_mode, hours_elapsed, real_time_seconds, creatures_befriended, world_seed),
         )
         conn.commit()
+        conn.close()
     except Exception:
         pass  # Non-critical — don't block gameplay
 

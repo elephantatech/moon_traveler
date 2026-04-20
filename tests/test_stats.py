@@ -108,30 +108,29 @@ class TestCalculateScore:
 
     def test_grade_a(self):
         s = SessionStats()
-        s.commands = 50
-        # base=500, allies=250, efficiency=150, repairs=0 => 900 but that's S
-        # Tune: base=400 + allies=250 + efficiency=150 = 800 => A
+        s.commands = 200
+        # base=400 + allies=250 + efficiency=100 = 750 => A
         _, grade = s.calculate_score(20, [FakeCreature(80)] * 5, {})
         assert grade == "A"
 
     def test_grade_b(self):
         s = SessionStats()
-        s.commands = 100
-        # base=400 + efficiency=100 + allies=100 = 600 => B
-        _, grade = s.calculate_score(20, [FakeCreature(60)] * 2, {})
+        s.commands = 250
+        # base=400 + efficiency=50 + allies=100 + repairs=50 = 600 => B
+        _, grade = s.calculate_score(20, [FakeCreature(60)] * 2, {"m_0": True})
         assert grade == "B"
 
     def test_grade_c(self):
         s = SessionStats()
-        s.commands = 150
-        # base=400 + efficiency=50 + allies=0 = 450 => C
-        _, grade = s.calculate_score(20, [], {})
+        s.commands = 300
+        # base=400 + efficiency=0 + allies=50 = 450 => C
+        _, grade = s.calculate_score(20, [FakeCreature(60)], {})
         assert grade == "C"
 
     def test_score_capped_at_1000(self):
         s = SessionStats()
         s.commands = 5
-        # base=500 + allies=500 + repairs=400 + efficiency=195 = 1595 => clamped to 1000
+        # base=500 + allies=500 + repairs=400 + efficiency=200 = 1600 => clamped to 1000
         score, grade = s.calculate_score(25, [FakeCreature(80)] * 10, {f"m_{i}": True for i in range(8)})
         assert score == 1000
         assert grade == "S"
