@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      pages_only:
+        description: "Deploy pages only (skip build+release)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -15,6 +21,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ !inputs.pages_only }}
     strategy:
       matrix:
         include:
@@ -49,6 +56,7 @@ jobs:
           path: dist/moon-traveler-v*
 
   release:
+    if: ${{ !inputs.pages_only }}
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -67,7 +75,8 @@ jobs:
             artifacts/**/*.sha256
 
   deploy-pages:
-    needs: release
+    if: ${{ always() && !cancelled() }}
+    needs: [release]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
