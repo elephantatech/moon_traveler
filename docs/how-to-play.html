@@ -349,6 +349,7 @@
       <li><a href="#travel">Travel</a></li>
       <li><a href="#ship-repair">Ship Repair</a></li>
       <li><a href="#game-modes">Game Modes</a></li>
+      <li><a href="#settings">Settings &amp; CLI</a></li>
       <li><a href="#tips">Tips</a></li>
     </ol>
   </nav>
@@ -440,6 +441,11 @@
       <tbody>
         <tr><td><code>save [slot]</code></td><td>&mdash;</td><td>Save your game (default: "manual")</td></tr>
         <tr><td><code>load [slot]</code></td><td>&mdash;</td><td>Load a saved game</td></tr>
+        <tr><td><code>config</code></td><td>&mdash;</td><td>View/change game settings (save path, GPU, animations)</td></tr>
+        <tr><td><code>model</code></td><td>&mdash;</td><td>Re-download or switch AI model</td></tr>
+        <tr><td><code>update</code></td><td>&mdash;</td><td>Check for game updates</td></tr>
+        <tr><td><code>sound</code></td><td>&mdash;</td><td>Toggle sound effects on/off</td></tr>
+        <tr><td><code>dev</code></td><td><code>devmode</code></td><td>Toggle developer diagnostics logging</td></tr>
         <tr><td><code>help</code></td><td>&mdash;</td><td>Show the command list</td></tr>
         <tr><td><code>quit</code></td><td><code>exit</code></td><td>Exit the game</td></tr>
       </tbody>
@@ -682,6 +688,33 @@
   </section>
 
   <!-- TIPS -->
+  <section class="guide-section" id="settings">
+    <h2>Settings &amp; CLI</h2>
+
+    <h3>Configuration</h3>
+    <p>Use the <code>config</code> command to view or change settings:</p>
+    <table>
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>config</code></td><td>Show current config</td></tr>
+        <tr><td><code>config savedir /path</code></td><td>Change save directory</td></tr>
+        <tr><td><code>config gpu auto|gpu|cpu</code></td><td>Change compute mode</td></tr>
+        <tr><td><code>config context 8192</code></td><td>Change LLM context window size</td></tr>
+        <tr><td><code>config animations on|off</code></td><td>Toggle ASCII animations</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Command-line Flags</h3>
+    <table>
+      <thead><tr><th>Flag</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>--upgrade</code></td><td>Check for game updates and exit</td></tr>
+        <tr><td><code>--disable-animation</code></td><td>Launch with animations off</td></tr>
+        <tr><td><code>--dev</code></td><td>Launch with dev diagnostics on</td></tr>
+      </tbody>
+    </table>
+  </section>
+
   <section class="guide-section" id="tips">
     <h2>Tips for New Players</h2>
     <ol>
