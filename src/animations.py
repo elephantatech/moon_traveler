@@ -21,6 +21,12 @@ def force_disable():
     _force_disabled = True
 
 
+def force_enable():
+    """Re-enable animations after force_disable (for screenshot captures)."""
+    global _force_disabled
+    _force_disabled = False
+
+
 def _enabled() -> bool:
     if _force_disabled:
         return False

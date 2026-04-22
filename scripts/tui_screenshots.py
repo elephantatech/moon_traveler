@@ -217,50 +217,66 @@ async def screenshot_pilot(pilot):
     log_game_state(ctx, "GAME_START")
     log_db_state("GAME_START")
 
-    await send("look", wait=3.0)
+    # --- Animation screenshots: temporarily enable animations ---
+    from src import animations
+
+    animations.force_enable()
+
+    # Look with binoculars animation — capture mid-animation
+    app.command_queue.put("look")
+    await pilot.pause(0.8)  # Let binoculars start scanning
+    await take("tui-anim-look", "Look animation (binoculars)")
+    await pilot.pause(4.0)  # Let animation + beat finish
     await take("tui-look", "Look at crash site")
 
-    await send("scan", wait=3.0)
+    # Scan with spinning sensors — capture mid-animation
+    app.command_queue.put("scan")
+    await pilot.pause(1.0)  # Let scan sensors start spinning
+    await take("tui-anim-scan", "Scan animation (sensors)")
+    await pilot.pause(5.0)  # Let animation + results finish
     await take("tui-scan", "Scan results")
     log_game_state(ctx, "AFTER_SCAN")
 
-    await send("gps", wait=3.0)
+    # Disable animations again for speed
+    animations.force_disable()
+
+    await send("gps", wait=4.0)
     await take("tui-gps", "GPS map")
 
-    await send("inventory", wait=3.0)
+    await send("inventory", wait=4.0)
     await take("tui-inventory", "Inventory (super mode)")
 
-    await send("status", wait=3.0)
+    await send("status", wait=4.0)
     await take("tui-status", "Player status")
 
-    await send("drone", wait=3.0)
+    await send("drone", wait=4.0)
     await take("tui-drone", "Drone status")
 
-    await send("ship", wait=3.0)
+    await send("ship", wait=4.0)
     await take("tui-ship-bays", "Ship bays menu")
 
-    await send("help", wait=3.0)
+    await send("help", wait=4.0)
     await take("tui-help", "Help screen")
 
-    await send("inspect ice crystal", wait=3.0)
+    await send("inspect ice crystal", wait=4.0)
     await take("tui-inspect", "Inspect item")
 
-    await send("config", wait=3.0)
+    await send("config", wait=4.0)
     await take("tui-config", "Config screen")
 
-    await send("stats", wait=3.0)
+    await send("stats", wait=4.0)
     await take("tui-stats", "Session stats")
 
-    await send("scores", wait=3.0)
+    await send("scores", wait=4.0)
     await take("tui-scores", "Leaderboard (seeded entries)")
 
     # Scan again to discover more locations
-    await send("scan", wait=3.0)
+    await send("scan", wait=4.0)
     await take("tui-scan-2", "Second scan")
 
     # Scan a few times to discover locations with creatures
-    await send("scan", wait=3.0)
-    await send("scan", wait=3.0)
+    await send("scan", wait=4.0)
+    await send("scan", wait=4.0)
 
     # Find a creature at a KNOWN location
     creature_loc = None
@@ -273,20 +289,25 @@ async def screenshot_pilot(pilot):
             break
 
     if creature_loc:
-        # Travel to the creature's location
-        await send(f"travel {creature_loc}", wait=3.0)
+        # Travel with drone animation — enable animations for this
+        animations.force_enable()
+        app.command_queue.put(f"travel {creature_loc}")
         # Travel may ask for confirmation if dangerous
         if await wait_for_ask_mode(timeout=3.0):
-            await respond("y", wait=5.0)
+            await respond("y", wait=1.0)
+        await pilot.pause(1.5)  # Let drone start moving
+        await take("tui-anim-travel", "Travel animation (drone in flight)")
+        await pilot.pause(6.0)  # Let travel + beat finish
+        animations.force_disable()
         await take("tui-travel", "Travel to creature location")
         log_game_state(ctx, "AFTER_TRAVEL")
 
-        await send("look", wait=3.0)
+        await send("look", wait=4.0)
         await take("tui-location-creature", "Location with creature")
 
     if creature_name:
         # Talk to the creature
-        await send(f"talk {creature_name}", wait=5.0)
+        await send(f"talk {creature_name}", wait=6.0)
         await take("tui-talk-start", "Conversation started")
 
         # Say hello — wait for ask mode (conversation input prompt)
@@ -313,16 +334,16 @@ async def screenshot_pilot(pilot):
             log_db_state("AFTER_TALK")
 
         # Escort the creature (trust is 100 in super mode)
-        await send("escort", wait=3.0)
+        await send("escort", wait=4.0)
         await take("tui-escort", "Escort creature")
 
     # Travel back to crash site
-    await send("travel Crash Site", wait=3.0)
+    await send("travel Crash Site", wait=4.0)
     if await wait_for_ask_mode(timeout=3.0):
-        await respond("y", wait=5.0)
+        await respond("y", wait=6.0)
     await take("tui-return-crash", "Back at crash site")
 
-    await send("look", wait=3.0)
+    await send("look", wait=4.0)
     await take("tui-crash-return-look", "Crash site after exploring")
 
     # Drain any stale responses from ask_queue before repair
@@ -403,6 +424,9 @@ async def screenshot_pilot(pilot):
 
     validations = [
         ("tui-intro", "rescue", "Intro narrative displayed"),
+        ("tui-anim-look", ".---.", "Look animation shows binoculars"),
+        ("tui-anim-scan", "((", "Scan animation shows sensors"),
+        ("tui-anim-travel", "--(+)--", "Travel animation shows drone sprite"),
         ("tui-help", "drone", "Help shows drone commands"),
         ("tui-ship-bays", "Escort", "Ship bays show escort progress"),
         ("tui-stats", "Commands typed", "Stats shows session metrics"),
