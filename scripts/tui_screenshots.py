@@ -424,19 +424,43 @@ async def screenshot_pilot(pilot):
             return ""
 
     validations = [
+        # Title & intro
+        ("tui-title", "Moon", "Title screen shows game name"),
         ("tui-intro", "rescue", "Intro narrative displayed"),
+        ("tui-crash-site", "freeze", "Crash site shows narrative"),
+        # Animations
         ("tui-anim-look", ".---.", "Look animation shows binoculars"),
         ("tui-anim-scan", "((", "Scan animation shows sensors"),
-        ("tui-anim-travel", "Arrived", "Travel completed"),
-        ("tui-help", "drone", "Help shows drone commands"),
+        ("tui-anim-travel", "Arrived", "Travel animation completed"),
+        # Core gameplay
+        ("tui-look", "Crash Site", "Look shows location panel"),
+        ("tui-scan", "Discovered", "Scan found locations"),
+        ("tui-scan-2", "Discovered", "Second scan found locations"),
+        ("tui-gps", "km", "GPS shows distances"),
+        ("tui-inventory", "Qty", "Inventory table rendered"),
+        ("tui-status", "Food", "Status shows vitals"),
+        ("tui-drone", "Battery", "Drone shows battery"),
         ("tui-ship-bays", "Escort", "Ship bays show escort progress"),
+        ("tui-inspect", "ship", "Inspect shows item info"),
+        ("tui-config", "Configuration", "Config screen rendered"),
+        ("tui-help", "drone", "Help shows drone commands"),
         ("tui-stats", "Commands typed", "Stats shows session metrics"),
         ("tui-scores", "Ripley", "Leaderboard shows seeded entries"),
+        # Travel & exploration
+        ("tui-travel", "Arrived", "Travel shows arrival"),
+        ("tui-location-creature", "creature", "Location shows creature"),
+        # Conversation
+        ("tui-talk-start", "Trust", "Talk shows trust info"),
+        ("tui-conversation-1", "trust", "Conversation shows trust gain"),
+        ("tui-conversation-end", "DRONE", "Conversation end shows drone"),
+        # Escort & return
+        ("tui-escort", "travel with you", "Escort command worked"),
+        ("tui-return-crash", "Companions", "Return shows companion at ship"),
+        ("tui-crash-return-look", "Companions", "Crash return shows companions"),
+        # Repair & victory
+        ("tui-repair-prompt", "Companions", "Repair prompt context"),
         ("tui-victory", "Grade", "Victory has score/grade"),
         ("tui-victory", "ARIA", "Victory has ARIA verdict"),
-        ("tui-escort", "travel with you", "Escort command worked"),
-        ("tui-drone", "Battery", "Drone shows battery"),
-        ("tui-inventory", "Qty", "Inventory table rendered"),
     ]
 
     passed = 0
