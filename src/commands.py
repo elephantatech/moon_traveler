@@ -567,10 +567,10 @@ def cmd_talk(ctx: GameContext, args: str):
     )
 
     # Drone initial coaching tip — show in animation bar
+    from src import animations
+
     initial_tip = ctx.drone.get_smart_advice(creature, ctx.player, ctx.repair_checklist, ctx.rng)
     if initial_tip:
-        from src import animations
-
         if animations._can_animate():
             ui.console.animate_frame(initial_tip)
         else:
