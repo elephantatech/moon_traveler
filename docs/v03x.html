@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>v0.3.x — Moon Traveler Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="release-style.css">
+</head>
+<body>
+  <div class="atmosphere"></div>
+  <div class="grain"></div>
+  <header class="hero"><div class="wrap">
+    <div class="hero-badge">Release Notes</div>
+    <h1>Moon Traveler <span class="ver">v0.3.x</span></h1>
+    <p class="subtitle">They remember what you said.</p>
+  </div></header>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">What's New</div>
+    <h2 class="section-title">Creature Memory</h2>
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon">[~]</div>
+        <h3>NPC Memory</h3>
+        <p>After every conversation, the LLM writes a structured memory summary. Next visit, the creature references past interactions.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">DB</div>
+        <h3>SQLite Saves</h3>
+        <p>Save system moved to SQLite. Auto-save after every travel and conversation. Manual slots supported.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&lt;3</div>
+        <h3>Trust System</h3>
+        <p>10 creature archetypes with role-specific trust thresholds. Healers help at trust 0. Hermits need trust 80.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">Changelog</div>
+    <h2 class="section-title">Changes</h2>
+    <ul class="changelog">
+      <li><span class="tag tag-new">new</span> NPC memory system &mdash; LLM writes summaries, stored in SQLite</li>
+      <li><span class="tag tag-new">new</span> Creature memory injected into system prompt on each visit</li>
+      <li><span class="tag tag-new">new</span> Memory capped at 20 bullet points, managed by LLM</li>
+      <li><span class="tag tag-new">new</span> SQLite save system with auto-save</li>
+      <li><span class="tag tag-new">new</span> Template fallback when LLM unavailable</li>
+      <li><span class="tag tag-fix">fix</span> Memory stored per-creature in creature_memory table</li>
+    </ul>
+  </div></section>
+
+  <div class="wrap">
+    <div class="release-nav">
+      <a href="v020.html">&larr; v0.2.0</a>
+      <a href="releases.html">All Releases</a>
+      <a href="v040.html">v0.4.0 &rarr;</a>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a href="https://github.com/elephantatech/moon_traveler/releases/tag/v0.3.0" class="cta-btn">Download v0.3.x</a>
+    <a href="releases.html" class="cta-secondary">&larr; All Releases</a>
+  </div>
+
+  <footer><div class="wrap">Moon Traveler Terminal &mdash; <a href="https://github.com/elephantatech/moon_traveler">GitHub</a></div></footer>
+  <script>
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>

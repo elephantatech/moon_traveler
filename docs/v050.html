@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>v0.5.0 — Moon Traveler Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="release-style.css">
+</head>
+<body>
+  <div class="atmosphere"></div>
+  <div class="grain"></div>
+  <header class="hero"><div class="wrap">
+    <div class="hero-badge">Release Notes</div>
+    <h1>Moon Traveler <span class="ver">v0.5.0</span></h1>
+    <p class="subtitle">You can't solo this anymore.</p>
+  </div></header>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">What's New</div>
+    <h2 class="section-title">Gameplay &amp; Polish</h2>
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon">&gt;&gt;</div>
+        <h3>Escort Requirement</h3>
+        <p>Creatures must physically come to your ship to help with repairs. Easy=1, Brutal=4.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">A+</div>
+        <h3>Post-Game Scoring</h3>
+        <p>Score 0-1000, letter grades S through D, ARIA delivers a verdict based on performance.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">#1</div>
+        <h3>Local Leaderboard</h3>
+        <p>Scores saved to SQLite. Type <code>scores</code> to see your top 10.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">km</div>
+        <h3>Session Stats</h3>
+        <p>Track commands, distance, creatures, hazards, trades, gifts across each session.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">Hi</div>
+        <h3>Player Name</h3>
+        <p>Creatures address you by name. Shows on leaderboard.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">/!\</div>
+        <h3>Security Hardening</h3>
+        <p>SHA-256 model checksums, save validation, prompt injection defense.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">Changelog</div>
+    <h2 class="section-title">Changes</h2>
+    <ul class="changelog">
+      <li><span class="tag tag-new">new</span> Escort requirement &mdash; Easy=1, Medium=2, Hard=3, Brutal=4 (#28)</li>
+      <li><span class="tag tag-new">new</span> Post-game score screen with grades S-D and ARIA verdicts (#8)</li>
+      <li><span class="tag tag-new">new</span> Local leaderboard &mdash; SQLite, <code>scores</code> command (#45)</li>
+      <li><span class="tag tag-new">new</span> Session stats tracking (#7)</li>
+      <li><span class="tag tag-new">new</span> Player name &mdash; <code>name</code> command, shown by creatures and leaderboard (#50)</li>
+      <li><span class="tag tag-new">new</span> Responsive status bar wraps on narrow terminals (#1)</li>
+      <li><span class="tag tag-new">new</span> Drone boot messages with model info (#2)</li>
+      <li><span class="tag tag-infra">infra</span> 15 pre-commit hooks, 6-job CI pipeline</li>
+      <li><span class="tag tag-infra">infra</span> 3-session walkthrough test with DB validation</li>
+      <li><span class="tag tag-infra">infra</span> SHA-256 model checksums (#33)</li>
+      <li><span class="tag tag-fix">fix</span> Save file validation and sanitization (#34)</li>
+      <li><span class="tag tag-fix">fix</span> Player name sanitized against injection</li>
+    </ul>
+  </div></section>
+
+  <div class="wrap">
+    <div class="release-nav">
+      <a href="v041.html">&larr; v0.4.1</a>
+      <a href="releases.html">All Releases</a>
+      <a href="v051.html">v0.5.1 &rarr;</a>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a href="https://github.com/elephantatech/moon_traveler/releases/tag/v0.5.0" class="cta-btn">Download v0.5.0</a>
+    <a href="releases.html" class="cta-secondary">&larr; All Releases</a>
+  </div>
+
+  <footer><div class="wrap">Moon Traveler Terminal &mdash; <a href="https://github.com/elephantatech/moon_traveler">GitHub</a></div></footer>
+  <script>
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>
