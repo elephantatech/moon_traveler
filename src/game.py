@@ -379,19 +379,20 @@ def game_loop(ctx: GameContext) -> bool:
             return False
 
 
-def _parse_flags() -> tuple[bool, bool, bool]:
-    """Parse command-line flags. Returns (dev_flag, super_flag, upgrade_flag)."""
+def _parse_flags() -> tuple[bool, bool, bool, bool]:
+    """Parse command-line flags."""
     import sys
 
     dev_flag = "--dev" in sys.argv
     super_flag = "--super" in sys.argv
     upgrade_flag = "--upgrade" in sys.argv
-    return dev_flag, super_flag, upgrade_flag
+    no_anim_flag = "--disable-animation" in sys.argv
+    return dev_flag, super_flag, upgrade_flag, no_anim_flag
 
 
 def main():
     """Entry point. Runs game sessions in a loop (play-again restarts without recursion)."""
-    dev_flag, super_flag, upgrade_flag = _parse_flags()
+    dev_flag, super_flag, upgrade_flag, no_anim_flag = _parse_flags()
 
     # --upgrade: check for updates and exit
     if upgrade_flag:
@@ -411,8 +412,8 @@ def main():
     except Exception:
         pass
 
-    # Disable animations in super mode (used by automated scripts)
-    if super_flag:
+    # Disable animations if requested via CLI flag
+    if no_anim_flag:
         try:
             from src import animations
 

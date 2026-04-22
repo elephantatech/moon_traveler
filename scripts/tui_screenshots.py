@@ -12,7 +12,7 @@ import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.argv = ["play_tui.py", "--super"]
+sys.argv = ["play_tui.py", "--super", "--disable-animation"]
 
 from src.tui_app import MoonTravelerApp
 

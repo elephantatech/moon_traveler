@@ -93,9 +93,10 @@ HELP_TEXT = """
   [cyan]sound[/cyan]                — Toggle sound effects
   [cyan]screenshot[/cyan]           — Save a screenshot (F12)
   [cyan]tutorial[/cyan]             — Replay the tutorial
-  [cyan]config[/cyan]               — Game settings (save path, GPU, context)
+  [cyan]config[/cyan]               — Game settings (save path, GPU, animations)
   [cyan]model[/cyan]                — Re-download or switch AI model
   [cyan]update[/cyan]               — Check for game updates
+  [cyan]dev[/cyan]                  — Toggle developer diagnostics logging
   [cyan]clear[/cyan] / [cyan]cls[/cyan]          — Clear the screen
   [cyan]help[/cyan]                 — Show this help message
   [cyan]quit[/cyan] / [cyan]exit[/cyan]           — Exit game

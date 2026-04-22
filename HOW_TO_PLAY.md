@@ -557,12 +557,22 @@ Use the `config` command to view or change settings:
 config                          # show current config
 config savedir /path/to/saves   # change save directory
 config gpu auto|gpu|cpu         # change compute mode
+config context 8192             # change LLM context window
 config animations on|off        # toggle ASCII animations
 ```
 
 The game auto-saves after every travel and conversation (slot: "autosave"). Use `save` for manual saves and `load` to list available slots.
 
 Models placed in the legacy `models/` directory (project root) are still detected for backward compatibility.
+
+### Command-line flags
+
+```
+python play_tui.py                    # normal launch
+python play_tui.py --upgrade          # check for updates and exit
+python play_tui.py --disable-animation  # launch with animations off
+python play_tui.py --dev              # launch with dev diagnostics on
+```
 
 ### Game crashes or freezes during conversation
 
