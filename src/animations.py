@@ -112,18 +112,18 @@ def travel_sequence(
     sprite_width = 13  # [o]--(+)--[o] is 13 chars
 
     # Drone sprite — eyes upgrade o→O, belly fills [] per upgrade
-    # Rich markup eats [x] as tags — escape all [ with \[
+    # Rich markup: only [ needs escaping (\[), ] is safe as-is
     eye = "O" if upgrade_count > 0 else " "
     drone_top = f"\\[{eye}]--(+)--\\[{eye}]"
-    # 9-char belly: fill [] from outside in (left, right, left, right...)
-    belly = list("_________")  # 9 chars, indices 0-8
-    slots = [0, 7, 2, 5]  # pairs: (0,1), (7,8), (2,3), (5,6) — outside in
-    for i in range(min(upgrade_count, 4)):
+    # 11-char belly to match top width: \___________/  (13 total with \ and /)
+    belly = list("___________")  # 11 chars
+    slots = [0, 9, 2, 7, 4]  # pairs from outside in: (0,1), (9,10), (2,3), (7,8), (4,5)
+    for i in range(min(upgrade_count, 5)):
         s = slots[i]
         belly[s] = "["
         belly[s + 1] = "]"
-    belly_str = "".join(belly).replace("[", "\\[").replace("]", "\\]")
-    drone_bot = " \\" + belly_str + "/"
+    belly_str = "".join(belly).replace("[", "\\[")
+    drone_bot = "\\" + belly_str + "/"
 
     # Departure message in the game log
     ui.console.print(f"  [dim]Departing for[/dim] [cyan]{destination}[/cyan] [dim]({distance:.1f} km)...[/dim]")
