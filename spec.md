@@ -704,6 +704,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | dev | devmode | Toggle developer diagnostics panel |
 | help | — | Show command list |
 | clear | cls | Clear terminal screen |
+| model | — | Re-download or switch AI model |
 | update | — | Check for game updates via GitHub API |
 | quit | exit | Quit game (with confirmation) |
 

@@ -117,6 +117,7 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 | `quit` | `exit` | Exit the game (prompts for confirmation) |
 | `dev` | `devmode` | Toggle developer logging to `~/.moonwalker/dev/dev_diagnostics.jsonl` |
 | `config` | — | View/change game settings (save path, GPU, animations) |
+| `model` | — | Re-download or switch AI model |
 | `update` | — | Check for game updates and download new versions |
 | `sound` | — | Toggle sound effects on/off |
 
