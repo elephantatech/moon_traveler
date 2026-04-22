@@ -19,6 +19,7 @@ class DevMode:
     def __init__(self):
         self.enabled = False
         self.log_path = DEV_LOG_FILE
+        self._llm_calls: list[dict] = []  # Last N inference calls
 
     def toggle(self):
         self.enabled = not self.enabled
@@ -27,6 +28,30 @@ class DevMode:
             ui.success(f"Dev mode ON — logging to {self.log_path}")
         else:
             ui.info("Dev mode OFF — logging stopped.")
+
+    def log_llm_call(
+        self,
+        call_type: str,
+        elapsed_ms: float,
+        prompt_tokens: int,
+        completion_tokens: int,
+        rss_delta_mb: float,
+    ):
+        """Record an LLM inference call for the performance panel."""
+        if not self.enabled:
+            return
+        entry = {
+            "type": call_type,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "elapsed_ms": round(elapsed_ms),
+            "rss_delta_mb": round(rss_delta_mb, 1),
+        }
+        self._llm_calls.append(entry)
+        if len(self._llm_calls) > 5:
+            self._llm_calls = self._llm_calls[-5:]
+        # Also write to JSONL log
+        self.debug("llm_call", **entry)
 
     def debug(self, event: str, **data):
         """Write a debug log entry. No-op when dev mode is off. Never crashes the game."""

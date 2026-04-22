@@ -17,6 +17,7 @@ moon-traveler = "src.tui_app:run_tui"
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "pytest-cov>=6.0",
     "ruff>=0.15.10",
     "pyinstaller>=6.0",
     "pre-commit>=4.0",

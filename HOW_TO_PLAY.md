@@ -116,7 +116,8 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 | `help` | — | Show the command list |
 | `quit` | `exit` | Exit the game (prompts for confirmation) |
 | `dev` | `devmode` | Toggle developer logging to `~/.moonwalker/dev/dev_diagnostics.jsonl` |
-| `config` | — | View/change game settings (e.g. save path) |
+| `config` | — | View/change game settings (save path, GPU, animations) |
+| `update` | — | Check for game updates and download new versions |
 | `sound` | — | Toggle sound effects on/off |
 
 ### Scanning and Navigation
@@ -549,11 +550,13 @@ All user data is stored in `~/.moonwalker/` by default:
   dev/              # dev mode diagnostic logs
 ```
 
-Use the `config` command to view or change the save path:
+Use the `config` command to view or change settings:
 
 ```
 config                          # show current config
 config savedir /path/to/saves   # change save directory
+config gpu auto|gpu|cpu         # change compute mode
+config animations on|off        # toggle ASCII animations
 ```
 
 The game auto-saves after every travel and conversation (slot: "autosave"). Use `save` for manual saves and `load` to list available slots.

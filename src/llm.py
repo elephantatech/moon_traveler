@@ -4,6 +4,7 @@ import os
 import random
 import re
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -30,6 +31,50 @@ try:
 except (ImportError, OSError, FileNotFoundError):
     _LLAMA_AVAILABLE = False
     Llama = None
+
+# Dev mode reference — set by game.py when dev mode is active
+_dev_mode = None
+
+
+def set_dev_mode(dm):
+    """Wire dev mode for LLM performance logging."""
+    global _dev_mode
+    _dev_mode = dm
+
+
+def _timed_inference(call_type: str, messages, **kwargs):
+    """Run create_chat_completion with timing and dev mode logging."""
+    if _llm_model is None:
+        raise RuntimeError("LLM model is not loaded — call load_model() first")
+    t0 = time.perf_counter()
+    rss_before = None
+    try:
+        import psutil
+
+        rss_before = psutil.Process().memory_info().rss
+    except Exception:
+        pass
+
+    response = _llm_model.create_chat_completion(messages=messages, **kwargs)
+
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    rss_delta_mb = 0.0
+    if rss_before is not None:
+        try:
+            import psutil
+
+            rss_delta_mb = (psutil.Process().memory_info().rss - rss_before) / 1024 / 1024
+        except Exception:
+            pass
+
+    usage = response.get("usage", {})
+    prompt_tokens = usage.get("prompt_tokens", 0)
+    completion_tokens = usage.get("completion_tokens", 0)
+
+    if _dev_mode and _dev_mode.enabled:
+        _dev_mode.log_llm_call(call_type, elapsed_ms, prompt_tokens, completion_tokens, rss_delta_mb)
+
+    return response
 
 
 def detect_gpu() -> dict:
@@ -179,27 +224,48 @@ def _verify_checksum(file_path: Path, expected_sha256: str | None) -> bool:
 
 def _download_file(url: str, target: Path, expected_sha256: str | None = None) -> bool:
     """Download a file with progress bar and optional checksum verification. Returns True on success."""
+    import time as _dl_time
+
+    start_time = _dl_time.time()
+    last_pct_reported = -10  # Track last reported percentage for 10% intervals
+
+    def _progress(block_num, block_size, total_size):
+        nonlocal last_pct_reported
+        downloaded = block_num * block_size
+        if total_size > 0:
+            pct = min(100.0, downloaded * 100.0 / total_size)
+            gb_down = downloaded / 1e9
+            gb_total = total_size / 1e9
+            # Report every 10% via ui.console.print (TUI-compatible)
+            pct_bucket = int(pct // 10) * 10
+            if pct_bucket > last_pct_reported:
+                last_pct_reported = pct_bucket
+                filled = round(pct / 10)
+                bar = f"[cyan]{'█' * filled}[/cyan][dim]{'░' * (10 - filled)}[/dim]"
+                ui.console.print(f"  {bar}  {pct:3.0f}%  ({gb_down:.2f} / {gb_total:.2f} GB)")
+            # Hint about smaller models after 5 minutes
+            elapsed = _dl_time.time() - start_time
+            if elapsed > 300 and pct < 80 and pct_bucket == 50:
+                ui.dim("  Tip: Taking a while? Press Ctrl+C to cancel and pick a smaller model.")
+
     try:
-
-        def _progress(block_num, block_size, total_size):
-            downloaded = block_num * block_size
-            if total_size > 0:
-                pct = min(100.0, downloaded * 100.0 / total_size)
-                gb_down = downloaded / 1e9
-                gb_total = total_size / 1e9
-                print(f"\r  Progress: {pct:5.1f}%  ({gb_down:.2f} / {gb_total:.2f} GB)", end="", flush=True)
-
         urllib.request.urlretrieve(url, str(target), reporthook=_progress)
-        print()
 
         # Verify checksum after download
         if not _verify_checksum(target, expected_sha256):
             target.unlink()
             return False
 
+        ui.success("  Download complete.")
         return True
+    except KeyboardInterrupt:
+        ui.console.print()
+        ui.warn("Download cancelled.")
+        if target.exists():
+            target.unlink()
+        return False
     except Exception as e:
-        print()
+        ui.console.print()
         ui.error(f"Download failed: {e}")
         if target.exists():
             target.unlink()
@@ -295,9 +361,16 @@ def maybe_download_model() -> bool:
     if _download_file(model["url"], target, expected_sha256=model.get("sha256")):
         ui.success(f"Model downloaded to {target}")
         return True
-    else:
-        ui.dim("You can manually download a .gguf model and place it in the models/ directory.")
-        return False
+
+    # Download failed or was cancelled — offer to try a different model
+    try:
+        retry = ui.console.input("[bold]Try a different model? (y/n) > [/bold]").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        retry = "n"
+    if retry in ("y", "yes"):
+        return maybe_download_model()
+    ui.dim("You can manually download a .gguf model and place it in the models/ directory.")
+    return False
 
 
 def _download_custom_model() -> bool:
@@ -387,6 +460,12 @@ def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
         if is_custom:
             ui.dim("  Custom model detected. Integrity not verified — ensure you trust the source.")
         ui.dim("(This may take 30-60 seconds on first load)")
+        try:
+            from src import animations
+
+            animations.model_loading()
+        except Exception:
+            pass
 
     try:
         _llm_model = Llama(
@@ -555,7 +634,8 @@ def generate_response(
         messages.append(msg)
 
     try:
-        response = _llm_model.create_chat_completion(
+        response = _timed_inference(
+            "chat",
             messages=messages,
             max_tokens=200,
             temperature=0.8,
@@ -657,7 +737,8 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
             f"Current memory:\n{current}\n\nCondensed memory:"
         )
         try:
-            compact_resp = _llm_model.create_chat_completion(
+            compact_resp = _timed_inference(
+                "memory_compact",
                 messages=[{"role": "user", "content": compact_prompt}],
                 max_tokens=300,
                 temperature=0.2,
@@ -677,7 +758,8 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
     )
 
     try:
-        response = _llm_model.create_chat_completion(
+        response = _timed_inference(
+            "memory_update",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=400,
             temperature=0.3,
@@ -911,12 +993,23 @@ def generate_drone_hint(creature, player, repair_checklist: dict) -> str | None:
     )
 
     try:
+        t0 = time.perf_counter()
         result = _llm_model(
             prompt,
             max_tokens=60,
             temperature=0.7,
             stop=["Human:", "Player:", "\n\n"],
         )
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        usage = result.get("usage", {})
+        if _dev_mode and _dev_mode.enabled:
+            _dev_mode.log_llm_call(
+                "drone_hint",
+                elapsed_ms,
+                usage.get("prompt_tokens", 0),
+                usage.get("completion_tokens", 0),
+                0.0,
+            )
         text = result["choices"][0]["text"].strip()
         return text if text else None
     except Exception:

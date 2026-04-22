@@ -50,6 +50,16 @@ class UIBridge:
         tmp.print(*args, **kwargs)
         self._app.call_from_thread(self._log.write, buf.getvalue().rstrip("\n"))
 
+    def animate_frame(self, content: str):
+        """Update the animation bar widget in-place (single frame)."""
+        anim = getattr(self._app, "_animation_bar", None)
+        if anim is not None:
+            self._app.call_from_thread(anim.update, content)
+
+    def clear_animation(self):
+        """Clear the animation bar."""
+        self.animate_frame("")
+
     def clear(self):
         """Clear the game log."""
         self._app.call_from_thread(self._app.clear_log)

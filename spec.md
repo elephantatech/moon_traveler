@@ -704,6 +704,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | dev | devmode | Toggle developer diagnostics panel |
 | help | — | Show command list |
 | clear | cls | Clear terminal screen |
+| update | — | Check for game updates via GitHub API |
 | quit | exit | Quit game (with confirmation) |
 
 ### 11.2 Conversation System (cmd_talk)
@@ -1258,6 +1259,7 @@ User preferences stored in `~/.moonwalker/config.json`.
 | `gpu_mode` | "auto"\|"gpu"\|"cpu" | "auto" | `config gpu auto\|gpu\|cpu` |
 | `context_size` | int (2048-131072) | 8192 | `config context 16384` |
 | `sound_enabled` | bool | true | `sound` command |
+| `animations_enabled` | bool | true | `config animations on\|off` |
 | `tutorial_completed` | bool | false | Set automatically on first completion |
 
 ### 22.2 Data Directory Layout

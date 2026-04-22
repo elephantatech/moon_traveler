@@ -47,6 +47,12 @@ class MockBridge:
         for a in args:
             self._output.append(str(a))
 
+    def animate_frame(self, content):
+        pass  # No-op in tests
+
+    def clear_animation(self):
+        pass  # No-op in tests
+
     def input(self, prompt=""):
         if self._response_idx < len(self._responses):
             resp = self._responses[self._response_idx]

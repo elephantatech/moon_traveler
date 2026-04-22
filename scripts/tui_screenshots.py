@@ -406,7 +406,7 @@ async def screenshot_pilot(pilot):
         ("tui-help", "drone", "Help shows drone commands"),
         ("tui-ship-bays", "Escort", "Ship bays show escort progress"),
         ("tui-stats", "Commands typed", "Stats shows session metrics"),
-        ("tui-scores", "Leaderboard", "Leaderboard table rendered"),
+        ("tui-scores", "Ripley", "Leaderboard shows seeded entries"),
         ("tui-victory", "Grade", "Victory has score/grade"),
         ("tui-victory", "ARIA", "Victory has ARIA verdict"),
         ("tui-escort", "travel with you", "Escort command worked"),
@@ -428,6 +428,18 @@ async def screenshot_pilot(pilot):
     log(f"Validation: {passed} passed, {failed} failed")
     if failed:
         log("WARNING: Some validations failed — check screenshots manually")
+
+    # Clean up seeded leaderboard entries and screenshot game results
+    try:
+        import sqlite3
+
+        from src.save_load import _db_path
+
+        with sqlite3.connect(str(_db_path())) as conn:
+            conn.execute("DELETE FROM leaderboard WHERE player_name IN ('Ripley', 'Dallas', 'Lambert', 'Screenshot')")
+        log("  Cleaned up seeded leaderboard entries")
+    except Exception as e:
+        log(f"  WARN: Could not clean leaderboard: {e}")
 
     # Give the worker time to finish, then force exit
     await pilot.pause(3.0)

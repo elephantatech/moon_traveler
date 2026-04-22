@@ -237,6 +237,11 @@ def init_game(mode: str, seed: int | None = None) -> GameContext:
     tutorial = TutorialManager()
     dev_mode = DevMode()
 
+    # Wire dev mode into LLM for performance logging
+    from src import llm as _llm_mod
+
+    _llm_mod.set_dev_mode(dev_mode)
+
     ctx = GameContext(
         player=player,
         drone=drone,
@@ -315,6 +320,9 @@ def game_loop(ctx: GameContext) -> bool:
         if ctx.ship_ai:
             warning = ctx.ship_ai.status_report(ctx.player, ctx.drone)
             if warning:
+                from src import animations
+
+                animations.drone_transmit("alert")
                 ui.console.print(warning)
 
             # Periodic objective reminder
@@ -371,18 +379,26 @@ def game_loop(ctx: GameContext) -> bool:
             return False
 
 
-def _parse_flags() -> tuple[bool, bool]:
-    """Parse --dev and --super command-line flags. Returns (dev_flag, super_flag)."""
+def _parse_flags() -> tuple[bool, bool, bool]:
+    """Parse command-line flags. Returns (dev_flag, super_flag, upgrade_flag)."""
     import sys
 
     dev_flag = "--dev" in sys.argv
     super_flag = "--super" in sys.argv
-    return dev_flag, super_flag
+    upgrade_flag = "--upgrade" in sys.argv
+    return dev_flag, super_flag, upgrade_flag
 
 
 def main():
     """Entry point. Runs game sessions in a loop (play-again restarts without recursion)."""
-    dev_flag, super_flag = _parse_flags()
+    dev_flag, super_flag, upgrade_flag = _parse_flags()
+
+    # --upgrade: check for updates and exit
+    if upgrade_flag:
+        from src.upgrade import run_upgrade
+
+        run_upgrade()
+        return
 
     # Restore sound preference from config
     try:
@@ -394,6 +410,15 @@ def main():
             _snd.disable()
     except Exception:
         pass
+
+    # Disable animations in super mode (used by automated scripts)
+    if super_flag:
+        try:
+            from src import animations
+
+            animations.force_disable()
+        except Exception:
+            pass
 
     # First-run: prompt for save location
     from src.config import is_first_run, prompt_save_location
