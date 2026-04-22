@@ -47,10 +47,9 @@ BASE_COMMANDS = [
     "clear",
     "cls",
     "dev",
+    "devmode",
     "quit",
     "exit",
-    "dev",
-    "devmode",
 ]
 
 

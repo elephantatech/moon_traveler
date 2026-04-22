@@ -22,7 +22,8 @@ Screen {
 }
 
 #animation-bar {
-    height: 2;
+    height: auto;
+    max-height: 2;
     background: #0a0d18;
     color: #b4bcd4;
     padding: 0 2;

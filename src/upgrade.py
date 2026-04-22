@@ -64,7 +64,8 @@ def check_for_update() -> dict | None:
         if latest_parts <= current_parts:
             return None
     except ValueError:
-        pass
+        # Can't parse versions — don't suggest upgrade on uncertainty
+        return None
 
     return {
         "current": current,
@@ -175,6 +176,14 @@ def run_upgrade():
         ui.error(f"Download failed: {e}")
         return
 
+    # Verify download size
+    expected_size = asset.get("size", 0)
+    actual_size = tmp_file.stat().st_size
+    if expected_size and actual_size != expected_size:
+        ui.error(f"Download incomplete: got {actual_size} bytes, expected {expected_size}.")
+        ui.dim(f"Manual download: {release['html_url']}")
+        return
+
     # Extract and replace
     try:
         game_dir = Path(sys.executable).parent
@@ -204,6 +213,10 @@ def run_upgrade():
 
         # Find the extracted contents (may be in a subdirectory)
         contents = list(extract_dir.iterdir())
+        if not contents:
+            ui.error("Archive appears to be empty after extraction.")
+            ui.dim(f"Manual download: {release['html_url']}")
+            return
         source_dir = contents[0] if len(contents) == 1 and contents[0].is_dir() else extract_dir
 
         ui.success(f"Downloaded v{release['latest']}.")

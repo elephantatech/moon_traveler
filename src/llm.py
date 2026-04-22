@@ -224,9 +224,7 @@ def _verify_checksum(file_path: Path, expected_sha256: str | None) -> bool:
 
 def _download_file(url: str, target: Path, expected_sha256: str | None = None) -> bool:
     """Download a file with progress bar and optional checksum verification. Returns True on success."""
-    import time as _dl_time
-
-    start_time = _dl_time.time()
+    start_time = time.time()
     last_pct_reported = -10  # Track last reported percentage for 10% intervals
 
     def _progress(block_num, block_size, total_size):
@@ -244,7 +242,7 @@ def _download_file(url: str, target: Path, expected_sha256: str | None = None) -
                 bar = f"[cyan]{'█' * filled}[/cyan][dim]{'░' * (10 - filled)}[/dim]"
                 ui.console.print(f"  {bar}  {pct:3.0f}%  ({gb_down:.2f} / {gb_total:.2f} GB)")
             # Hint about smaller models after 5 minutes
-            elapsed = _dl_time.time() - start_time
+            elapsed = time.time() - start_time
             if elapsed > 300 and pct < 80 and pct_bucket == 50:
                 ui.dim("  Tip: Taking a while? Press Ctrl+C to cancel and pick a smaller model.")
 
@@ -464,8 +462,8 @@ def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
             from src import animations
 
             animations.model_loading()
-        except Exception:
-            pass
+        except ImportError:
+            pass  # animations module not available in this context
 
     try:
         _llm_model = Llama(

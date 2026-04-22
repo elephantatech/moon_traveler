@@ -664,7 +664,7 @@ def cmd_talk(ctx: GameContext, args: str):
         if show_frame:
             frame = ctx.drone.get_translation_frame(ctx.rng)
             if frame:
-                if hasattr(ui.console, "animate_frame"):
+                if animations._can_animate():
                     ui.console.animate_frame(frame)
                     import time as _t
 
@@ -720,7 +720,7 @@ def cmd_talk(ctx: GameContext, args: str):
         if ctx.rng.random() < interjection_chance:
             advice = ctx.drone.get_smart_advice(creature, ctx.player, ctx.repair_checklist, ctx.rng)
             if advice:
-                if hasattr(ui.console, "animate_frame"):
+                if animations._can_animate():
                     ui.console.animate_frame(advice)
                 else:
                     ui.console.print(advice)
@@ -2074,7 +2074,11 @@ def cmd_model(ctx: GameContext, args: str):
             gpu_mode = "gpu" if gpu_info["available"] else "cpu"
         else:
             gpu_mode = gpu_setting
-        llm.load_model(gpu_mode=gpu_mode, quiet=False)
+        try:
+            llm.load_model(gpu_mode=gpu_mode, quiet=False)
+        except Exception as e:
+            ui.error(f"Failed to load model: {e}")
+            ui.dim("The game will use fallback dialogue until a working model is loaded.")
     else:
         ui.dim("No model selected. Fallback dialogue will be used.")
 
