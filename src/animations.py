@@ -79,7 +79,7 @@ def scan_sweep(hours_elapsed: int = 0):
 
     spin = [".", "-", "+", "|", "\\", "/"]
     frames = []
-    for i, ch in enumerate(spin):
+    for ch in spin:
         frames.append(f"[dim]  (({ch}))  (({ch}))\n  Scanning...[/dim]")
     if hours_elapsed >= _LATE_GAME_HOURS:
         frames.append("[yellow]  ((!))  ((!))\n  Interference...[/yellow]")

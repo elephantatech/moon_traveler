@@ -113,12 +113,12 @@ def run_upgrade():
     # Show release notes (truncated)
     body = release.get("body", "").strip()
     if body:
-        lines = body.split("\n")[:10]
+        all_lines = body.split("\n")
         ui.console.print()
         ui.console.print("[bold]Release notes:[/bold]")
-        for line in lines:
+        for line in all_lines[:10]:
             ui.console.print(f"  [dim]{line}[/dim]")
-        if len(body.split("\n")) > 10:
+        if len(all_lines) > 10:
             ui.dim("  ...")
     ui.console.print()
 
