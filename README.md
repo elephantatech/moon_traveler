@@ -148,7 +148,9 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 | `save` / `load` | Save or load game |
 | `sound` | Toggle sound effects on/off |
 | `tutorial` | Replay the ARIA boot sequence |
-| `config` | View/change settings (save dir, GPU mode, context size) |
+| `config` | View/change settings (save dir, GPU, animations) |
+| `model` | Re-download or switch AI model |
+| `update` | Check for game updates |
 | `clear` / `cls` | Clear the screen |
 | `help` | Show all commands |
 | `quit` | Exit game (auto-saves) |

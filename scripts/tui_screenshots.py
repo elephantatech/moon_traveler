@@ -293,12 +293,12 @@ async def screenshot_pilot(pilot):
         animations.force_enable()
         app.command_queue.put(f"travel {creature_loc}")
         # Travel may ask for confirmation if dangerous
-        if await wait_for_ask_mode(timeout=3.0):
+        if await wait_for_ask_mode(timeout=2.0):
             await respond("y", wait=0.5)
-        # Capture mid-flight: departure prints immediately, then frames at 0.35s each
-        await pilot.pause(1.0)
+        # Capture quickly — in super mode travel is very fast
+        await pilot.pause(0.5)
         await take("tui-anim-travel", "Travel animation (drone in flight)")
-        await pilot.pause(8.0)  # Let full travel + hold + beat finish
+        await pilot.pause(10.0)  # Let full travel + hold + arrival + beat finish
         animations.force_disable()
         await take("tui-travel", "Travel to creature location")
         log_game_state(ctx, "AFTER_TRAVEL")
@@ -427,7 +427,7 @@ async def screenshot_pilot(pilot):
         ("tui-intro", "rescue", "Intro narrative displayed"),
         ("tui-anim-look", ".---.", "Look animation shows binoculars"),
         ("tui-anim-scan", "((", "Scan animation shows sensors"),
-        ("tui-anim-travel", "Departing", "Travel animation shows departure"),
+        ("tui-anim-travel", "Arrived", "Travel completed"),
         ("tui-help", "drone", "Help shows drone commands"),
         ("tui-ship-bays", "Escort", "Ship bays show escort progress"),
         ("tui-stats", "Commands typed", "Stats shows session metrics"),

@@ -122,7 +122,7 @@ def travel_sequence(
         s = slots[i]
         belly[s] = "["
         belly[s + 1] = "]"
-    belly_str = "".join(belly).replace("[", "\\[")
+    belly_str = "".join(belly).replace("[", "\\[").replace("]", "\\]")
     drone_bot = " \\" + belly_str + "/"
 
     # Departure message in the game log

@@ -1,6 +1,7 @@
 """In-place upgrade — check for new versions and download updates."""
 
 import json
+import os
 import platform
 import sys
 import tempfile
@@ -86,6 +87,8 @@ def _find_platform_asset(assets: list, plat: str) -> dict | None:
 
 def _is_editable_install() -> bool:
     """Check if running from a pip editable install (source checkout)."""
+    if getattr(sys, "frozen", False):
+        return False  # PyInstaller binary — never editable
     src_dir = Path(__file__).parent
     pyproject = src_dir.parent / "pyproject.toml"
     git_dir = src_dir.parent / ".git"
@@ -182,7 +185,9 @@ def run_upgrade():
         if asset_name.endswith(".zip"):
             with zipfile.ZipFile(tmp_file) as zf:
                 # Safe extraction: filter out absolute paths and path traversal
-                safe_names = [n for n in zf.namelist() if not n.startswith("/") and ".." not in n]
+                safe_names = [
+                    n for n in zf.namelist() if not os.path.isabs(n) and ".." not in os.path.normpath(n).split(os.sep)
+                ]
                 zf.extractall(extract_dir, members=safe_names)
         else:
             import tarfile
@@ -191,7 +196,8 @@ def run_upgrade():
                 # Safe extraction: filter out absolute paths and path traversal
                 safe_members = []
                 for member in tf.getmembers():
-                    if member.name.startswith("/") or ".." in member.name:
+                    norm = os.path.normpath(member.name)
+                    if os.path.isabs(norm) or ".." in norm.split(os.sep):
                         continue
                     safe_members.append(member)
                 tf.extractall(extract_dir, members=safe_members)
