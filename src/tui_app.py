@@ -31,6 +31,7 @@ class MoonTravelerApp(App):
     def compose(self) -> ComposeResult:
         yield Static("Moon Traveler Terminal", id="header")
         yield RichLog(id="game-log", wrap=True, markup=True, auto_scroll=True, max_lines=2000)
+        yield Static("", id="animation-bar")
         yield Static("", id="status-bar")
         with Horizontal(id="input-area"):
             yield Label("", id="prompt-label")
@@ -41,6 +42,7 @@ class MoonTravelerApp(App):
         # Query widgets on main thread (thread-safe) and store references
         self._header = self.query_one("#header", Static)
         self._game_log = self.query_one("#game-log", RichLog)
+        self._animation_bar = self.query_one("#animation-bar", Static)
         self._status_bar = self.query_one("#status-bar", Static)
         self._prompt_label = self.query_one("#prompt-label", Label)
         self._game_input = self.query_one("#game-input", Input)

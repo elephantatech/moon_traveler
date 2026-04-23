@@ -29,9 +29,11 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 - **GPS with resource markers** showing food/water sources at visited locations
 - **Skip tutorial** option for returning players
 - **GPU acceleration** with automatic detection and user-selectable CPU/GPU mode
+- **ASCII animations** — in-place sprites for scan, travel (drone evolves with upgrades), look, hazards, and drone messages. Toggleable via `config animations on|off`
+- **In-place upgrade** — check for and download new versions with the `update` command or `--upgrade` flag
 - **Rich terminal UI** with styled text, progress bars, and ASCII art
 - **Save/load system** with silent auto-save and manual slots
-- **CI/CD pipeline** with GitHub Actions for cross-platform builds
+- **CI/CD pipeline** with GitHub Actions for cross-platform builds (3 OS x 2 Python versions)
 
 ## System Requirements
 
@@ -148,7 +150,9 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 | `save` / `load` | Save or load game |
 | `sound` | Toggle sound effects on/off |
 | `tutorial` | Replay the ARIA boot sequence |
-| `config` | View/change settings (save dir, GPU mode, context size) |
+| `config` | View/change settings (save dir, GPU, animations) |
+| `model` | Re-download or switch AI model |
+| `update` | Check for game updates |
 | `clear` / `cls` | Clear the screen |
 | `help` | Show all commands |
 | `quit` | Exit game (auto-saves) |

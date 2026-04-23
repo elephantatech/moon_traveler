@@ -2,6 +2,42 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.5.2] - 2026-04-22
+
+### Added
+
+- **ASCII animation system** — dedicated `#animation-bar` widget with in-place 2-line sprites for scan, travel, look, drone, hazard, exchange, and model loading (#29)
+- **Drone sprite evolution** — drone ASCII art evolves with upgrades: eyes `o`→`O`, belly fills with `[]` per upgrade
+- **In-place upgrade system** — `update` command + `--upgrade` flag checks GitHub Releases API and downloads updates safely (#49)
+- **Model download progress bars** — 10% interval progress during model download + `model` command to switch models (#54)
+- **LLM performance diagnostics** — `_timed_inference()` wrapper logs timing, token count, and RSS memory delta in dev mode (#9)
+- **CI test matrix** — 3 OS (ubuntu, windows, macos) × 2 Python (3.11, 3.12) = 6 parallel test jobs (#25)
+- **Test coverage reporting** — `pytest-cov` integrated into CI pipeline (#26)
+- **`--disable-animation` CLI flag** — disables animations for the session without affecting `--super` mode
+- **Late-game animation variants** — intensified scan and hazard sprites after 24 hours elapsed
+- **Release announcement pages** — individual HTML pages for every version (v0.2.0–v0.5.2) + releases index
+- **Shared release CSS** — `release-style.css` for consistent design across release pages
+
+### Fixed
+
+- Drone sprite alignment — top and bottom lines now consistently 13 characters
+- `[o]` in drone sprite no longer eaten by Rich markup (escaped `\[`)
+- `animations` import moved before `initial_tip` check in `cmd_talk` (was causing NameError)
+- `beat()` only fires after valid command dispatch (not on invalid commands)
+- `--super` no longer disables animations
+- `cmd_model` wrapped in try/except for graceful error handling
+- Bare `except` on `model_loading` narrowed to `ImportError`
+- Download size verification added to upgrade system
+- Windows path traversal protection via `os.path.normpath` + `os.sep` split
+
+## [0.5.1] - 2026-04-20
+
+### Added
+
+- **Drone scan report** — plays every session with live data (suit %, food %, surface temp)
+- **Flight recorder narrative** — crash-landing story sets the stakes before gameplay
+- **Screenshot pipeline** — captures the intro sequence with validation
+
 ## [0.5.0] - 2026-04-18
 
 ### Removed

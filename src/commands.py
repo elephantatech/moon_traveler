@@ -93,7 +93,10 @@ HELP_TEXT = """
   [cyan]sound[/cyan]                — Toggle sound effects
   [cyan]screenshot[/cyan]           — Save a screenshot (F12)
   [cyan]tutorial[/cyan]             — Replay the tutorial
-  [cyan]config[/cyan]               — Game settings (save path, GPU, context)
+  [cyan]config[/cyan]               — Game settings (save path, GPU, animations)
+  [cyan]model[/cyan]                — Re-download or switch AI model
+  [cyan]update[/cyan]               — Check for game updates
+  [cyan]dev[/cyan]                  — Toggle developer diagnostics logging
   [cyan]clear[/cyan] / [cyan]cls[/cyan]          — Clear the screen
   [cyan]help[/cyan]                 — Show this help message
   [cyan]quit[/cyan] / [cyan]exit[/cyan]           — Exit game
@@ -256,6 +259,9 @@ def cmd_help(ctx: GameContext, args: str):
 
 
 def cmd_look(ctx: GameContext, args: str):
+    from src import animations
+
+    animations.look_sweep()
     loc = ctx.current_location()
     creature = ctx.creature_at_location(loc.name)
     creature_name = None
@@ -300,7 +306,9 @@ def cmd_scan(ctx: GameContext, args: str):
         ctx.player.discover_location(loc.name)
         discovered.append((loc.name, loc.loc_type, dist))
 
-    ui.loading_spinner("Scanning surroundings...", 1.0)
+    from src import animations
+
+    animations.scan_sweep(ctx.player.hours_elapsed)
 
     if ctx.dev_mode:
         ctx.dev_mode.debug(
@@ -425,7 +433,12 @@ def cmd_travel(ctx: GameContext, args: str):
     )
     ctx.stats.km_traveled += travel_km
     ctx.stats.hazards_survived += hazards_hit
+    from src import animations
+
     for msg in messages:
+        # Flash before hazard messages
+        if "[bold red]" in msg:
+            animations.hazard_flash(ctx.player.hours_elapsed)
         ui.console.print(msg)
 
     # Log travel result
@@ -553,11 +566,16 @@ def cmd_talk(ctx: GameContext, args: str):
         " — 'bye' or '/end' to disconnect | /? for help[/dim]\n"
     )
 
-    # Drone initial coaching tip (context-aware)
+    # Drone initial coaching tip — show in animation bar
+    from src import animations
+
     initial_tip = ctx.drone.get_smart_advice(creature, ctx.player, ctx.repair_checklist, ctx.rng)
     if initial_tip:
-        ui.console.print(initial_tip)
-        ui.console.print()
+        if animations._can_animate():
+            ui.console.animate_frame(initial_tip)
+        else:
+            ui.console.print(initial_tip)
+            ui.console.print()
 
     ctx.stats.creatures_talked.add(creature.id)
 
@@ -642,12 +660,18 @@ def cmd_talk(ctx: GameContext, args: str):
                 archetype=creature.archetype,
             )
 
-        # Drone translation frame (always on first exchange, ~40% after)
+        # Drone translation frame — show in animation bar
         show_frame = exchange_count == 0 or ctx.rng.random() < 0.4
         if show_frame:
             frame = ctx.drone.get_translation_frame(ctx.rng)
             if frame:
-                ui.console.print(frame)
+                if animations._can_animate():
+                    ui.console.animate_frame(frame)
+                    import time as _t
+
+                    _t.sleep(0.5)
+                else:
+                    ui.console.print(frame)
 
         ui.creature_speak(creature.name, response, creature.color)
 
@@ -692,12 +716,15 @@ def cmd_talk(ctx: GameContext, args: str):
         followers = [c for c in ctx.creatures if c.following]
         ui.render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature, followers)
 
-        # Drone private advice (NOT added to creature conversation history)
+        # Drone private advice — show in animation bar (creature can't "see" it)
         interjection_chance = _interjection_probability(creature, exchange_count)
         if ctx.rng.random() < interjection_chance:
             advice = ctx.drone.get_smart_advice(creature, ctx.player, ctx.repair_checklist, ctx.rng)
             if advice:
-                ui.console.print(advice)
+                if animations._can_animate():
+                    ui.console.animate_frame(advice)
+                else:
+                    ui.console.print(advice)
 
         # Fallback material offering (when LLM is unavailable)
         if not llm.is_available():
@@ -801,6 +828,9 @@ def cmd_give(ctx: GameContext, args: str):
 
     ctx.player.remove_item(item_part)
     display = item_part.replace("_", " ").title()
+    from src import animations
+
+    animations.exchange_flash()
     ui.success(f"You give {display} to {creature.name}.")
     ctx.stats.gifts_given += 1
 
@@ -921,6 +951,9 @@ def cmd_trade(ctx: GameContext, args: str):
     get_display = get_item.replace("_", " ").title()
     give_display = give_item.replace("_", " ").title()
     sound.play("trade")
+    from src import animations
+
+    animations.exchange_flash()
     ui.success(f"Traded! You gave {give_display} and received {get_display}.")
     ctx.stats.trades += 1
 
@@ -1880,6 +1913,20 @@ def cmd_config(ctx: GameContext, args: str):
             ui.error("Invalid GPU mode. Use: config gpu auto | gpu | cpu")
         return
 
+    if sub.startswith("animations "):
+        from src.config import set_animations_enabled
+
+        value = args.split(maxsplit=1)[1].strip().lower()
+        if value in ("on", "true", "1"):
+            set_animations_enabled(True)
+            ui.success("Animations enabled.")
+        elif value in ("off", "false", "0"):
+            set_animations_enabled(False)
+            ui.success("Animations disabled.")
+        else:
+            ui.error("Invalid value. Use: config animations on | off")
+        return
+
     if sub.startswith("context "):
         from src.config import set_context_size
 
@@ -1899,18 +1946,20 @@ def cmd_config(ctx: GameContext, args: str):
         return
 
     # Show current config
-    from src.config import get_context_size, get_gpu_mode
+    from src.config import get_animations_enabled, get_context_size, get_gpu_mode
 
     ui.console.print("\n[bold]Game Configuration[/bold]")
     ui.console.print(f"  [cyan]Save directory:[/cyan]  {get_save_dir()}")
     ui.console.print(f"  [cyan]GPU mode:[/cyan]        {get_gpu_mode()}")
     ui.console.print(f"  [cyan]Context size:[/cyan]    {get_context_size()}")
     ui.console.print(f"  [cyan]Sound effects:[/cyan]  {'ON' if sound.is_enabled() else 'OFF'}")
+    ui.console.print(f"  [cyan]Animations:[/cyan]     {'ON' if get_animations_enabled() else 'OFF'}")
     ui.console.print(f"  [cyan]Config file:[/cyan]    {CONFIG_PATH}")
     ui.console.print()
     ui.dim("config savedir /path/to/saves   — change save location")
     ui.dim("config gpu auto|gpu|cpu         — change compute mode")
     ui.dim("config context 8192             — change LLM context window")
+    ui.dim("config animations on|off        — toggle ASCII animations")
     ui.dim("sound                           — toggle sound effects")
 
 
@@ -2004,6 +2053,44 @@ def cmd_screenshot(ctx: GameContext, args: str):
         ui.error(f"Screenshot failed: {e}")
 
 
+def cmd_model(ctx: GameContext, args: str):
+    """Re-download or switch the AI model."""
+    from src import llm
+    from src.config import get_gpu_mode
+
+    if llm.is_available():
+        ui.info("Current model is loaded and working.")
+        try:
+            answer = ui.console.input("[bold]Re-download or switch model? (y/n) > [/bold]").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            return
+        if answer not in ("y", "yes"):
+            return
+
+    ui.info("Opening model selection...")
+    if llm.maybe_download_model():
+        gpu_setting = get_gpu_mode()
+        if gpu_setting == "auto":
+            gpu_info = llm.detect_gpu()
+            gpu_mode = "gpu" if gpu_info["available"] else "cpu"
+        else:
+            gpu_mode = gpu_setting
+        try:
+            llm.load_model(gpu_mode=gpu_mode, quiet=False)
+        except Exception as e:
+            ui.error(f"Failed to load model: {e}")
+            ui.dim("The game will use fallback dialogue until a working model is loaded.")
+    else:
+        ui.dim("No model selected. Fallback dialogue will be used.")
+
+
+def cmd_game_update(ctx: GameContext, args: str):
+    """Check for and install game updates."""
+    from src.upgrade import run_upgrade
+
+    run_upgrade()
+
+
 def cmd_quit(ctx: GameContext, args: str):
     ui.console.print("[bold yellow]Are you sure you want to quit? (y/n)[/bold yellow]")
     try:
@@ -2058,6 +2145,8 @@ COMMANDS = {
     "screenshot": cmd_screenshot,
     "clear": cmd_clear,
     "cls": cmd_clear,
+    "model": cmd_model,
+    "update": cmd_game_update,
     "quit": cmd_quit,
     "exit": cmd_quit,
 }
@@ -2073,5 +2162,9 @@ def dispatch(ctx: GameContext, raw_input: str):
     if handler:
         ctx.stats.commands += 1
         handler(ctx, args)
+        # Pause after valid commands for player absorption
+        from src import animations
+
+        animations.beat()
     else:
         ui.error(f"Unknown command: '{cmd}'. Type 'help' for available commands.")

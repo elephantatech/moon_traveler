@@ -1,8 +1,8 @@
 # Moon Traveler Terminal — Product Roadmap
 
-**Last updated:** 2026-04-19
-**Current version:** v0.5.0 (released)
-**Next:** v0.6.0 (world expansion)
+**Last updated:** 2026-04-20
+**Current version:** v0.5.1 (released)
+**Next:** v0.5.2 (polish & quick wins)
 
 This roadmap covers planned development from the current dev build through v1.0.0 (full release). Each feature entry includes a description, technical approach grounded in the existing architecture, effort estimate, dependencies, and affected files.
 
@@ -795,6 +795,13 @@ Difficulty scaling and item descriptions are unrelated concerns. Move descriptio
 
 - Effort: S | Priority: v0.6.0 (natural home for crafting recipes)
 
+**TUI State Machine — Textual Screens (#55, #56)**
+The app uses a single `MoonTravelerApp` with an `_ask_mode: bool` flag. Game states (boot, gameplay, conversation, victory, game over) are encoded in nested while loops and control flow, not explicit screens. This causes race conditions in `tui_bridge.py`, prevents per-state keybindings, and makes adding new states (pause, crafting, map) difficult.
+
+Refactor to Textual's MODES system with Screen subclasses: `BootScreen`, `GameplayScreen`, `ConversationScreen`, `VictoryScreen`, `PromptModal(ModalScreen)`. Each screen owns its input widget and keybindings. Replace `ctx.should_quit` / `ctx.should_load` flags with explicit `switch_mode()` / `push_screen()` transitions.
+
+- Effort: L | Priority: v0.6.0 (prerequisite: #22 commands split)
+
 ### Testing Gaps
 
 **TUI integration — zero coverage.**
@@ -920,89 +927,124 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 
 ## Prioritized Next Tasks
 
-### v0.4.1 — Bug Fixes (next release, 1-2 days)
+### Shipped Releases
 
-These are bugs and quick wins that should ship before any new features:
+<details>
+<summary>v0.4.1 — Bug Fixes (shipped)</summary>
 
-| Priority | Issue | Effort | Status |
-|----------|-------|--------|--------|
-| **P0** | #27 Game exits after win/lose — return to menu | S | **Fixed** — play-again prompt after win/lose |
-| **P0** | #3 Status bar not updating during conversations | S | **Fixed** — render_status_bar() after each exchange |
-| **P0** | #35 NPC memory only captures last 6 msgs, misses current conversation | S | **Fixed** — tracks conversation start index |
-| **P1** | #31 LLM memory poisoning — sanitize instruction patterns | S | **Fixed** — _sanitize_memory() strips injections |
-| **P1** | #32 Unicode action tag smuggling — NFKC normalization | S | **Fixed** — unicodedata.normalize before regex |
-| **P1** | #30 Security fixes — already committed, needs release tag | S | Path traversal, prompt injection |
-| **P1** | #2 Drone service boot messages — immersive loading | S | Polish: feels like debug output currently |
-| **P1** | #1 Responsive status bar — wrap on narrow terminals | M | Truncated on small screens |
+| Issue | Status |
+|-------|--------|
+| #27 Game exits after win/lose — return to menu | **Fixed** — play-again prompt |
+| #3 Status bar not updating during conversations | **Fixed** — render after each exchange |
+| #35 NPC memory only captures last 6 msgs | **Fixed** — tracks conversation start index |
+| #31 LLM memory poisoning | **Fixed** — _sanitize_memory() |
+| #32 Unicode action tag smuggling | **Fixed** — NFKC normalization |
+| #30 Security fixes | **Fixed** — path traversal, prompt injection |
 
-### v0.5.0 — Gameplay & Diagnostics (next major, 2-3 weeks)
+</details>
 
-Core gameplay improvements that make the game harder and more interesting, plus polish:
+<details>
+<summary>v0.5.0 — Gameplay & Diagnostics (shipped)</summary>
 
-| Priority | Issue | Effort | Status |
-|----------|-------|--------|--------|
-| ~~P0~~ | ~~#28 Required creature escorts for ship repair~~ | ~~M~~ | **Shipped** — Easy=1, Medium=2, Hard=3, Brutal=4 |
-| ~~P0~~ | ~~#7 Session stats tracker~~ | ~~S~~ | **Shipped** — commands, km, creatures, hazards, trades, gifts |
-| ~~P0~~ | ~~#8 Post-game stats screen with score~~ | ~~M~~ | **Shipped** — score 0-1000, grades S/A/B/C/D, ARIA verdicts |
-| ~~P0~~ | ~~#45 Local leaderboard~~ | ~~M~~ | **Shipped** — SQLite, `scores` command, top 10 |
-| ~~P1~~ | ~~#33 Model download integrity — SHA-256 checksums~~ | ~~S~~ | **Shipped** — hash verification on .gguf files |
-| ~~P1~~ | ~~#34 Save file integrity — validate on load~~ | ~~M~~ | **Shipped** — input sanitization, bounds validation |
-| ~~P1~~ | ~~#43 CI pipeline + pre-commit~~ | ~~M~~ | **Shipped** — 15 hooks, 6 CI jobs |
-| ~~P1~~ | ~~#51 Integration tests~~ | ~~S~~ | **Shipped** — MockBridge, 3-session walkthrough |
-| **P0** | #1 Responsive status bar | S | Wrap on narrow terminals |
-| **P0** | #2 Drone boot messages | S | Immersive LLM loading: "booting service [model] v[ver]" |
-| **P0** | #50 Player name on leaderboard | S | Prompt for name after win/lose, store with score |
-| *Deferred* | #9 LLM perf diagnostics | S | *Moved to v0.5.1* |
-| *Deferred* | #4 Screen reader mode | M | *Moved to v0.5.1* |
-| *Deferred* | #5 Text-to-speech output | L | *Moved to v0.6.0+* |
-| *Deferred* | #6 Voice input via Whisper.cpp | XL | *Moved to v0.7.0+* |
+| Issue | Status |
+|-------|--------|
+| #1 Responsive status bar | **Shipped** — wraps on narrow terminals |
+| #2 Drone boot messages | **Shipped** — immersive LLM loading |
+| #50 Player name on leaderboard | **Shipped** — prompt + stored with score |
+| #28 Required creature escorts | **Shipped** — Easy=1, Medium=2, Hard=3, Brutal=4 |
+| #7 Session stats tracker | **Shipped** — commands, km, creatures, hazards, trades, gifts |
+| #8 Post-game stats screen | **Shipped** — score 0-1000, grades S–D, ARIA verdicts |
+| #45 Local leaderboard | **Shipped** — SQLite, `scores` command, top 10 |
+| #33 Model download checksums | **Shipped** — SHA-256 verification |
+| #34 Save file validation | **Shipped** — input sanitization, bounds checks |
+| #43 CI pipeline + pre-commit | **Shipped** — 15 hooks, 6 CI jobs |
+| #51 Integration tests | **Shipped** — MockBridge, 3-session walkthrough |
 
-### v0.5.1 — Upgrade System & Diagnostics
+</details>
 
-In-place upgrade and deferred v0.5.0 polish:
+<details>
+<summary>v0.5.1 — Narrative Intro (shipped)</summary>
 
-| Priority | Issue | Effort | Impact |
-|----------|-------|--------|--------|
-| **P0** | #49 In-place upgrade | M | Update game without losing saves. Foundation for content delivery. |
-| **P1** | #9 LLM performance diagnostics in dev mode | S | Needed for optimization work |
-| **P1** | #4 Screen reader mode | M | Accessibility — important for wider audience |
+| Issue | Status |
+|-------|--------|
+| Drone scan report intro | **Shipped** — narrative plays every session with live scan data |
+| HOW_TO_PLAY intro | **Shipped** — crash story in opening text |
+| Screenshot pipeline | **Shipped** — tui-intro.svg captured |
 
-### v0.6.0 — World Expansion (6-8 weeks)
+</details>
 
-New gameplay systems, starting with creature economy delivered via the upgrade system (#49):
+### v0.5.2 — Polish & Quick Wins (next release)
 
-| Priority | Issue | Effort | Impact |
-|----------|-------|--------|--------|
-| **P0** | #47 Creature economy | L | Food/water trading, merchant maps, creature items. First content update via `upgrade` command. |
-| **P0** | #12 Creature relationships | L | Social graph, vouching, location reveals |
-| **P0** | #15 Location events | M | One-time narrative scenes with bonuses |
-| **P1** | #10 ASCII minimap in GPS view | M | Visual navigation aid |
-| **P1** | #29 Animated ASCII intro sequence | M | Polish: replaces static crash art |
-| **P1** | #14 New archetypes: Scholar, Scout, Priest | M | More creature variety |
-| **P2** | #13 Crafting system | M | Combine materials, junk redemption |
-| **P2** | #11 Weather system overhaul | L | Dynamic per-location weather |
-| **P3** | #16 Day/night cycle | M | Affects hazards and creature behavior |
-
-### v0.7.0 — Community (12-16 weeks)
-
-Social and competitive features:
+Ship fast: upgrade system, download UX fix, dev diagnostics, CI improvements.
 
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
-| **P0** | #20 Achievement system | L | 30+ milestones, unlock notifications |
-| **P1** | #18 Seed sharing | S | Challenge runs, community engagement |
-| **P1** | #21 Challenge modes | M | Speedrun, ironman, pacifist |
-| ~~P2~~ | ~~#17 Leaderboards~~ | ~~L~~ | **Local shipped v0.5.0** (#45). Cloud leaderboard remains future. |
-| **P3** | #19 Mod support | XL | YAML custom archetypes/locations |
+| **P0** | #49 In-place upgrade | M | Update game without losing saves. Content delivery pipeline. |
+| **P0** | ~~#29 ASCII animations~~ | ~~M~~ | **Done** — scan, travel, drone, hazard, exchange. Config toggle. |
+| **P1** | #54 Model download progress + loading animation | M | Download bar invisible in TUI; no feedback during 30-60s model load. |
+| **P1** | #9 LLM performance diagnostics in dev mode | S | Needed for optimization; quick win. |
+| **P1** | #25 Cross-platform CI test matrix | S | Catch Windows/macOS bugs. Quick win. |
+| **P2** | #26 Test coverage reporting | S | README badge, gate at 80%. |
 
-### Infrastructure (ongoing)
+### v0.5.3 — Accessibility & Tech Debt
+
+Clean up before v0.6.0 feature expansion:
 
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
-| **P0** | #25 Cross-platform CI test matrix | S | Catch Windows/macOS bugs |
-| **P1** | #26 Test coverage reporting | S | README badge, gate at 80% |
-| **P1** | #24 TUI integration tests | M | Zero coverage on tui_app/tui_bridge |
-| **P2** | #22 Split commands.py into package | M | 1,800 lines is too big |
+| **P0** | #4 Screen reader mode | M | Accessibility — deferred twice, do it now. |
+| **P0** | #22 Split commands.py into package | M | 1,800+ lines. Prerequisite for Screens refactor (#55). |
+
+### v0.6.0 — Architecture + World Expansion (8-10 weeks)
+
+Screens refactor lands first, then creature economy built on clean foundation:
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #55 Textual Screens — replace implicit states with Screen classes | L | Clean input routing, per-screen keybindings, eliminate ask_mode race conditions. Foundation for all future UI work. |
+| **P0** | #56 Formalize game state transitions with Textual Modes | M | Explicit transitions, easier to add new states. Ships with #55. |
+| **P0** | #47 Creature economy | L | Food/water trading, merchant maps, creature items. Core gameplay loop expansion. |
+| **P1** | #12 Creature relationships | L | Social graph, vouching, location reveals. Makes the world feel alive. |
+| **P1** | #15 Location events | M | One-time narrative scenes with bonuses. Rewards exploration. |
+| **P1** | #14 New archetypes: Scholar, Scout, Priest | M | More creature variety; enables richer economy. |
+
+### v0.7.0 — Gameplay Depth (6-8 weeks)
+
+Systems that deepen the survival loop:
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #11 Weather system overhaul | L | Dynamic weather affects gameplay. Ties into suit degradation narrative. |
+| **P1** | #13 Crafting system | M | Combine materials, junk redemption. Deepens item loop. |
+| **P1** | #10 ASCII minimap in GPS view | M | Visual navigation aid. |
+| **P2** | #16 Day/night cycle | M | Affects hazards and creature behavior. |
+
+### v0.8.0 — Community & Competitive (10-12 weeks)
+
+Social features and replayability:
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #20 Achievement system | L | 30+ milestones, unlock notifications. Major retention driver. |
+| **P1** | #21 Challenge modes | M | Speedrun, ironman, pacifist. Replayability. |
+| **P1** | #18 Seed sharing | S | Community engagement, challenge runs. Quick win. |
+
+### v0.9.0+ — Platform Expansion
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #41 Web deployment | XL | Textual Web, mobile support. Massive reach expansion. Requires #55 Screens refactor. |
+| **P1** | #5 Text-to-speech output | L | Accessibility — builds on screen reader mode (#4). |
+| **P1** | Cloud leaderboard (#17 remainder) | L | Global top-10. Requires server infra. |
+
+### Backlog (unscheduled)
+
+| Issue | Effort | Notes |
+|-------|--------|-------|
+| #6 Voice input via Whisper.cpp | XL | Requires external binary. Niche audience. |
+| #19 Mod support | XL | YAML custom archetypes/locations. High effort. |
+| Steam release | XL | Achievements sync, Cloud saves, notarization. |
+| TUI integration tests | M | Zero coverage on tui_app/tui_bridge. Becomes easier after #55 Screens refactor. |
 
 ---
 

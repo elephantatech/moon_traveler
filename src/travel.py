@@ -2,7 +2,6 @@
 
 import random
 
-from src import ui
 from src.drone import Drone
 from src.player import Player
 from src.world import Location
@@ -254,7 +253,15 @@ def execute_travel(
 
     # Show travel progress (real-time duration scales with game hours, capped)
     real_duration = min(hours_int * 0.3, 3.0)
-    ui.travel_progress(destination.name, real_duration)
+    from src import animations
+
+    animations.travel_sequence(
+        destination.name,
+        real_duration,
+        distance,
+        player.hours_elapsed,
+        upgrade_count=len(drone.upgrades_installed),
+    )
 
     # Capture pre-trip hours for late-game threshold calculation
     hours_before_trip = player.hours_elapsed

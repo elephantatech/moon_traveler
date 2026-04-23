@@ -29,6 +29,12 @@ class _BridgeConsoleShim:
     def input(self, prompt: str = "") -> str:
         return _bridge.input(prompt)
 
+    def animate_frame(self, content: str):
+        _bridge.animate_frame(content)
+
+    def clear_animation(self):
+        _bridge.clear_animation()
+
     def clear(self):
         _bridge.clear()
 
@@ -395,19 +401,6 @@ def creature_speak(name: str, text: str, color: str = "green"):
     from rich.markup import escape
 
     console.print(f"  [{color}]{escape(name)}:[/{color}] {escape(text)}")
-
-
-def travel_progress(destination: str, duration: float):
-    """Show travel progress."""
-    console.print(f"  [dim]Traveling to[/dim] [cyan]{destination}[/cyan][dim]...[/dim]")
-    time.sleep(duration)
-    console.print(f"  [green]Arrived at {destination}.[/green]")
-
-
-def loading_spinner(message: str, duration: float):
-    """Show a loading message."""
-    console.print(f"  {message}")
-    time.sleep(duration)
 
 
 def prompt_choice(prompt_text: str, choices: list[str]) -> str:

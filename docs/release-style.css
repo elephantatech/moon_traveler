@@ -1,0 +1,105 @@
+/* Moon Traveler Release Page Shared Styles */
+:root {
+  --void: #060912; --deep: #0c1020; --surface: #131830;
+  --surface-border: rgba(140, 164, 190, 0.07);
+  --text: #9aa2c0; --text-bright: #dce0ee; --text-muted: #5a6280;
+  --amber: #c89450; --amber-glow: rgba(200, 148, 80, 0.12);
+  --magenta: #c478d0; --cyan: #5ca8c8; --green: #5ac870; --red: #c85050;
+  --font-display: 'Chakra Petch', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 17px; scroll-behavior: smooth; }
+body { font-family: var(--font-body); background: var(--void); color: var(--text); line-height: 1.7; overflow-x: hidden; }
+a { color: var(--amber); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface); padding: 0.15em 0.4em; border-radius: 3px; color: var(--cyan); }
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+
+.atmosphere {
+  position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 15%, rgba(196, 120, 208, 0.04) 0%, transparent 100%),
+    radial-gradient(ellipse 50% 50% at 80% 80%, rgba(92, 168, 200, 0.03) 0%, transparent 100%),
+    radial-gradient(circle at 50% 0%, rgba(200, 148, 80, 0.05) 0%, transparent 30%);
+}
+.grain {
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 128px;
+}
+
+/* Hero */
+.hero { padding: 5rem 0 3rem; text-align: center; }
+.hero-badge {
+  display: inline-block; font-family: var(--font-mono); font-size: 0.7rem;
+  letter-spacing: 0.15em; text-transform: uppercase; color: var(--magenta);
+  border: 1px solid rgba(196, 120, 208, 0.2); padding: 0.35em 1.2em;
+  border-radius: 999px; margin-bottom: 1.5rem; animation: fadeDown 0.6s ease-out;
+}
+.hero h1 {
+  font-family: var(--font-display); font-size: clamp(2.2rem, 5vw, 3.2rem);
+  font-weight: 700; color: var(--text-bright); line-height: 1.15;
+  letter-spacing: -0.02em; margin-bottom: 0.4rem; animation: fadeUp 0.7s ease-out;
+}
+.hero h1 .ver { color: var(--amber); font-weight: 300; }
+.hero .subtitle {
+  font-size: 1.1rem; color: var(--text-muted); max-width: 520px;
+  margin: 0.8rem auto 0; animation: fadeUp 0.7s ease-out 0.15s both;
+}
+
+/* Sections */
+section { padding: 3rem 0; }
+section + section { border-top: 1px solid var(--surface-border); }
+.section-label { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+.section-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; color: var(--text-bright); margin-bottom: 1.2rem; }
+
+/* Feature cards */
+.features { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.feat {
+  background: var(--deep); border: 1px solid var(--surface-border); border-radius: 8px;
+  padding: 1.4rem 1.5rem; transition: border-color 0.3s, transform 0.3s;
+}
+.feat:hover { border-color: rgba(200, 148, 80, 0.15); transform: translateY(-2px); }
+.feat-icon { font-family: var(--font-mono); font-size: 0.75rem; color: var(--magenta); margin-bottom: 0.5rem; opacity: 0.7; }
+.feat h3 { font-family: var(--font-display); font-size: 0.95rem; font-weight: 600; color: var(--text-bright); margin-bottom: 0.3rem; }
+.feat p { font-size: 0.85rem; color: var(--text); line-height: 1.6; }
+.feat-full { grid-column: 1 / -1; }
+
+/* Changelog */
+.changelog { list-style: none; }
+.changelog li { position: relative; padding: 0.35rem 0 0.35rem 1.5rem; font-size: 0.88rem; }
+.changelog li::before { content: ''; position: absolute; left: 0; top: 0.8rem; width: 5px; height: 5px; border-radius: 50%; background: var(--amber); opacity: 0.4; }
+.tag { font-family: var(--font-mono); font-size: 0.6rem; padding: 0.1em 0.45em; border-radius: 3px; margin-right: 0.2rem; vertical-align: 1px; }
+.tag-new { background: rgba(90, 200, 112, 0.12); color: var(--green); }
+.tag-fix { background: rgba(200, 80, 80, 0.12); color: var(--red); }
+.tag-infra { background: rgba(92, 168, 200, 0.12); color: var(--cyan); }
+
+/* CTA */
+.cta { text-align: center; padding: 3rem 0 4rem; }
+.cta-btn {
+  display: inline-block; font-family: var(--font-display); font-weight: 600;
+  font-size: 0.9rem; color: var(--void); background: var(--amber);
+  padding: 0.7rem 2rem; border-radius: 6px; text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--amber-glow); text-decoration: none; }
+.cta-secondary { display: inline-block; margin-left: 1rem; font-size: 0.85rem; color: var(--text-muted); }
+
+/* Footer */
+footer { padding: 2rem 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--surface-border); }
+
+/* Nav between releases */
+.release-nav { display: flex; justify-content: space-between; padding: 1rem 0; font-size: 0.85rem; }
+.release-nav a { color: var(--text-muted); }
+.release-nav a:hover { color: var(--amber); }
+
+/* Animations */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 680px) { .features { grid-template-columns: 1fr; } .cta-secondary { display: block; margin: 1rem 0 0; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }

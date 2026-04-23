@@ -407,14 +407,22 @@ def main():
     log(f"{'=' * 60}")
 
     all_passed = ok1 and ok2 and ok3 and db_ok
+    # Always clean up test leaderboard entries (by player name)
+    try:
+        if db_path.exists():
+            with sqlite3.connect(str(db_path)) as conn:
+                conn.execute("DELETE FROM leaderboard WHERE player_name = 'Walkthrough'")
+            log("  Cleaned up walkthrough leaderboard entries")
+    except Exception as e:
+        log(f"  WARN: Could not clean leaderboard: {e}")
+
     if all_passed:
         log("ALL TESTS PASSED")
-        # Clean up walkthrough entries after successful completion
         _cleanup_slots(db_path, walkthrough_slots)
         sys.exit(0)
     else:
         log("TESTS FAILED")
-        log("  Walkthrough entries left in DB for debugging")
+        log("  Walkthrough save slots left in DB for debugging")
         sys.exit(1)
 
 

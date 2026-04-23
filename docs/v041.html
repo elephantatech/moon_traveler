@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>v0.4.1 — Moon Traveler Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="release-style.css">
+</head>
+<body>
+  <div class="atmosphere"></div>
+  <div class="grain"></div>
+  <header class="hero"><div class="wrap">
+    <div class="hero-badge">Release Notes</div>
+    <h1>Moon Traveler <span class="ver">v0.4.1</span></h1>
+    <p class="subtitle">10 bugs found. 10 bugs fixed.</p>
+  </div></header>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">What's New</div>
+    <h2 class="section-title">Stabilization</h2>
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon">[M]</div>
+        <h3>Memory Fix</h3>
+        <p>NPC memory now captures the full current conversation, not just the last 6 messages.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">/!\</div>
+        <h3>Security</h3>
+        <p>NFKC Unicode normalization blocks fullwidth character bypass. Memory poisoning defense.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">{ }</div>
+        <h3>Architecture</h3>
+        <p>7 C4 model diagrams. Section 23 added to spec.md.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">Changelog</div>
+    <h2 class="section-title">Changes</h2>
+    <ul class="changelog">
+      <li><span class="tag tag-fix">fix</span> NPC memory captures full conversation (#35)</li>
+      <li><span class="tag tag-fix">fix</span> Play-again prompt on win/lose instead of exit (#27)</li>
+      <li><span class="tag tag-fix">fix</span> Status bar updates live during conversations (#3)</li>
+      <li><span class="tag tag-fix">fix</span> NFKC normalization blocks fullwidth bypass (#32)</li>
+      <li><span class="tag tag-fix">fix</span> Memory poisoning defense via _sanitize_memory() (#31)</li>
+      <li><span class="tag tag-fix">fix</span> Crash site no longer auto-recharges drone</li>
+      <li><span class="tag tag-fix">fix</span> Iterative play-again loop (no recursive main())</li>
+      <li><span class="tag tag-fix">fix</span> Easter egg guard for empty inventory</li>
+      <li><span class="tag tag-fix">fix</span> UIBridge timeout safety</li>
+      <li><span class="tag tag-fix">fix</span> Quit confirmation visible in TUI mode</li>
+    </ul>
+  </div></section>
+
+  <div class="wrap">
+    <div class="release-nav">
+      <a href="v040.html">&larr; v0.4.0</a>
+      <a href="releases.html">All Releases</a>
+      <a href="v050.html">v0.5.0 &rarr;</a>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a href="https://github.com/elephantatech/moon_traveler/releases/tag/v0.4.1" class="cta-btn">Download v0.4.1</a>
+    <a href="releases.html" class="cta-secondary">&larr; All Releases</a>
+  </div>
+
+  <footer><div class="wrap">Moon Traveler Terminal &mdash; <a href="https://github.com/elephantatech/moon_traveler">GitHub</a></div></footer>
+  <script>
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>

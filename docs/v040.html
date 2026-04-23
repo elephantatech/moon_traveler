@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>v0.4.0 — Moon Traveler Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="release-style.css">
+</head>
+<body>
+  <div class="atmosphere"></div>
+  <div class="grain"></div>
+  <header class="hero"><div class="wrap">
+    <div class="hero-badge">Release Notes</div>
+    <h1>Moon Traveler <span class="ver">v0.4.0</span></h1>
+    <p class="subtitle">The game got a real interface.</p>
+  </div></header>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">What's New</div>
+    <h2 class="section-title">Textual TUI</h2>
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon">[=]</div>
+        <h3>Textual TUI</h3>
+        <p>Full terminal UI with RichLog, fixed status bar, tab autocomplete, command history. Replaced raw CLI.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">!!!</div>
+        <h3>4 Difficulty Modes</h3>
+        <p>Easy, Medium, Hard, Brutal. Trust gain, drain rates, hazard probability all scale.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">&lt;*&gt;</div>
+        <h3>8 Drone Upgrades</h3>
+        <p>Range module, translator chip, cargo rack, thruster pack, battery cell, voice module, autopilot, charge module.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">)))</div>
+        <h3>Sound System</h3>
+        <p>22 game events with per-platform beep patterns. Voice mode on macOS.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">(?)</div>
+        <h3>Inspect Command</h3>
+        <p>Examine items to see descriptions and uses. Covers all repair materials, upgrades, and junk items.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">Changelog</div>
+    <h2 class="section-title">Changes</h2>
+    <ul class="changelog">
+      <li><span class="tag tag-new">new</span> Textual TUI with RichLog, status bar, tab autocomplete</li>
+      <li><span class="tag tag-new">new</span> 4 difficulty modes (Easy through Brutal)</li>
+      <li><span class="tag tag-new">new</span> 8 drone upgrades including charge module</li>
+      <li><span class="tag tag-new">new</span> Sound system with 22 game events</li>
+      <li><span class="tag tag-new">new</span> Inspect command for item descriptions</li>
+      <li><span class="tag tag-new">new</span> Junk items easter egg (5 unique junk = 2x trust multiplier)</li>
+    </ul>
+  </div></section>
+
+  <div class="wrap">
+    <div class="release-nav">
+      <a href="v03x.html">&larr; v0.3.x</a>
+      <a href="releases.html">All Releases</a>
+      <a href="v041.html">v0.4.1 &rarr;</a>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a href="https://github.com/elephantatech/moon_traveler/releases/tag/v0.4.0" class="cta-btn">Download v0.4.0</a>
+    <a href="releases.html" class="cta-secondary">&larr; All Releases</a>
+  </div>
+
+  <footer><div class="wrap">Moon Traveler Terminal &mdash; <a href="https://github.com/elephantatech/moon_traveler">GitHub</a></div></footer>
+  <script>
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>v0.5.1 — Moon Traveler Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="release-style.css">
+</head>
+<body>
+  <div class="atmosphere"></div>
+  <div class="grain"></div>
+  <header class="hero"><div class="wrap">
+    <div class="hero-badge">Release Notes</div>
+    <h1>Moon Traveler <span class="ver">v0.5.1</span></h1>
+    <p class="subtitle">Every session starts with a story.</p>
+  </div></header>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">What's New</div>
+    <h2 class="section-title">Narrative Intro</h2>
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon">&lt;*&gt;</div>
+        <h3>Drone Scan Report</h3>
+        <p>The drone comes online first, delivers a situation brief with live data: surface temp, food/water reserves, suit integrity.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">///</div>
+        <h3>Flight Recorder</h3>
+        <p>A narrative intro sets the stakes: micro-meteor shower, crash at 340 m/s, cryovolcanic storms grinding your suit down.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">[+]</div>
+        <h3>Screenshot Pipeline</h3>
+        <p>Automated screenshot capture now includes the intro sequence. 13 validation checks.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">Changelog</div>
+    <h2 class="section-title">Changes</h2>
+    <ul class="changelog">
+      <li><span class="tag tag-new">new</span> Drone scan report plays every session with live player data</li>
+      <li><span class="tag tag-new">new</span> Flight recorder narrative &mdash; crash story with environmental data</li>
+      <li><span class="tag tag-new">new</span> Intro shows for both new and returning players</li>
+      <li><span class="tag tag-new">new</span> Screenshot pipeline captures tui-intro.svg</li>
+      <li><span class="tag tag-fix">fix</span> Title screen holds 1 second before boot sequence starts</li>
+    </ul>
+  </div></section>
+
+  <div class="wrap">
+    <div class="release-nav">
+      <a href="v050.html">&larr; v0.5.0</a>
+      <a href="releases.html">All Releases</a>
+      <a href="v052.html">v0.5.2 &rarr;</a>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a href="https://github.com/elephantatech/moon_traveler/releases/tag/v0.5.1" class="cta-btn">Download v0.5.1</a>
+    <a href="releases.html" class="cta-secondary">&larr; All Releases</a>
+  </div>
+
+  <footer><div class="wrap">Moon Traveler Terminal &mdash; <a href="https://github.com/elephantatech/moon_traveler">GitHub</a></div></footer>
+  <script>
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>

@@ -21,6 +21,14 @@ Screen {
     scrollbar-color-active: #4a5070;
 }
 
+#animation-bar {
+    height: auto;
+    max-height: 2;
+    background: #0a0d18;
+    color: #b4bcd4;
+    padding: 0 2;
+}
+
 #status-bar {
     height: auto;
     max-height: 4;

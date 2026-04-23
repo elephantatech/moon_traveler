@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>v0.2.0 — Moon Traveler Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="release-style.css">
+</head>
+<body>
+  <div class="atmosphere"></div>
+  <div class="grain"></div>
+  <header class="hero"><div class="wrap">
+    <div class="hero-badge">Release Notes</div>
+    <h1>Moon Traveler <span class="ver">v0.2.0</span></h1>
+    <p class="subtitle">Crash. Survive. Escape.</p>
+  </div></header>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">What's New</div>
+    <h2 class="section-title">First Playable</h2>
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon">&gt;</div>
+        <h3>Core Game Loop</h3>
+        <p>Explore, scan, travel, talk, give, trade. Every command advances the survival clock.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">@</div>
+        <h3>10 Creature Archetypes</h3>
+        <p>Merchant, Healer, Builder, Hermit, Warrior, Enforcer, Scout, Elder, Trickster, Guardian. Each with unique personality and trust thresholds.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">AI</div>
+        <h3>Local LLM</h3>
+        <p>llama-cpp-python powers creature dialogue. Qwen 3.5 2B or Gemma 4 E2B. No internet required.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">~</div>
+        <h3>Procedural Worlds</h3>
+        <p>Seeded RNG generates unique maps. Chain-connected locations. Three game lengths.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="reveal"><div class="wrap">
+    <div class="section-label">Changelog</div>
+    <h2 class="section-title">Changes</h2>
+    <ul class="changelog">
+      <li><span class="tag tag-new">new</span> Core game loop &mdash; explore, scan, travel, talk, give, trade</li>
+      <li><span class="tag tag-new">new</span> 10 creature archetypes with trust-based interactions</li>
+      <li><span class="tag tag-new">new</span> Local LLM inference via llama-cpp-python</li>
+      <li><span class="tag tag-new">new</span> Procedural world generation with seeded RNG</li>
+      <li><span class="tag tag-new">new</span> Drone companion with translation and hints</li>
+      <li><span class="tag tag-new">new</span> Ship repair with material collection</li>
+      <li><span class="tag tag-new">new</span> Survival mechanics &mdash; food, water, suit integrity</li>
+    </ul>
+  </div></section>
+
+  <div class="wrap">
+    <div class="release-nav">
+      <span>First Release</span>
+      <a href="releases.html">All Releases</a>
+      <a href="v03x.html">v0.3.x &rarr;</a>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a href="https://github.com/elephantatech/moon_traveler/releases/tag/v0.2.0" class="cta-btn">Download v0.2.0</a>
+    <a href="releases.html" class="cta-secondary">&larr; All Releases</a>
+  </div>
+
+  <footer><div class="wrap">Moon Traveler Terminal &mdash; <a href="https://github.com/elephantatech/moon_traveler">GitHub</a></div></footer>
+  <script>
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+</body>
+</html>

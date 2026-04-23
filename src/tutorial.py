@@ -69,16 +69,23 @@ class TutorialManager:
 
         import time as _t
 
+        # Let the player see the title for a moment
+        _t.sleep(1.0)
+
         ui.show_crash()
         ui.console.print()
 
         # Drone comes online first
-        _t.sleep(0.4)
+        from src import animations
+
+        _t.sleep(0.6)
+        animations.drone_transmit("speak")
         ui.console.print(drone.speak(f"Online and scanning, {player.name}. Pulling last sensor data..."))
         ui.console.print()
-        _t.sleep(0.8)
+        _t.sleep(0.5)
 
         # --- Narrative intro — drone relays scan findings (always shown) ---
+        _t.sleep(1.0)
         ui.console.print("[bold bright_white]   ░░░ DRONE SCAN REPORT — SITUATION BRIEF ░░░[/bold bright_white]")
         ui.console.print()
         _t.sleep(0.4)
@@ -120,6 +127,7 @@ class TutorialManager:
 
         # Returning player — skip detailed diagnostics
         if not replay and is_tutorial_completed():
+            animations.drone_transmit("speak")
             ui.console.print(drone.speak("Scan complete. Systems holding. Let's get to work, Commander."))
             ui.console.print()
             self.step = TutorialStep.COMPLETED

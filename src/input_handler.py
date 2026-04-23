@@ -42,12 +42,14 @@ BASE_COMMANDS = [
     "sound",
     "charge",
     "screenshot",
+    "model",
+    "update",
     "clear",
     "cls",
-    "quit",
-    "exit",
     "dev",
     "devmode",
+    "quit",
+    "exit",
 ]
 
 

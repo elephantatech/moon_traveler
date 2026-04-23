@@ -1,6 +1,6 @@
 [project]
 name = "moon-traveler"
-version = "0.5.1"
+version = "0.5.2"
 description = "A text-based survival game set on Saturn's moon Enceladus"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,6 +17,7 @@ moon-traveler = "src.tui_app:run_tui"
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
+    "pytest-cov>=6.0",
     "ruff>=0.15.10",
     "pyinstaller>=6.0",
     "pre-commit>=4.0",

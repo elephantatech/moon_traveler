@@ -123,6 +123,19 @@ def set_gpu_mode(mode: str):
     _save()
 
 
+def get_animations_enabled() -> bool:
+    """Whether ASCII animations are enabled (default True)."""
+    cfg = _load()
+    return cfg.get("animations_enabled", True)
+
+
+def set_animations_enabled(enabled: bool):
+    """Toggle ASCII animations on/off."""
+    cfg = _load()
+    cfg["animations_enabled"] = enabled
+    _save()
+
+
 def is_first_run() -> bool:
     """True if no config file exists yet (first launch)."""
     return not CONFIG_PATH.exists()
