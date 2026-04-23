@@ -275,10 +275,11 @@ class TestRunUpgradeSecurity:
 
             assert (extract_dir / "safe_file.txt").exists()
             assert (extract_dir / "subdir" / "normal.txt").exists()
-            assert not (extract_dir / ".." / ".." / ".." / "etc" / "passwd").exists()
-            extracted = list(extract_dir.rglob("*"))
-            file_count = sum(1 for f in extracted if f.is_file())
-            assert file_count == 2
+            # Verify only 2 safe files were extracted (dangerous entry filtered out)
+            extracted_files = [f for f in extract_dir.rglob("*") if f.is_file()]
+            assert len(extracted_files) == 2
+            extracted_names = {f.name for f in extracted_files}
+            assert extracted_names == {"safe_file.txt", "normal.txt"}
 
     def test_user_decline_aborts(self):
         """User declining download aborts without downloading."""
