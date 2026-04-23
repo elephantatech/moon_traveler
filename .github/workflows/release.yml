@@ -93,7 +93,7 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p _site
-          cp docs/*.html _site/
+          cp docs/*.html docs/*.css _site/
           cp -r assets _site/assets
 
       - name: Upload artifact
