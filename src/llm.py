@@ -52,7 +52,7 @@ def _timed_inference(call_type: str, messages, **kwargs):
         import psutil
 
         rss_before = psutil.Process().memory_info().rss
-    except Exception:
+    except (ImportError, OSError):
         pass
 
     response = _llm_model.create_chat_completion(messages=messages, **kwargs)
@@ -64,7 +64,7 @@ def _timed_inference(call_type: str, messages, **kwargs):
             import psutil
 
             rss_delta_mb = (psutil.Process().memory_info().rss - rss_before) / 1024 / 1024
-        except Exception:
+        except (ImportError, OSError):
             pass
 
     usage = response.get("usage", {})
@@ -338,6 +338,11 @@ def maybe_download_model() -> bool:
         else:
             ui.dim("Skipping download. Fallback dialogue will be used.")
             return False
+
+    # Skip download
+    if idx == skip_idx - 1:
+        ui.dim("Skipping download. Fallback dialogue will be used.")
+        return False
 
     # Custom model — user provides a HuggingFace URL
     if idx == custom_idx - 1:

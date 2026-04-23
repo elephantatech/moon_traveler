@@ -109,9 +109,9 @@ def travel_sequence(
     field_width = min(40, max(14, round(distance * 1.5)))
     frame_count = min(8, max(3, round(distance / 4)))
     sleep_per = max(0.35, duration / frame_count)
-    sprite_width = 13  # [o]--(+)--[o] is 13 chars
+    sprite_width = 13  # [ ]--(+)--[ ] is 13 visible chars (base sprite)
 
-    # Drone sprite — eyes upgrade o→O, belly fills [] per upgrade
+    # Drone sprite — eyes upgrade (space)→O with any upgrade, belly fills [] per upgrade
     # Rich markup: only [ needs escaping (\[), ] is safe as-is
     eye = "O" if upgrade_count > 0 else " "
     drone_top = f"\\[{eye}]--(+)--\\[{eye}]"

@@ -1,6 +1,6 @@
 # Moon Traveler Terminal - Technical Specification
 
-**Version:** 0.5.0
+**Version:** 0.5.2
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -65,11 +65,13 @@ Supports:
 
 - `--dev` — Start with dev mode enabled (diagnostic logging)
 - `--super` — Start with max trust, all repair materials, full drone upgrades (testing)
+- `--upgrade` — Check for updates via GitHub API and exit
+- `--disable-animation` — Disable ASCII animations for the session
 - `--dev --super` — Both
 
 ### `src/game.py` — `main()`
 
-1. Parse `--dev` and `--super` flags
+1. Parse `--dev`, `--super`, `--upgrade`, and `--disable-animation` flags
 2. TUI boot sequence displays title and ARIA intro
 3. Check for existing saves → offer "New Game" / "Load Game"
 4. If new game: prompt difficulty (Easy/Medium/Hard/Brutal), prompt player name (default "Commander"), clear screen, load LLM (quiet mode — drone-style messages), init world, apply `--super` if flagged, run boot sequence (skipped if tutorial_completed), start game loop
@@ -836,10 +838,12 @@ Screen clears after mode/name selection. LLM loads with drone-style messages ("I
 7. Crew Vitals: food%, water%, suit%
 8. Repair Assessment: components needed, components found, repair class
 9. `DRONE SERVICE BOOT`: Translation Service (model name), Model Variant, Context Window, Inference Mode, Service Status
-10. Drone deployment: `"Deploying ARIA Scout Drone..."`
-11. `CONNECTION ESTABLISHED`
-12. Drone intro: `"Online and operational, {name}. I'll handle translation, scanning, and keeping you alive."`
-13. ARIA opening lines + tutorial hint
+10. **Drone scan report** (v0.5.1): live data readout (suit %, food %, surface temp) — plays every session
+11. **Flight recorder narrative** (v0.5.1): sets the crash-landing stakes before gameplay
+12. Drone deployment: `"Deploying ARIA Scout Drone..."`
+13. `CONNECTION ESTABLISHED`
+14. Drone intro: `"Online and operational, {name}. I'll handle translation, scanning, and keeping you alive."`
+15. ARIA opening lines + tutorial hint
 
 ---
 
@@ -995,11 +999,11 @@ Not supported. Must build on each target platform.
 
 ### 18.5 CI Pipeline (`.github/workflows/ci.yml`)
 
-Triggered on pull requests to `main`. 6 parallel jobs:
+Triggered on pull requests to `main`. Test matrix + 5 lint jobs:
 
 | Job | Tool | Checks |
 |-----|------|--------|
-| test | pytest | All Python tests pass |
+| test | pytest | 3 OS (ubuntu, windows, macos) × 2 Python (3.11, 3.12) = 6 jobs, with `pytest-cov` coverage |
 | lint | ruff | Python lint + format |
 | markdown | markdownlint-cli2 | Markdown formatting |
 | shellcheck | shellcheck | Bash scripts |
@@ -1098,7 +1102,7 @@ CONTRIBUTING.md            Contributor guide
 spec.md                    This document
 scripts/
   build_release.py         Cross-platform build script (PyInstaller)
-  tui_screenshots.py       Automated TUI screenshot capture (30 screenshots, 9 validations)
+  tui_screenshots.py       Automated TUI screenshot capture (30 screenshots, 30 validations)
   tui_walkthrough.py       Preprod 3-session integration test orchestrator
   _walkthrough_session1.py Session 1: play Easy mode, explore, save
   _walkthrough_session2.py Session 2: load + super mode, escort, win
@@ -1106,7 +1110,9 @@ scripts/
 src/
   __init__.py              Package marker
   __main__.py              Module entry point
-  game.py                  Main loop, init, win/lose, --dev/--super flags
+  animations.py            ASCII frame animations (scan, travel, look, drone, hazard sprites)
+  upgrade.py               In-place upgrade via GitHub Releases API
+  game.py                  Main loop, init, win/lose, --dev/--super/--upgrade/--disable-animation flags
   world.py                 World generation, Location dataclass, MODE_CONFIG
   player.py                Player dataclass, resource management, ship_storage
   creatures.py             Creature dataclass, trust, generation, memory field
@@ -1137,6 +1143,15 @@ docs/
   index.html               Landing page (GitHub Pages)
   story.html               Story/lore page
   how-to-play.html         Interactive game guide
+  releases.html            Release history index
+  release-style.css        Shared CSS for release pages
+  v052.html                v0.5.2 release announcement
+  v051.html                v0.5.1 release announcement
+  v050.html                v0.5.0 release announcement
+  v041.html                v0.4.1 release announcement
+  v040.html                v0.4.0 release announcement
+  v03x.html                v0.3.0–0.3.2 release announcement
+  v020.html                v0.2.0 release announcement
   diagrams/                C4 architecture diagrams (Excalidraw)
     c4-system-context.excalidraw   Level 1 — System context
     c4-container.excalidraw        Level 2 — Container diagram
@@ -1147,6 +1162,8 @@ docs/
     c4-component-persistence.excalidraw  Level 3 — Persistence layer
 tests/
   __init__.py               Package marker
+  test_animations.py        Animation gates, force_disable/enable, sprite variants
+  test_upgrade.py           Version check, platform detection, asset matching, editable install
   test_creatures.py         Creature generation, trust, history, serialization
   test_difficulty.py        Difficulty scaling, junk items, easter egg
   test_drone.py             Battery, upgrades (9 types), serialization
@@ -1164,7 +1181,7 @@ tests/
   test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
-**Total test count:** 285
+**Total test count:** 335
 
 ---
 
@@ -1198,6 +1215,106 @@ Activated by the `voice_module` drone upgrade. On macOS, uses the `say` command 
 
 ---
 
+## 21b. Animation System (`src/animations.py`) — v0.5.2
+
+ASCII frame animations rendered in a dedicated `Static#animation-bar` widget. Animations play in-place (2-line height) between the game log and status bar. The RichLog remains append-only.
+
+### 21b.1 Architecture
+
+- `_animate(frames, delay, clear)` — Core helper: iterates frames via `ui.console.animate_frame()` (thread-safe `call_from_thread`), then clears widget
+- `_can_animate()` — Gate: checks `_enabled()` AND `hasattr(ui.console, "animate_frame")`
+- `_enabled()` — Reads `config.get_animations_enabled()` and checks `_force_disabled` session flag
+- `force_enable()` / `force_disable()` — Runtime toggles (session-only, not persisted)
+
+### 21b.2 Animation Functions
+
+| Function | Trigger | Sprite | Delay |
+|----------|---------|--------|-------|
+| `scan_sweep()` | `scan` command | `((.)) ((.))` radar bars (2-line) | 0.35s |
+| `travel_sequence()` | `travel` command | Drone `[o]--(+)--[o] / \_____/` moving left→right | dynamic (min 0.35s) |
+| `look_sweep()` | `look` command | Scanning eyes `(o  )` → `( o )` → `(  o)` | 0.35s |
+| `drone_transmit()` | ARIA alerts, tutorial, drone key messages | `<*> << DRONE >>` (speak/alert/whisper variants) | 0.4s |
+| `hazard_flash()` | Hazard event during travel | `/!\ HAZARD` flash (late-game: `!!!` variant) | 0.35–0.4s |
+| `exchange_flash()` | `give` / `trade` commands | `+-+ * * *` success flash | 0.5s |
+| `model_loading()` | LLM model re-download (`model` command) | `[ . . . ] Loading weights...` progress | 0.5s |
+| `beat(duration)` | After valid command dispatch | Pause (no visual output) | 0.8s default |
+
+### 21b.3 Drone Sprite Evolution
+
+The drone sprite in `travel_sequence()` evolves with upgrades:
+
+- **Base (0 upgrades):** `\[ ]--(+)--\[ ]` / `\\_____/` (13 chars each)
+- **1+ upgrades:** Eyes change from space to `O`
+- **Per upgrade:** Belly fills with `[]` pairs from edges inward (5 slots in 11-char belly)
+- **All upgrades:** Eyes `O`, belly fully filled `[][][][][]`
+
+Sprite alignment: both top and bottom lines are always 13 visible characters.
+
+### 21b.4 Late-Game Variants
+
+When `hours_elapsed >= 24`, scan and hazard animations use intensified variants (more frames, `!!!` markers).
+
+### 21b.5 Configuration
+
+- `config animations on|off` — persisted toggle
+- `--disable-animation` CLI flag — session-only via `force_disable()`
+- `--super` does NOT disable animations
+
+### 21b.6 TUI Integration
+
+- `#animation-bar` Static widget: `height: auto; max-height: 2` (collapses when empty)
+- `tui_bridge.animate_frame(text)` — thread-safe update via `call_from_thread`
+- `tui_bridge.clear_animation()` — sets widget to empty string
+
+---
+
+## 21c. Upgrade System (`src/upgrade.py`) — v0.5.2
+
+In-place upgrade via GitHub Releases API.
+
+### 21c.1 Version Check
+
+`check_for_update()` — Fetches latest release from `api.github.com/repos/{REPO}/releases/latest`, compares semver. Returns `None` on `ValueError` (safe default for dev/RC versions).
+
+### 21c.2 Upgrade Process
+
+`run_upgrade()`:
+
+1. Check current version vs latest
+2. Validate download URL domain (must be `github.com` or `*.githubusercontent.com`)
+3. Download archive with size verification (`actual_size != expected_size` check)
+4. Safe extraction: `os.path.normpath` + `os.sep` split for path traversal protection
+5. Empty archive check (reject if no files extracted)
+6. `_is_editable_install()` checks `sys.frozen` first (PyInstaller vs editable install)
+
+### 21c.3 Commands
+
+- `update` command — Interactive check and upgrade prompt
+- `--upgrade` CLI flag — Check for updates and exit
+
+---
+
+## 21d. LLM Performance Diagnostics — v0.5.2
+
+### 21d.1 Timed Inference
+
+`_timed_inference(call_type, messages, **kwargs)` wraps all `create_chat_completion` calls:
+
+- Measures wall-clock time (`time.perf_counter`)
+- Captures RSS memory delta via `psutil` (before/after)
+- Logs to dev mode: call type, elapsed ms, token count, RSS change
+- Used for: creature responses, memory updates, memory compaction
+- Note: drone hints use raw text completion API with manual timing (not `_timed_inference`)
+
+### 21d.2 Model Download UX
+
+- Progress bars at 10% intervals via `ui.console.print()` (TUI-compatible)
+- `animations.model_loading()` during model init (ImportError catch only)
+- Ctrl+C during download offers smaller model fallback
+- `model` command to re-download or switch models (wrapped in try/except)
+
+---
+
 ## 22. Textual TUI (v0.4.0 — shipped)
 
 ### 22.1 Architecture
@@ -1212,6 +1329,7 @@ Worker thread with message bridge. Game logic runs synchronously in a Textual `r
 │                    RichLog (scrollable output)                    │
 │              All panels, tables, dialogue, narration             │
 │                                                                  │
+├─────────── #animation-bar (2-line, auto-collapse) ───────────────┤
 ├─────────── StatusBar (vitals, creature, followers) ──────────────┤
 │  CrashSite >  [input field with autocomplete]                    │
 └──────────────────────────────────────────────────────────────────┘

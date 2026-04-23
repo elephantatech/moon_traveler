@@ -3,6 +3,7 @@
 import json
 import os
 import platform
+import shutil
 import sys
 import tempfile
 import urllib.request
@@ -25,8 +26,8 @@ def get_current_version() -> str:
             with open(pyproject, "rb") as f:
                 data = tomllib.load(f)
             return data.get("project", {}).get("version", "unknown")
-    except Exception:
-        pass
+    except Exception as e:
+        ui.warn(f"Could not read version: {e}")
     return "unknown"
 
 
@@ -139,7 +140,10 @@ def run_upgrade():
         ui.dim(f"Download manually: {release['html_url']}")
         return
 
-    asset_name = asset["name"]
+    asset_name = Path(asset["name"]).name  # strip any directory components
+    if not asset_name or ".." in asset_name:
+        ui.error("Invalid asset name in release metadata. Aborting.")
+        return
     asset_url = asset["browser_download_url"]
     asset_size_mb = asset.get("size", 0) / 1024 / 1024
 
@@ -165,27 +169,28 @@ def run_upgrade():
 
     # Download to temp file
     ui.info(f"Downloading {asset_name}...")
+    tmp_dir = Path(tempfile.mkdtemp(prefix="moon-upgrade-"))
+    tmp_file = tmp_dir / asset_name
+    success = False
     try:
-        tmp_dir = Path(tempfile.mkdtemp(prefix="moon-upgrade-"))
-        tmp_file = tmp_dir / asset_name
-        urllib.request.urlretrieve(asset_url, str(tmp_file))
-    except KeyboardInterrupt:
-        ui.warn("Download cancelled.")
-        return
-    except Exception as e:
-        ui.error(f"Download failed: {e}")
-        return
+        try:
+            urllib.request.urlretrieve(asset_url, str(tmp_file))
+        except KeyboardInterrupt:
+            ui.warn("Download cancelled.")
+            return
+        except Exception as e:
+            ui.error(f"Download failed: {e}")
+            return
 
-    # Verify download size
-    expected_size = asset.get("size", 0)
-    actual_size = tmp_file.stat().st_size
-    if expected_size and actual_size != expected_size:
-        ui.error(f"Download incomplete: got {actual_size} bytes, expected {expected_size}.")
-        ui.dim(f"Manual download: {release['html_url']}")
-        return
+        # Verify download size
+        expected_size = asset.get("size", 0)
+        actual_size = tmp_file.stat().st_size
+        if expected_size and actual_size != expected_size:
+            ui.error(f"Download incomplete: got {actual_size} bytes, expected {expected_size}.")
+            ui.dim(f"Manual download: {release['html_url']}")
+            return
 
-    # Extract and replace
-    try:
+        # Extract and replace
         game_dir = Path(sys.executable).parent
         if not game_dir.is_dir():
             game_dir = Path(__file__).parent.parent
@@ -229,12 +234,16 @@ def run_upgrade():
         ui.console.print()
         ui.dim("Your saves in ~/.moonwalker/ are safe — they're never touched by upgrades.")
         ui.dim(f"Clean up when done: delete {tmp_dir}")
+        success = True
     except Exception as e:
         ui.error(f"Extract failed: {e}")
         ui.dim(f"Manual download: {release['html_url']}")
     finally:
-        # Clean up download (keep extracted for user to copy)
+        # Always clean up the downloaded archive
         try:
             tmp_file.unlink(missing_ok=True)
         except Exception:
             pass
+        # On failure, clean up the entire temp directory
+        if not success:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
