@@ -74,9 +74,21 @@ jobs:
             artifacts/**/*.tar.gz
             artifacts/**/*.sha256
 
-  deploy-pages:
-    if: ${{ always() && !cancelled() }}
+  # On tag pushes, trigger a separate pages deploy from main
+  # (direct deploy from tag ref is blocked by environment protection rules)
+  trigger-pages:
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
     needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger pages deploy from main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run release.yml --ref main -f pages_only=true -R "$GITHUB_REPOSITORY"
+
+  # Direct pages deploy — only runs from main ref (workflow_dispatch)
+  deploy-pages:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
