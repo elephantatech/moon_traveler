@@ -51,9 +51,9 @@ install() {
   local url="https://github.com/$REPO/releases/download/$VERSION/$filename"
 
   dim "Downloading $filename..."
-  local tmpdir
-  tmpdir="$(mktemp -d)"
-  trap 'rm -rf "$tmpdir"' EXIT
+  TMPDIR_INSTALL="$(mktemp -d)"
+  trap 'rm -rf "$TMPDIR_INSTALL"' EXIT
+  local tmpdir="$TMPDIR_INSTALL"
 
   curl -fSL --progress-bar -o "$tmpdir/$filename" "$url" || {
     red "Download failed: $url"
@@ -72,21 +72,28 @@ install() {
   local bin_name="moon-traveler"
   [ "$PLATFORM" = "windows" ] && bin_name="moon-traveler.exe"
 
-  local extracted
-  extracted="$(find "$tmpdir" -name "$bin_name" -type f | head -1)"
+  # Always copy to a permanent location (temp dir is cleaned up on exit)
+  local app_dir="$HOME/.local/share/moon-traveler"
+  rm -rf "$app_dir"
+  mkdir -p "$app_dir"
 
-  if [ -z "$extracted" ]; then
-    # The archive contains a directory — copy the whole thing
-    local app_dir="$HOME/.local/share/moon-traveler"
-    mkdir -p "$app_dir"
-    local content_dir
-    content_dir="$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -1)"
-    if [ -d "$content_dir/moon-traveler" ]; then
-      content_dir="$content_dir/moon-traveler"
-    fi
-    cp -r "$content_dir"/* "$app_dir/"
-    extracted="$app_dir/$bin_name"
+  # Find the directory containing the binary
+  local content_dir
+  content_dir="$(find "$tmpdir" -name "$bin_name" -type f -print -quit -exec dirname {} \;)"
+
+  if [ -z "$content_dir" ]; then
+    # Binary not found directly — look for a nested directory
+    content_dir="$(find "$tmpdir" -mindepth 1 -maxdepth 2 -type d | head -1)"
   fi
+
+  if [ -z "$content_dir" ] || [ ! -d "$content_dir" ]; then
+    red "Could not find binary '$bin_name' in the downloaded archive."
+    red "Please download manually from https://github.com/$REPO/releases"
+    exit 1
+  fi
+
+  cp -r "$content_dir"/* "$app_dir/"
+  local extracted="$app_dir/$bin_name"
 
   # Symlink to install dir
   mkdir -p "$INSTALL_DIR"
