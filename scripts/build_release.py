@@ -118,6 +118,9 @@ def build_executable(target_platform: str):
         "jinja2",
         "--hidden-import",
         "markupsafe",
+        # Collect entire packages (includes native .dll/.so/.dylib in lib/ dirs)
+        "--collect-all",
+        "llama_cpp",
         "--collect-all",
         "textual",
         "--add-data",
