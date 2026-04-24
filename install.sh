@@ -77,21 +77,19 @@ install() {
   rm -rf "$app_dir"
   mkdir -p "$app_dir"
 
-  # Find the directory containing the binary
-  local content_dir
-  content_dir="$(find "$tmpdir" -name "$bin_name" -type f -print -quit -exec dirname {} \;)"
+  # Find the binary in the extracted archive
+  local found_bin
+  found_bin="$(find "$tmpdir" -name "$bin_name" -type f | head -1)"
 
-  if [ -z "$content_dir" ]; then
-    # Binary not found directly — look for a nested directory
-    content_dir="$(find "$tmpdir" -mindepth 1 -maxdepth 2 -type d | head -1)"
-  fi
-
-  if [ -z "$content_dir" ] || [ ! -d "$content_dir" ]; then
+  if [ -z "$found_bin" ]; then
     red "Could not find binary '$bin_name' in the downloaded archive."
     red "Please download manually from https://github.com/$REPO/releases"
     exit 1
   fi
 
+  # Copy the directory containing the binary (includes _internal/ and other files)
+  local content_dir
+  content_dir="$(dirname "$found_bin")"
   cp -r "$content_dir"/* "$app_dir/"
   local extracted="$app_dir/$bin_name"
 
