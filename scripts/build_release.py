@@ -92,6 +92,7 @@ def build_executable(target_platform: str):
     if target_platform == "windows":
         exe_name += ".exe"
 
+    hooks_dir = PROJECT_ROOT / "scripts" / "pyinstaller_hooks"
     cmd = [
         sys.executable,
         "-m",
@@ -123,6 +124,11 @@ def build_executable(target_platform: str):
         "llama_cpp",
         "--collect-all",
         "textual",
+        # Custom hooks for llama_cpp native library resolution
+        "--additional-hooks-dir",
+        str(hooks_dir),
+        "--runtime-hook",
+        str(hooks_dir / "rthook_llama.py"),
         "--add-data",
         f"{PROJECT_ROOT / 'play_tui.py'}{os.pathsep}.",
         # Output directories
