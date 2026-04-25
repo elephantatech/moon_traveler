@@ -20,7 +20,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 
 | Component | Technology |
 |-----------|-----------|
-| Language | Python 3.11 |
+| Language | Python 3.11+ (binary ships 3.13) |
 | Terminal UI | Textual + Rich |
 | LLM | llama-cpp-python |
 | Model (tiny) | SmolLM2 1.7B (Q4_K_M GGUF, ~1.0 GB) |
