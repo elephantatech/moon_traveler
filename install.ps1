@@ -60,9 +60,8 @@ Write-Host ""
 Write-Host "  Location: $Dest" -ForegroundColor DarkGray
 Write-Host "  Data:     $env:USERPROFILE\.moonwalker\" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "  On first run, the binary will download Python and" -ForegroundColor DarkGray
-Write-Host "  install dependencies (~30-60 seconds). After that," -ForegroundColor DarkGray
-Write-Host "  it launches instantly." -ForegroundColor DarkGray
+Write-Host "  On first run, the binary will install dependencies" -ForegroundColor DarkGray
+Write-Host "  (~15-30 seconds). After that, it launches instantly." -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "  Run:  moon-traveler" -ForegroundColor White
 Write-Host ""

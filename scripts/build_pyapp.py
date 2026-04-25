@@ -121,12 +121,14 @@ def build_binary(target_platform: str):
         env = os.environ.copy()
         env.update(
             {
-                # Embed the wheel — no PyPI needed at runtime
+                # Embed the wheel — no PyPI needed for game code at runtime
                 "PYAPP_PROJECT_PATH": str(wheel_path.resolve()),
                 # Entry point
                 "PYAPP_EXEC_SPEC": "src.tui_app:run_tui",
                 # Python version
                 "PYAPP_PYTHON_VERSION": "3.11",
+                # Embed Python in the binary — no Python download on first run
+                "PYAPP_DISTRIBUTION_EMBED": "1",
                 # Use uv for fast installs of dependencies (llama-cpp-python, etc.)
                 "PYAPP_UV_ENABLED": "1",
                 # Prefer precompiled wheels for native deps
@@ -137,7 +139,7 @@ def build_binary(target_platform: str):
         print(f"  PyApp source: {pyapp_dir}")
         print(f"  Project: {APP_NAME} v{VERSION} (embedded wheel)")
         print("  Entry: src.tui_app:run_tui")
-        print("  Python: 3.11")
+        print("  Python: 3.11 (embedded in binary)")
         print("  Installer: uv")
         print()
         print("  Building with cargo (this may take a minute)...")
@@ -171,8 +173,8 @@ def build_binary(target_platform: str):
         size_mb = output_path.stat().st_size / 1024 / 1024
         print(f"\n  Built: {output_path} ({size_mb:.1f} MB)")
         print("\n  First run will:")
-        print("    1. Download Python 3.11 (~25 MB)")
-        print(f"    2. Install {APP_NAME} + dependencies via uv")
+        print("    1. Extract embedded Python 3.11 (no download)")
+        print(f"    2. Install {APP_NAME} dependencies via uv (~15 MB)")
         print("    3. Launch the game")
         print("  Subsequent runs launch instantly.")
 

@@ -68,9 +68,8 @@ install() {
   dim "  Binary: $dest"
   dim "  Data:   ~/.moonwalker/"
   echo
-  dim "  On first run, the binary will download Python and"
-  dim "  install dependencies (~30-60 seconds). After that,"
-  dim "  it launches instantly."
+  dim "  On first run, the binary will install dependencies"
+  dim "  (~15-30 seconds). After that, it launches instantly."
   echo
 
   # Check if install dir is in PATH
