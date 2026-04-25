@@ -49,12 +49,18 @@ def _animate(frames: list[str], delay: float = 0.2, clear: bool = True):
     if not _can_animate() or not frames:
         return
     for frame in frames:
-        ui.console.animate_frame(frame)
+        try:
+            ui.console.animate_frame(frame)
+        except Exception:
+            return  # Widget unavailable — skip remaining frames
         time.sleep(delay)
     # Hold the last frame so the player can read it
     time.sleep(0.6)
     if clear:
-        ui.console.clear_animation()
+        try:
+            ui.console.clear_animation()
+        except Exception:
+            pass
 
 
 # --- Beat (absorption pause) ---

@@ -51,10 +51,23 @@ class UIBridge:
         self._app.call_from_thread(self._log.write, buf.getvalue().rstrip("\n"))
 
     def animate_frame(self, content: str):
-        """Update the animation bar widget in-place (single frame)."""
+        """Update the animation bar widget in-place (single frame).
+
+        Uses call_soon_threadsafe for fire-and-forget update to prevent
+        deadlocks on Windows where call_from_thread can block if the
+        event loop is busy processing a prior operation.
+        """
         anim = getattr(self._app, "_animation_bar", None)
-        if anim is not None:
-            self._app.call_from_thread(anim.update, content)
+        if anim is None:
+            return
+        try:
+            loop = self._app._loop
+            if loop is not None and loop.is_running():
+                loop.call_soon_threadsafe(anim.update, content)
+            else:
+                self._app.call_from_thread(anim.update, content)
+        except Exception:
+            pass
 
     def clear_animation(self):
         """Clear the animation bar."""

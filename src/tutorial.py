@@ -97,7 +97,10 @@ class TutorialManager:
 
         _t.sleep(0.6)
         _dbg("drone transmit animation")
-        animations.drone_transmit("speak")
+        try:
+            animations.drone_transmit("speak")
+        except Exception as e:
+            _dbg(f"drone transmit failed: {e}")
         _dbg("drone speak")
         ui.console.print(drone.speak(f"Online and scanning, {player.name}. Pulling last sensor data..."))
         ui.console.print()

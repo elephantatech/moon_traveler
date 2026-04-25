@@ -576,6 +576,9 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     # Clear the mode selection UI before boot sequence
     _stderr("clearing screen...")
     ui.console.clear()
+    import time as _clear_t
+
+    _clear_t.sleep(0.3)  # Let Textual event loop process the clear before animations
 
     _stderr("calling _ensure_llm_loaded()...")
     _ensure_llm_loaded(dev_flag=dev_flag)
