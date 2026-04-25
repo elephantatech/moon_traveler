@@ -1040,7 +1040,7 @@ Triggered on pull requests to `main`. Uses `uv sync --group dev` for dependencie
 
 | Job | Tool | Checks |
 |-----|------|--------|
-| test | pytest | 3 OS (ubuntu, windows, macos) × 2 Python (3.11, 3.12) = 6 jobs, with `pytest-cov` coverage |
+| test | pytest | 3 OS (ubuntu, windows, macos) × 3 Python (3.11, 3.12, 3.13) = 9 jobs, with `pytest-cov` coverage |
 | lint | ruff | Python lint + format |
 | markdown | markdownlint-cli2 | Markdown formatting |
 | shellcheck | shellcheck | Bash scripts |
