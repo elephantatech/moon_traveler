@@ -580,7 +580,10 @@ def _ensure_llm_loaded(dev_flag: bool = False):
 
     def _dbg(msg):
         if dev_flag or "--dev" in sys.argv:
-            ui.dim(f"  [dim][DEBUG llm][/dim] {msg}")
+            import sys as _sys
+
+            print(f"[DEBUG llm] {msg}", file=_sys.stderr, flush=True)
+            ui.dim(f"  [DEBUG] {msg}")
 
     if llm.is_available():
         _dbg("LLM already loaded, skipping")
