@@ -70,7 +70,7 @@ def download_pyapp_source(tmpdir: Path) -> Path:
 
     print("  Extracting...")
     with tarfile.open(archive) as tf:
-        tf.extractall(tmpdir)
+        tf.extractall(tmpdir, filter="data")
 
     # Find the extracted directory
     for item in tmpdir.iterdir():
@@ -131,8 +131,9 @@ def build_binary(target_platform: str):
                 "PYAPP_DISTRIBUTION_EMBED": "1",
                 # Use uv for fast installs of dependencies (llama-cpp-python, etc.)
                 "PYAPP_UV_ENABLED": "1",
-                # Prefer precompiled wheels for native deps + extra index for llama-cpp-python
-                "PYAPP_PIP_EXTRA_ARGS": "--prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu",
+                # Extra index for llama-cpp-python prebuilt CPU wheels
+                # Note: --prefer-binary is pip-only; uv prefers binaries by default
+                "PYAPP_PIP_EXTRA_ARGS": "--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu",
             }
         )
 
