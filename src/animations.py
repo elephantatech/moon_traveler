@@ -51,7 +51,11 @@ def _animate(frames: list[str], delay: float = 0.2, clear: bool = True):
     for frame in frames:
         try:
             ui.console.animate_frame(frame)
-        except Exception:
+        except Exception as e:
+            import sys
+
+            if "--dev" in sys.argv:
+                print(f"[DEBUG anim] frame failed: {e}", file=sys.stderr, flush=True)
             return  # Widget unavailable — skip remaining frames
         time.sleep(delay)
     # Hold the last frame so the player can read it
@@ -59,8 +63,11 @@ def _animate(frames: list[str], delay: float = 0.2, clear: bool = True):
     if clear:
         try:
             ui.console.clear_animation()
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+
+            if "--dev" in sys.argv:
+                print(f"[DEBUG anim] clear failed: {e}", file=sys.stderr, flush=True)
 
 
 # --- Beat (absorption pause) ---

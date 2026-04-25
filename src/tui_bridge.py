@@ -66,8 +66,11 @@ class UIBridge:
                 loop.call_soon_threadsafe(anim.update, content)
             else:
                 self._app.call_from_thread(anim.update, content)
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+
+            if "--dev" in sys.argv:
+                print(f"[DEBUG anim] animate_frame failed: {e}", file=sys.stderr, flush=True)
 
     def clear_animation(self):
         """Clear the animation bar."""
