@@ -129,9 +129,8 @@ def build_binary(target_platform: str):
                 "PYAPP_PYTHON_VERSION": "3.13",
                 # Embed Python in the binary — no Python download on first run
                 "PYAPP_DISTRIBUTION_EMBED": "1",
-                # Use pip (not uv) — better platform detection for native wheels
-                # and supports --prefer-binary flag
-                "PYAPP_PIP_EXTRA_ARGS": "--prefer-binary",
+                # Use uv for fast installs
+                "PYAPP_UV_ENABLED": "1",
             }
         )
 
@@ -139,7 +138,7 @@ def build_binary(target_platform: str):
         print(f"  Project: {APP_NAME} v{VERSION} (embedded wheel)")
         print("  Entry: src.tui_app:run_tui")
         print("  Python: 3.13 (embedded in binary)")
-        print("  Installer: pip")
+        print("  Installer: uv")
         print()
         print("  Building with cargo (this may take a minute)...")
 
