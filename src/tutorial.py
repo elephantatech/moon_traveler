@@ -60,18 +60,35 @@ class TutorialManager:
         shows a short welcome and skips straight to gameplay.
         Set replay=True when called from the 'tutorial' command mid-game.
         """
+        import sys
+
         from src import ui
         from src.config import is_tutorial_completed
 
+        def _dbg(msg):
+            if "--dev" in sys.argv:
+                print(f"[{__import__('time').strftime('%H:%M:%S')}] [DEBUG boot] {msg}", file=sys.stderr, flush=True)
+                # Also write to log file
+                try:
+                    from src.game import _debug_log_file
+
+                    if _debug_log_file and _debug_log_file is not False:
+                        _debug_log_file.write(f"[{__import__('time').strftime('%H:%M:%S')}] [DEBUG boot] {msg}\n")
+                        _debug_log_file.flush()
+                except Exception:
+                    pass
+
+        _dbg("boot sequence starting")
         if not replay:
+            _dbg("showing title")
             ui.show_title()
             ui.console.print()
 
         import time as _t
 
-        # Let the player see the title for a moment
         _t.sleep(1.0)
 
+        _dbg("showing crash art")
         ui.show_crash()
         ui.console.print()
 
@@ -79,12 +96,15 @@ class TutorialManager:
         from src import animations
 
         _t.sleep(0.6)
+        _dbg("drone transmit animation")
         animations.drone_transmit("speak")
+        _dbg("drone speak")
         ui.console.print(drone.speak(f"Online and scanning, {player.name}. Pulling last sensor data..."))
         ui.console.print()
         _t.sleep(0.5)
 
         # --- Narrative intro — drone relays scan findings (always shown) ---
+        _dbg("narrative intro starting")
         _t.sleep(1.0)
         ui.console.print("[bold bright_white]   ░░░ DRONE SCAN REPORT — SITUATION BRIEF ░░░[/bold bright_white]")
         ui.console.print()
@@ -125,6 +145,8 @@ class TutorialManager:
         ui.console.print()
         _t.sleep(0.5)
 
+        _dbg("narrative done")
+
         # Returning player — skip detailed diagnostics
         if not replay and is_tutorial_completed():
             animations.drone_transmit("speak")
@@ -135,6 +157,7 @@ class TutorialManager:
             return
 
         # --- System boot ---
+        _dbg("system boot diagnostics starting")
         ui.console.print("[bold bright_white]ARIA SYSTEM v4.2.1 — INITIALIZING[/bold bright_white]")
         ui.console.print()
 
@@ -183,6 +206,7 @@ class TutorialManager:
         time.sleep(0.3)
 
         # Drone service boot
+        _dbg("drone service boot section")
         ui.console.print("[bold]═══ DRONE SERVICE BOOT ═══[/bold]")
         try:
             from src import llm
@@ -211,6 +235,7 @@ class TutorialManager:
         time.sleep(0.3)
 
         # Drone deployment
+        _dbg("drone deployment")
         ui.console.print("[dim]Deploying ARIA Scout Drone...[/dim]")
         time.sleep(0.6)
         ui.console.print("[bold green]═══════ CONNECTION ESTABLISHED ═══════[/bold green]")
@@ -226,6 +251,7 @@ class TutorialManager:
         ui.console.print(ship_ai.speak("I recommend observing our surroundings. Try [cyan]look[/cyan]."))
         ui.console.print()
 
+        _dbg("boot sequence complete")
         self.step = TutorialStep.PROMPT_LOOK
         ship_ai.boot_complete = True
 
