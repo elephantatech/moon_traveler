@@ -28,7 +28,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Model (full) | Gemma 4 E2B (Q4_K_M GGUF, ~3.1 GB) |
 | Build | PyApp (Rust wrapper, bootstraps Python + uv) |
 | Save Storage | SQLite (key-value) |
-| TUI | textual (Textual TUI framework) |
+| TUI | Textual (>=8.2.4) |
 | Sound | System sounds (macOS say, Windows winsound, Linux paplay) |
 | User Data | ~/.moonwalker/ (saves, models, config, dev logs) |
 
@@ -46,10 +46,15 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 
 ```
 rich
-textual
+textual>=8.2.4
 llama-cpp-python
-psutil
+psutil>=7.2.2
+jinja2>=3.1.6
+markupsafe>=3.0.3
+typing-extensions>=4.15.0
 ```
+
+Source of truth: `pyproject.toml` (not `requirements.txt`, which is legacy).
 
 ---
 
@@ -1053,7 +1058,7 @@ and checksums. Pages deploy triggered via `workflow_dispatch` from main.
 Same workflow with `pages_only=true` input. Tag pushes trigger a dispatch to deploy
 from main ref (environment protection rules block direct tag-ref deploys).
 
-### 18.8 Pre-commit Hooks (`.pre-commit-config.yaml`)
+### 18.10 Pre-commit Hooks (`.pre-commit-config.yaml`)
 
 12 hooks run locally before every commit: ruff (lint + format), markdownlint-cli2, shellcheck, yamllint, trailing-whitespace, end-of-file-fixer, mixed-line-ending (LF), check-ast, debug-statements, check-yaml/json/toml, check-merge-conflict, check-added-large-files.
 
@@ -1129,7 +1134,8 @@ Three-session integration test simulating full gameplay across process boundarie
 ```
 play_tui.py                Entry point (Textual TUI)
 pyproject.toml             Project config, dependencies
-requirements.txt           Minimal pip requirements
+requirements.txt           Legacy pip requirements (pyproject.toml is source of truth)
+.python-version            Pins Python 3.13 for uv/local development
 README.md                  User-facing documentation
 CHANGELOG.md               Version history
 ROADMAP.md                 Product roadmap (v0.5.0 through v1.0.0)
