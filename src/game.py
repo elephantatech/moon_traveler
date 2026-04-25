@@ -390,12 +390,39 @@ def _parse_flags() -> tuple[bool, bool, bool, bool]:
     return dev_flag, super_flag, upgrade_flag, no_anim_flag
 
 
+_debug_log_file = None
+
+
 def _stderr(msg):
-    """Write debug message to stderr (bypasses TUI, always visible)."""
+    """Write debug message to stderr and log file (bypasses TUI, always visible)."""
     import sys as _sys
 
-    if "--dev" in _sys.argv:
-        print(f"[DEBUG] {msg}", file=_sys.stderr, flush=True)
+    if "--dev" not in _sys.argv:
+        return
+
+    import time
+
+    timestamp = time.strftime("%H:%M:%S")
+    line = f"[{timestamp}] [DEBUG] {msg}"
+    print(line, file=_sys.stderr, flush=True)
+
+    # Also write to log file in ~/.moonwalker/dev/
+    global _debug_log_file
+    if _debug_log_file is None:
+        try:
+            from pathlib import Path
+
+            log_dir = Path.home() / ".moonwalker" / "dev"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_path = log_dir / "startup.log"
+            _debug_log_file = open(log_path, "w")  # noqa: SIM115
+            _debug_log_file.write(f"[{timestamp}] Debug log started\n")
+            _debug_log_file.flush()
+        except Exception:
+            _debug_log_file = False  # disable file logging on error
+    if _debug_log_file and _debug_log_file is not False:
+        _debug_log_file.write(line + "\n")
+        _debug_log_file.flush()
 
 
 def main():
