@@ -156,6 +156,24 @@ def build_executable(target_platform: str):
         # PyInstaller may put files directly in output_dir
         exe_root = output_dir
 
+    # Fix llama_cpp native library loading: copy shared libs from
+    # _internal/llama_cpp/lib/ to _internal/ where the dynamic linker finds them.
+    # PyInstaller's --collect-all puts them in the package subdirectory, but
+    # ctypes.CDLL dependencies (libggml, etc.) need to be in the linker search path.
+    internal_dir = exe_root / "_internal"
+    llama_lib_dir = internal_dir / "llama_cpp" / "lib"
+    if llama_lib_dir.is_dir():
+        lib_exts = (".so", ".dylib", ".dll")
+        copied = 0
+        for lib_file in llama_lib_dir.iterdir():
+            if any(lib_file.name.endswith(ext) or f"{ext}." in lib_file.name for ext in lib_exts):
+                dest = internal_dir / lib_file.name
+                if not dest.exists():
+                    shutil.copy2(lib_file, dest)
+                    copied += 1
+        if copied:
+            print(f"  Copied {copied} native libs from llama_cpp/lib/ to _internal/")
+
     models_dir = exe_root / "models"
     saves_dir = exe_root / "saves"
     models_dir.mkdir(parents=True, exist_ok=True)
