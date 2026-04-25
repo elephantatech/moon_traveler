@@ -97,6 +97,22 @@ def build_binary(target_platform: str):
 
     DIST_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Build wheel first — embed it in the PyApp binary (no PyPI needed)
+    print("  Building wheel...")
+    wheel_dir = DIST_DIR / "wheel"
+    if wheel_dir.exists():
+        shutil.rmtree(wheel_dir)
+    subprocess.check_call(
+        [sys.executable, "-m", "build", "--wheel", "--outdir", str(wheel_dir)],
+        cwd=str(PROJECT_ROOT),
+    )
+    wheels = list(wheel_dir.glob("*.whl"))
+    if not wheels:
+        print("ERROR: No wheel produced by build")
+        return False
+    wheel_path = wheels[0]
+    print(f"  Wheel: {wheel_path.name}")
+
     with tempfile.TemporaryDirectory(prefix="pyapp-build-") as tmpdir:
         tmpdir = Path(tmpdir)
         pyapp_dir = download_pyapp_source(tmpdir)
@@ -105,22 +121,21 @@ def build_binary(target_platform: str):
         env = os.environ.copy()
         env.update(
             {
-                # Project identity — install from PyPI
-                "PYAPP_PROJECT_NAME": APP_NAME,
-                "PYAPP_PROJECT_VERSION": VERSION,
+                # Embed the wheel — no PyPI needed at runtime
+                "PYAPP_PROJECT_PATH": str(wheel_path.resolve()),
                 # Entry point
                 "PYAPP_EXEC_SPEC": "src.tui_app:run_tui",
                 # Python version
                 "PYAPP_PYTHON_VERSION": "3.11",
-                # Use uv for fast installs
+                # Use uv for fast installs of dependencies (llama-cpp-python, etc.)
                 "PYAPP_UV_ENABLED": "1",
-                # Pass --only-binary for llama-cpp-python (avoid compiling from source)
+                # Prefer precompiled wheels for native deps
                 "PYAPP_PIP_EXTRA_ARGS": "--prefer-binary",
             }
         )
 
         print(f"  PyApp source: {pyapp_dir}")
-        print(f"  Project: {APP_NAME} v{VERSION}")
+        print(f"  Project: {APP_NAME} v{VERSION} (embedded wheel)")
         print("  Entry: src.tui_app:run_tui")
         print("  Python: 3.11")
         print("  Installer: uv")
