@@ -456,7 +456,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
 
         state = load_game(slot)
         if state:
-            _ensure_llm_loaded()
+            _ensure_llm_loaded(dev_flag=dev_flag)
 
             ship_ai = state.get("ship_ai", ShipAI())
             if isinstance(ship_ai, dict):
@@ -574,17 +574,38 @@ def _sanitize_player_name(raw: str) -> str:
     return name if name else "Commander"
 
 
-def _ensure_llm_loaded():
+def _ensure_llm_loaded(dev_flag: bool = False):
     """Load the LLM model if not already loaded. Skips reload on play-again."""
+    import sys
+
+    def _dbg(msg):
+        if dev_flag or "--dev" in sys.argv:
+            ui.dim(f"  [dim][DEBUG llm][/dim] {msg}")
+
     if llm.is_available():
+        _dbg("LLM already loaded, skipping")
         return
     from src.config import get_gpu_mode
 
+    _dbg(f"_LLAMA_AVAILABLE = {llm._LLAMA_AVAILABLE}")
+    if not llm._LLAMA_AVAILABLE:
+        ui.warn("llama-cpp-python not available — using fallback dialogue.")
+        return
     gpu_setting = get_gpu_mode()
+    _dbg(f"gpu_setting = {gpu_setting}")
     if gpu_setting == "auto":
-        gpu_info = llm.detect_gpu()
-        gpu_mode = "gpu" if gpu_info["available"] else "cpu"
+        try:
+            _dbg("detect_gpu() starting...")
+            gpu_info = llm.detect_gpu()
+            gpu_mode = "gpu" if gpu_info["available"] else "cpu"
+            _dbg(f"detect_gpu() done: {gpu_info}, mode={gpu_mode}")
+        except Exception as e:
+            gpu_mode = "cpu"
+            _dbg(f"detect_gpu() FAILED: {e}")
     else:
         gpu_mode = gpu_setting
+    _dbg("maybe_download_model() starting...")
     llm.maybe_download_model()
+    _dbg("load_model() starting...")
     llm.load_model(gpu_mode=gpu_mode, quiet=True)
+    _dbg(f"load_model() done. is_available={llm.is_available()}")
