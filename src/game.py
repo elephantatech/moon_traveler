@@ -390,9 +390,18 @@ def _parse_flags() -> tuple[bool, bool, bool, bool]:
     return dev_flag, super_flag, upgrade_flag, no_anim_flag
 
 
+def _stderr(msg):
+    """Write debug message to stderr (bypasses TUI, always visible)."""
+    import sys as _sys
+
+    if "--dev" in _sys.argv:
+        print(f"[DEBUG] {msg}", file=_sys.stderr, flush=True)
+
+
 def main():
     """Entry point. Runs game sessions in a loop (play-again restarts without recursion)."""
     dev_flag, super_flag, upgrade_flag, no_anim_flag = _parse_flags()
+    _stderr(f"main() started. flags: dev={dev_flag} super={super_flag} upgrade={upgrade_flag} no_anim={no_anim_flag}")
 
     # --upgrade: check for updates and exit
     if upgrade_flag:
@@ -436,9 +445,11 @@ def main():
 
 def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     """Run a single game session (new or loaded). Returns True if game ended (win/lose)."""
+    _stderr("_run_session() started")
     from src.save_load import list_saves, load_game
 
     saves = list_saves()
+    _stderr(f"saves found: {saves}")
 
     choice = "new"
     if saves:
@@ -446,6 +457,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             "What would you like to do?",
             ["New Game", "Load Game"],
         )
+    _stderr(f"choice: {choice}")
 
     if choice == "Load Game":
         ui.info("Available saves: " + ", ".join(saves))
@@ -516,27 +528,36 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             ui.error("Failed to load. Starting new game.")
 
     # New game
+    _stderr("prompting for game mode...")
     mode = ui.prompt_choice(
         "Choose game length:",
         ["Easy (~30 min)", "Medium (~1-2 hours)", "Hard (~3+ hours)", "Brutal (~5+ hours)"],
     )
     _mode_map = {"easy": "short", "medium": "medium", "hard": "long", "brutal": "brutal"}
     mode_key = _mode_map.get(mode.split()[0].lower(), "short")
+    _stderr(f"mode selected: {mode} -> {mode_key}")
 
     # Prompt for player name
+    _stderr("prompting for player name...")
     try:
         raw_name = ui.console.input("[bold]Enter your name (Enter for 'Commander'): [/bold]").strip()
         player_name = _sanitize_player_name(raw_name)
     except (EOFError, KeyboardInterrupt):
         player_name = "Commander"
+    _stderr(f"player name: {player_name}")
 
     # Clear the mode selection UI before boot sequence
+    _stderr("clearing screen...")
     ui.console.clear()
 
-    _ensure_llm_loaded()
+    _stderr("calling _ensure_llm_loaded()...")
+    _ensure_llm_loaded(dev_flag=dev_flag)
+    _stderr(f"LLM loaded. is_available={llm.is_available()}")
 
+    _stderr("calling init_game()...")
     ctx = init_game(mode_key)
     ctx.player.name = player_name
+    _stderr(f"game initialized. locations={len(ctx.locations)}, creatures={len(ctx.creatures)}")
 
     # Apply command-line flags
     if dev_flag and ctx.dev_mode:
@@ -551,6 +572,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
         ui.dim(f"(autocomplete unavailable: {e})")
 
     # Run ARIA boot sequence (replaces old show_intro)
+    _stderr("running boot sequence...")
     ctx.tutorial.run_boot_sequence(
         ctx.ship_ai,
         ctx.player,
@@ -559,6 +581,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
         ctx.repair_checklist,
         mode_key,
     )
+    _stderr("boot sequence done. entering game loop...")
 
     return game_loop(ctx)
 
@@ -576,39 +599,31 @@ def _sanitize_player_name(raw: str) -> str:
 
 def _ensure_llm_loaded(dev_flag: bool = False):
     """Load the LLM model if not already loaded. Skips reload on play-again."""
-    import sys
-
-    def _dbg(msg):
-        if dev_flag or "--dev" in sys.argv:
-            import sys as _sys
-
-            print(f"[DEBUG llm] {msg}", file=_sys.stderr, flush=True)
-            ui.dim(f"  [DEBUG] {msg}")
-
     if llm.is_available():
-        _dbg("LLM already loaded, skipping")
+        _stderr("LLM already loaded, skipping")
         return
     from src.config import get_gpu_mode
 
-    _dbg(f"_LLAMA_AVAILABLE = {llm._LLAMA_AVAILABLE}")
+    _stderr(f"_LLAMA_AVAILABLE = {llm._LLAMA_AVAILABLE}")
     if not llm._LLAMA_AVAILABLE:
-        ui.warn("llama-cpp-python not available — using fallback dialogue.")
+        _stderr("llama-cpp-python not available")
+        ui.warn("llama-cpp-python not installed. Using fallback dialogue.")
         return
     gpu_setting = get_gpu_mode()
-    _dbg(f"gpu_setting = {gpu_setting}")
+    _stderr(f"gpu_setting = {gpu_setting}")
     if gpu_setting == "auto":
         try:
-            _dbg("detect_gpu() starting...")
+            _stderr("detect_gpu() starting...")
             gpu_info = llm.detect_gpu()
             gpu_mode = "gpu" if gpu_info["available"] else "cpu"
-            _dbg(f"detect_gpu() done: {gpu_info}, mode={gpu_mode}")
+            _stderr(f"detect_gpu() done: {gpu_info}, mode={gpu_mode}")
         except Exception as e:
             gpu_mode = "cpu"
-            _dbg(f"detect_gpu() FAILED: {e}")
+            _stderr(f"detect_gpu() FAILED: {e}")
     else:
         gpu_mode = gpu_setting
-    _dbg("maybe_download_model() starting...")
+    _stderr("maybe_download_model() starting...")
     llm.maybe_download_model()
-    _dbg("load_model() starting...")
+    _stderr("load_model() starting...")
     llm.load_model(gpu_mode=gpu_mode, quiet=True)
-    _dbg(f"load_model() done. is_available={llm.is_available()}")
+    _stderr(f"load_model() done. is_available={llm.is_available()}")
