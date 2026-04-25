@@ -26,7 +26,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Model (tiny) | SmolLM2 1.7B (Q4_K_M GGUF, ~1.0 GB) |
 | Model (default) | Qwen3.5 2B (Q4_K_M GGUF, ~1.3 GB) |
 | Model (full) | Gemma 4 E2B (Q4_K_M GGUF, ~3.1 GB) |
-| Build | PyInstaller |
+| Build | PyApp (Rust wrapper, bootstraps Python + uv) |
 | Save Storage | SQLite (key-value) |
 | TUI | textual (Textual TUI framework) |
 | Sound | System sounds (macOS say, Windows winsound, Linux paplay) |
@@ -963,43 +963,74 @@ When LLM is unavailable, `FALLBACK_RESPONSES` include action tags so creatures c
 
 ---
 
-## 18. Build & Release (`scripts/build_release.py`)
+## 18. Build & Release (`scripts/build_pyapp.py`)
 
-### 18.1 Usage
+### 18.1 Build System — PyApp
+
+Binary distribution uses [PyApp](https://github.com/ofek/pyapp), a Rust-based wrapper that
+bootstraps Python and installs the project via `uv` on first run. This replaces PyInstaller,
+which failed to bundle `llama-cpp-python`'s native shared libraries correctly.
+
+**How it works:**
+
+1. Developer runs `python scripts/build_pyapp.py` (requires Rust toolchain)
+2. PyApp compiles a small Rust binary (~5 MB) with project metadata baked in
+3. End user runs the binary — on first launch it:
+   - Downloads Python 3.11 from `python-build-standalone`
+   - Runs `uv install moon-traveler` to install deps from PyPI
+   - `llama-cpp-python` installs via precompiled wheel with native libs correctly linked
+   - Launches the game
+4. Subsequent launches are instant (cached installation)
+
+### 18.2 Usage
 
 ```bash
-python scripts/build_release.py [--platform windows|macos|linux|all] [--no-archive]
+python scripts/build_pyapp.py [--platform windows|macos|linux|all]
 ```
 
-### 18.2 Build Process
+Requires: Rust toolchain (`cargo`). Install via [rustup.rs](https://rustup.rs).
 
-1. Detect platform (or use specified)
-2. Check/install PyInstaller
-3. Build with `--onedir --console`
-4. Include `src/` as `--add-data`
-5. Hidden imports: rich, textual, psutil
-6. Create empty `models/` and `saves/` directories in output
-7. Create `PLACE_MODEL_HERE.txt` in models/
-8. Archive: `.zip` for Windows, `.tar.gz` for macOS/Linux
+### 18.3 PyApp Configuration
 
-### 18.3 Output
+Set via environment variables in the build script:
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `PYAPP_PROJECT_NAME` | `moon-traveler` | PyPI package name |
+| `PYAPP_PROJECT_VERSION` | from `pyproject.toml` | Version to install |
+| `PYAPP_EXEC_SPEC` | `src.tui_app:run_tui` | Entry point |
+| `PYAPP_PYTHON_VERSION` | `3.11` | Python to bootstrap |
+| `PYAPP_UV_ENABLED` | `1` | Use uv for fast installs |
+| `PYAPP_PIP_EXTRA_ARGS` | `--prefer-binary` | Prefer precompiled wheels |
+
+### 18.4 Output
 
 ```
 dist/
-  moon-traveler-{platform}/
-    moon-traveler/
-      moon-traveler[.exe]
-      models/
-      saves/
+  moon-traveler-v{VERSION}-linux          (~5 MB, single binary)
+  moon-traveler-v{VERSION}-linux.sha256
+  moon-traveler-v{VERSION}-macos          (~5 MB)
+  moon-traveler-v{VERSION}-macos.sha256
+  moon-traveler-v{VERSION}-windows.exe    (~5 MB)
+  moon-traveler-v{VERSION}-windows.exe.sha256
 ```
 
-### 18.4 Cross-Compilation
+### 18.5 Why PyApp over PyInstaller
 
-Not supported. Must build on each target platform.
+PyInstaller manually bundles `.so`/`.dll`/`.dylib` files and breaks the dynamic linker's
+search paths. `llama-cpp-python` has symlinked native libraries (`libllama.so → libllama.so.0`)
+that PyInstaller can't handle — `libllama.so` couldn't find `libggml.so` at runtime.
 
-### 18.5 CI Pipeline (`.github/workflows/ci.yml`)
+PyApp avoids this entirely: it lets `pip`/`uv` install `llama-cpp-python` from precompiled
+wheels where the library authors have already set up RPATH correctly.
 
-Triggered on pull requests to `main`. Test matrix + 5 lint jobs:
+### 18.6 Cross-Compilation
+
+Not supported. Must build on each target platform. CI matrix handles this.
+
+### 18.7 CI Pipeline (`.github/workflows/ci.yml`)
+
+Triggered on pull requests to `main`. Uses `uv sync --group dev` for dependencies.
 
 | Job | Tool | Checks |
 |-----|------|--------|
@@ -1010,13 +1041,16 @@ Triggered on pull requests to `main`. Test matrix + 5 lint jobs:
 | powershell-lint | PSScriptAnalyzer | PowerShell scripts |
 | actionlint | actionlint | GitHub Actions workflow syntax |
 
-### 18.6 Release Pipeline (`.github/workflows/release.yml`)
+### 18.8 Release Pipeline (`.github/workflows/release.yml`)
 
-Triggered on tag push (`v*`). Builds PyInstaller binaries for Linux, Windows, macOS. Creates GitHub Release with archives and checksums.
+Triggered on tag push (`v*`). Builds PyApp binaries for Linux, Windows, macOS using
+Rust toolchain (`dtolnay/rust-toolchain@stable`). Creates GitHub Release with binaries
+and checksums. Pages deploy triggered via `workflow_dispatch` from main.
 
-### 18.7 Pages Deployment (`.github/workflows/pages.yml`)
+### 18.9 Pages Deployment
 
-Triggered on release published or manual `workflow_dispatch`. Deploys `docs/` to GitHub Pages.
+Same workflow with `pages_only=true` input. Tag pushes trigger a dispatch to deploy
+from main ref (environment protection rules block direct tag-ref deploys).
 
 ### 18.8 Pre-commit Hooks (`.pre-commit-config.yaml`)
 
@@ -1100,8 +1134,11 @@ CHANGELOG.md               Version history
 ROADMAP.md                 Product roadmap (v0.5.0 through v1.0.0)
 CONTRIBUTING.md            Contributor guide
 spec.md                    This document
+CLAUDE.md                  Project guide for AI-assisted development
 scripts/
-  build_release.py         Cross-platform build script (PyInstaller)
+  build_pyapp.py           Cross-platform build script (PyApp/Rust)
+  build_release.py         Legacy build script (PyInstaller, deprecated)
+  pyinstaller_hooks/       PyInstaller hooks (deprecated, kept for reference)
   tui_screenshots.py       Automated TUI screenshot capture (30 screenshots, 30 validations)
   tui_walkthrough.py       Preprod 3-session integration test orchestrator
   _walkthrough_session1.py Session 1: play Easy mode, explore, save

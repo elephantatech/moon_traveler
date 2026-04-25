@@ -15,20 +15,20 @@ $Release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/l
 $Version = $Release.tag_name
 Write-Host "  Latest version: $Version" -ForegroundColor DarkGray
 
-# Download
-$Filename = "moon-traveler-$Version-windows.zip"
+# Download single binary (PyApp)
+$Filename = "moon-traveler-$Version-windows.exe"
 $Url = "https://github.com/$Repo/releases/download/$Version/$Filename"
 $TmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "moon-traveler-install"
 
 if (Test-Path $TmpDir) { Remove-Item $TmpDir -Recurse -Force }
 New-Item -ItemType Directory -Path $TmpDir -Force | Out-Null
 
-$ZipPath = Join-Path $TmpDir $Filename
+$TmpFile = Join-Path $TmpDir $Filename
 Write-Host "  Downloading $Filename..." -ForegroundColor DarkGray
 
 try {
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri $Url -OutFile $ZipPath -UseBasicParsing
+    Invoke-WebRequest -Uri $Url -OutFile $TmpFile -UseBasicParsing
     $ProgressPreference = 'Continue'
 } catch {
     Write-Host "  Download failed: $Url" -ForegroundColor Red
@@ -36,23 +36,12 @@ try {
     exit 1
 }
 
-# Extract
-Write-Host "  Extracting..." -ForegroundColor DarkGray
-Expand-Archive -Path $ZipPath -DestinationPath $TmpDir -Force
-
-# Find and copy the app directory
-$AppContent = Get-ChildItem -Path $TmpDir -Directory -Recurse | Where-Object {
-    Test-Path (Join-Path $_.FullName "moon-traveler.exe")
-} | Select-Object -First 1
-
-if (-not $AppContent) {
-    Write-Host "  Could not find moon-traveler.exe in archive." -ForegroundColor Red
-    exit 1
+# Install binary
+if (-not (Test-Path $InstallDir)) {
+    New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 }
-
-# Install
-if (Test-Path $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
-Copy-Item -Path $AppContent.FullName -Destination $InstallDir -Recurse -Force
+$Dest = Join-Path $InstallDir "moon-traveler.exe"
+Copy-Item -Path $TmpFile -Destination $Dest -Force
 
 # Clean up
 Remove-Item $TmpDir -Recurse -Force
@@ -68,8 +57,12 @@ if ($UserPath -notlike "*$InstallDir*") {
 Write-Host ""
 Write-Host "  Moon Traveler Terminal $Version installed!" -ForegroundColor Green
 Write-Host ""
-Write-Host "  Location: $InstallDir" -ForegroundColor DarkGray
+Write-Host "  Location: $Dest" -ForegroundColor DarkGray
 Write-Host "  Data:     $env:USERPROFILE\.moonwalker\" -ForegroundColor DarkGray
+Write-Host ""
+Write-Host "  On first run, the binary will download Python and" -ForegroundColor DarkGray
+Write-Host "  install dependencies (~30-60 seconds). After that," -ForegroundColor DarkGray
+Write-Host "  it launches instantly." -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "  Run:  moon-traveler" -ForegroundColor White
 Write-Host ""
