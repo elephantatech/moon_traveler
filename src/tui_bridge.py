@@ -23,9 +23,29 @@ class UIBridge:
 
     # --- Output (worker thread → Textual main thread) ---
 
+    def _safe_call(self, fn, *args):
+        """Fire-and-forget call to the Textual main thread.
+
+        Uses call_soon_threadsafe instead of call_from_thread to prevent
+        deadlocks on Windows/Linux where the Textual event loop can block
+        if it's busy processing a prior operation. Falls back to blocking
+        call_from_thread if the event loop isn't available yet.
+        """
+        try:
+            loop = self._app._loop
+            if loop is not None and loop.is_running():
+                loop.call_soon_threadsafe(fn, *args)
+            else:
+                self._app.call_from_thread(fn, *args)
+        except Exception as e:
+            import sys
+
+            if "--dev" in sys.argv:
+                print(f"[DEBUG bridge] _safe_call failed: {e}", file=sys.stderr, flush=True)
+
     def write(self, renderable):
         """Write a Rich renderable to the game log."""
-        self._app.call_from_thread(self._log.write, renderable)
+        self._safe_call(self._log.write, renderable)
 
     def print(self, *args, **kwargs):
         """Print to the game log (matches Rich Console.print API).
@@ -35,10 +55,10 @@ class UIBridge:
         Zero args prints a blank line. Multi-arg calls are joined.
         """
         if not args:
-            self._app.call_from_thread(self._log.write, "")
+            self._safe_call(self._log.write, "")
             return
         if len(args) == 1 and not kwargs:
-            self._app.call_from_thread(self._log.write, args[0])
+            self._safe_call(self._log.write, args[0])
             return
         # Multiple args or kwargs: render through a temporary Console
         import io
@@ -48,29 +68,13 @@ class UIBridge:
         buf = io.StringIO()
         tmp = _TmpConsole(file=buf, highlight=False, markup=True)
         tmp.print(*args, **kwargs)
-        self._app.call_from_thread(self._log.write, buf.getvalue().rstrip("\n"))
+        self._safe_call(self._log.write, buf.getvalue().rstrip("\n"))
 
     def animate_frame(self, content: str):
-        """Update the animation bar widget in-place (single frame).
-
-        Uses call_soon_threadsafe for fire-and-forget update to prevent
-        deadlocks on Windows where call_from_thread can block if the
-        event loop is busy processing a prior operation.
-        """
+        """Update the animation bar widget in-place (single frame)."""
         anim = getattr(self._app, "_animation_bar", None)
-        if anim is None:
-            return
-        try:
-            loop = self._app._loop
-            if loop is not None and loop.is_running():
-                loop.call_soon_threadsafe(anim.update, content)
-            else:
-                self._app.call_from_thread(anim.update, content)
-        except Exception as e:
-            import sys
-
-            if "--dev" in sys.argv:
-                print(f"[DEBUG anim] animate_frame failed: {e}", file=sys.stderr, flush=True)
+        if anim is not None:
+            self._safe_call(anim.update, content)
 
     def clear_animation(self):
         """Clear the animation bar."""
@@ -78,7 +82,7 @@ class UIBridge:
 
     def clear(self):
         """Clear the game log."""
-        self._app.call_from_thread(self._app.clear_log)
+        self._safe_call(self._app.clear_log)
 
     # --- Input (blocks worker thread until user responds) ---
 
