@@ -976,7 +976,7 @@ which failed to bundle `llama-cpp-python`'s native shared libraries correctly.
 1. Developer runs `python scripts/build_pyapp.py` (requires Rust toolchain)
 2. PyApp compiles a small Rust binary (~5 MB) with project metadata baked in
 3. End user runs the binary — on first launch it:
-   - Extracts embedded Python 3.11 (no download, baked into binary via `PYAPP_DISTRIBUTION_EMBED=1`)
+   - Extracts embedded Python 3.13 (no download, baked into binary via `PYAPP_DISTRIBUTION_EMBED=1`)
    - Runs `uv install` to install deps from PyPI
    - `llama-cpp-python` installs via precompiled wheel with native libs correctly linked
    - Launches the game
@@ -999,10 +999,10 @@ Set via environment variables in the build script:
 | `PYAPP_PROJECT_NAME` | `moon-traveler` | PyPI package name |
 | `PYAPP_PROJECT_VERSION` | from `pyproject.toml` | Version to install |
 | `PYAPP_EXEC_SPEC` | `src.tui_app:run_tui` | Entry point |
-| `PYAPP_PYTHON_VERSION` | `3.11` | Python to bootstrap |
+| `PYAPP_PYTHON_VERSION` | `3.13` | Python to bootstrap |
 | `PYAPP_UV_ENABLED` | `1` | Use uv for fast installs |
 | `PYAPP_DISTRIBUTION_EMBED` | `1` | Embed Python in binary (no download on first run) |
-| `PYAPP_PIP_EXTRA_ARGS` | `--prefer-binary` | Prefer precompiled wheels |
+| `PYAPP_PIP_EXTRA_ARGS` | `--prefer-binary --extra-index-url ...` | Prefer precompiled wheels + llama-cpp-python CPU wheel index |
 
 ### 18.4 Output
 

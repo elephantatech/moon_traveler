@@ -126,20 +126,20 @@ def build_binary(target_platform: str):
                 # Entry point
                 "PYAPP_EXEC_SPEC": "src.tui_app:run_tui",
                 # Python version
-                "PYAPP_PYTHON_VERSION": "3.11",
+                "PYAPP_PYTHON_VERSION": "3.13",
                 # Embed Python in the binary — no Python download on first run
                 "PYAPP_DISTRIBUTION_EMBED": "1",
                 # Use uv for fast installs of dependencies (llama-cpp-python, etc.)
                 "PYAPP_UV_ENABLED": "1",
-                # Prefer precompiled wheels for native deps
-                "PYAPP_PIP_EXTRA_ARGS": "--prefer-binary",
+                # Prefer precompiled wheels for native deps + extra index for llama-cpp-python
+                "PYAPP_PIP_EXTRA_ARGS": "--prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu",
             }
         )
 
         print(f"  PyApp source: {pyapp_dir}")
         print(f"  Project: {APP_NAME} v{VERSION} (embedded wheel)")
         print("  Entry: src.tui_app:run_tui")
-        print("  Python: 3.11 (embedded in binary)")
+        print("  Python: 3.13 (embedded in binary)")
         print("  Installer: uv")
         print()
         print("  Building with cargo (this may take a minute)...")
@@ -173,7 +173,7 @@ def build_binary(target_platform: str):
         size_mb = output_path.stat().st_size / 1024 / 1024
         print(f"\n  Built: {output_path} ({size_mb:.1f} MB)")
         print("\n  First run will:")
-        print("    1. Extract embedded Python 3.11 (no download)")
+        print("    1. Extract embedded Python 3.13 (no download)")
         print(f"    2. Install {APP_NAME} dependencies via uv (~15 MB)")
         print("    3. Launch the game")
         print("  Subsequent runs launch instantly.")

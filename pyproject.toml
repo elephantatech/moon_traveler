@@ -8,7 +8,7 @@ dependencies = [
     "rich",
     "llama-cpp-python",
     "psutil>=7.2.2",
-    "textual>=8.2.3",
+    "textual>=8.2.4",
     "jinja2>=3.1.6",
     "markupsafe>=3.0.3",
     "typing-extensions>=4.15.0",
@@ -21,9 +21,9 @@ moon-traveler = "src.tui_app:run_tui"
 dev = [
     "pytest>=9.0.3",
     "pytest-cov>=6.0",
-    "ruff>=0.15.10",
+    "ruff>=0.15.12",
     "build>=1.0",
-    "pre-commit>=4.0",
+    "pre-commit>=4.6.0",
 ]
 
 [build-system]
