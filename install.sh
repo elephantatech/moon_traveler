@@ -7,9 +7,10 @@ REPO="elephantatech/moon_traveler"
 INSTALL_DIR="${MOON_TRAVELER_INSTALL_DIR:-$HOME/.local/bin}"
 
 # Colors
-red()   { printf '\033[0;31m%s\033[0m\n' "$*"; }
-green() { printf '\033[0;32m%s\033[0m\n' "$*"; }
-dim()   { printf '\033[0;90m%s\033[0m\n' "$*"; }
+red()    { printf '\033[0;31m%s\033[0m\n' "$*"; }
+green()  { printf '\033[0;32m%s\033[0m\n' "$*"; }
+yellow() { printf '\033[0;33m%s\033[0m\n' "$*"; }
+dim()    { printf '\033[0;90m%s\033[0m\n' "$*"; }
 
 # Detect platform
 detect_platform() {
@@ -27,6 +28,71 @@ detect_platform() {
   esac
 
   dim "Detected: $os"
+}
+
+# Check for C/C++ compiler (required for llama-cpp-python)
+check_compiler() {
+  if [ "$PLATFORM" != "linux" ]; then
+    return  # macOS has Xcode command line tools
+  fi
+
+  local has_cc=false
+  local has_cmake=false
+
+  # Check for C compiler
+  if command -v gcc >/dev/null 2>&1; then
+    has_cc=true
+    dim "  C compiler: gcc $(gcc -dumpversion 2>/dev/null || echo '?')"
+  elif command -v clang >/dev/null 2>&1; then
+    has_cc=true
+    dim "  C compiler: clang $(clang --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 || echo '?')"
+  fi
+
+  # Check for cmake
+  if command -v cmake >/dev/null 2>&1; then
+    has_cmake=true
+    dim "  CMake: $(cmake --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo '?')"
+  fi
+
+  if $has_cc && $has_cmake; then
+    return
+  fi
+
+  echo
+  yellow "  WARNING: C/C++ compiler or CMake not found."
+  yellow "  The AI model (llama-cpp-python) requires compilation on first run."
+  echo
+  echo "  Install build tools for your distro:"
+  echo
+
+  # Detect distro and show appropriate command
+  if command -v apt >/dev/null 2>&1; then
+    echo "    sudo apt install build-essential cmake     # Ubuntu / Debian"
+  elif command -v dnf >/dev/null 2>&1; then
+    echo "    sudo dnf install gcc gcc-c++ cmake         # Fedora / RHEL"
+  elif command -v pacman >/dev/null 2>&1; then
+    echo "    sudo pacman -S base-devel cmake            # Arch Linux"
+  elif command -v zypper >/dev/null 2>&1; then
+    echo "    sudo zypper install gcc gcc-c++ cmake      # openSUSE"
+  elif command -v apk >/dev/null 2>&1; then
+    echo "    sudo apk add build-base cmake              # Alpine"
+  else
+    echo "    Install gcc, g++, and cmake using your package manager."
+  fi
+
+  echo
+  echo "  Without these, the game will use pre-written dialogue"
+  echo "  instead of AI-powered conversations."
+  echo
+
+  # Ask user if they want to continue
+  printf "  Continue anyway? (y/n) "
+  read -r answer </dev/tty 2>/dev/null || answer="y"
+  if [ "$answer" != "y" ] && [ "$answer" != "Y" ] && [ "$answer" != "" ]; then
+    echo
+    dim "  Install the build tools above, then re-run this script."
+    exit 0
+  fi
 }
 
 # Get latest release tag from GitHub API
@@ -84,5 +150,6 @@ install() {
 }
 
 detect_platform
+check_compiler
 get_latest_version
 install
