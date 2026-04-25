@@ -62,6 +62,11 @@ All models run on CPU. GPU (CUDA/Metal/Vulkan) is optional for faster inference.
 
 ## Installation
 
+> **Note:** Pre-built binary releases are temporarily unavailable while we migrate
+> the packaging system. Please install from source (see below). Binary releases
+> will return in a future update.
+
+<!--
 ### Quick install (pre-built binary)
 
 **macOS / Linux:**
@@ -77,6 +82,7 @@ irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.p
 ```
 
 This downloads the latest release, extracts it, and adds `moon-traveler` to your PATH. No Python required.
+-->
 
 ### From source
 
