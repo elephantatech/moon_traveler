@@ -235,13 +235,13 @@ See **[HOW_TO_PLAY.md](HOW_TO_PLAY.md#troubleshooting)** for the full troublesho
 
 ## Building a Release
 
-A cross-platform build script is included:
+A cross-platform build script is included (requires Rust toolchain):
 
 ```bash
-python scripts/build_release.py
+python scripts/build_pyapp.py
 ```
 
-This creates standalone executables for Windows, macOS, and Linux in the `dist/` directory using PyInstaller. See `scripts/build_release.py` for details.
+This creates standalone executables for Windows, macOS, and Linux using PyApp (a Rust wrapper that embeds Python 3.13 and installs dependencies via uv on first run). See `scripts/build_pyapp.py` for details.
 
 ## Development
 

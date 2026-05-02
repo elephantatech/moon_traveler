@@ -1,8 +1,8 @@
 # Moon Traveler Terminal — Product Roadmap
 
-**Last updated:** 2026-04-20
-**Current version:** v0.5.1 (released)
-**Next:** v0.5.2 (polish & quick wins)
+**Last updated:** 2026-05-02
+**Current version:** v0.5.3 (released)
+**Next:** v0.6.0 (Screens & Economy)
 
 This roadmap covers planned development from the current dev build through v1.0.0 (full release). Each feature entry includes a description, technical approach grounded in the existing architecture, effort estimate, dependencies, and affected files.
 
@@ -973,27 +973,42 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 
 </details>
 
-### v0.5.2 — Polish & Quick Wins (next release)
+### v0.5.2 — Polish & Quick Wins (shipped 2026-04-22)
 
-Ship fast: upgrade system, download UX fix, dev diagnostics, CI improvements.
+| Issue | Status |
+|-------|--------|
+| #49 In-place upgrade | **Done** — `update` command + `--upgrade` flag |
+| #29 ASCII animations | **Done** — scan, travel, drone, hazard, exchange sprites |
+| #54 Model download progress | **Done** — progress bars + `model` command |
+| #9 LLM performance diagnostics | **Done** — `_timed_inference` wrapper in dev mode |
+| #25 Cross-platform CI test matrix | **Done** — 3 OS × 3 Python = 9 jobs |
+| #26 Test coverage reporting | **Done** — pytest-cov in CI |
 
-| Priority | Issue | Effort | Impact |
-|----------|-------|--------|--------|
-| **P0** | #49 In-place upgrade | M | Update game without losing saves. Content delivery pipeline. |
-| **P0** | ~~#29 ASCII animations~~ | ~~M~~ | **Done** — scan, travel, drone, hazard, exchange. Config toggle. |
-| **P1** | #54 Model download progress + loading animation | M | Download bar invisible in TUI; no feedback during 30-60s model load. |
-| **P1** | #9 LLM performance diagnostics in dev mode | S | Needed for optimization; quick win. |
-| **P1** | #25 Cross-platform CI test matrix | S | Catch Windows/macOS bugs. Quick win. |
-| **P2** | #26 Test coverage reporting | S | README badge, gate at 80%. |
+### v0.5.3 — Windows Fix & Stability (shipped 2026-05-02)
 
-### v0.5.3 — Accessibility & Tech Debt
+| Issue | Status |
+|-------|--------|
+| #74 Boot sequence hangs on Windows | **Done** — heartbeat queue bridge replaces `call_from_thread` |
+| #73 LLM inference hangs on Windows | **Done** — `_create_llama` WriterThread protection |
+| #67 Game hangs after player name | **Done** — fixed by both above |
+| #64 Silent failure audit | **Done** — 29 `except:pass` → `logger.debug(exc_info=True)` |
+| Sound system rewrite | **Done** — `chime` library replaces platform-specific beep patterns |
+| Log consolidation | **Done** — single `game.log` file via Python logging module |
+| #59 Python 3.14 tarfile deprecation | **Done** — `filter="data"` added |
+
+### v0.5.4 — Accessibility & Tech Debt (next)
 
 Clean up before v0.6.0 feature expansion:
 
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
+| **P0** | #68 Beta release strategy | M | PR-triggered pre-release builds. Prerequisite for all future releases. |
+| **P0** | #76 Missing tests for new code | M | _create_llama, _safe_call, sound module, heartbeat |
 | **P0** | #4 Screen reader mode | M | Accessibility — deferred twice, do it now. |
-| **P0** | #22 Split commands.py into package | M | 1,800+ lines. Prerequisite for Screens refactor (#55). |
+| **P1** | #22 Split commands.py into package | M | 1,800+ lines. Prerequisite for Screens refactor (#55). |
+| **P1** | #72 Build separate CPU/CUDA binary releases | L | Pre-build llama-cpp-python wheels in CI |
+| **P2** | #69 Creature responses too long | S | Prompt tuning for shorter conversational replies |
+| **P2** | #77 Heartbeat catch-all escalation | S | Count consecutive failures, warn after threshold |
 
 ### v0.6.0 — Architecture + World Expansion (8-10 weeks)
 
