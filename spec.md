@@ -1277,7 +1277,7 @@ ASCII frame animations rendered in a dedicated `Static#animation-bar` widget. An
 
 ### 21b.1 Architecture
 
-- `_animate(frames, delay, clear)` — Core helper: iterates frames via `ui.console.animate_frame()` (thread-safe `call_from_thread`), then clears widget
+- `_animate(frames, delay, clear)` — Core helper: iterates frames via `ui.console.animate_frame()` (thread-safe via heartbeat queue), then clears widget
 - `_can_animate()` — Gate: checks `_enabled()` AND `hasattr(ui.console, "animate_frame")`
 - `_enabled()` — Reads `config.get_animations_enabled()` and checks `_force_disabled` session flag
 - `force_enable()` / `force_disable()` — Runtime toggles (session-only, not persisted)
@@ -1319,7 +1319,7 @@ When `hours_elapsed >= 24`, scan and hazard animations use intensified variants 
 ### 21b.6 TUI Integration
 
 - `#animation-bar` Static widget: `height: auto; max-height: 2` (collapses when empty)
-- `tui_bridge.animate_frame(text)` — thread-safe update via `call_from_thread`
+- `tui_bridge.animate_frame(text)` — thread-safe update via heartbeat-drained `_bridge_queue`
 - `tui_bridge.clear_animation()` — sets widget to empty string
 
 ---

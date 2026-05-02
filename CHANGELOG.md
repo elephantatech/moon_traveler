@@ -2,6 +2,29 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.5.3] - 2026-05-02
+
+### Fixed
+
+- **Windows freeze fix** — `_create_llama()` wrapper prevents llama-cpp-python's `suppress_stdout_stderr` from killing Textual's WriterThread by redirecting only stderr (fd 2), not stdout (fd 1)
+- **Bridge deadlock fix** — replaced all `call_from_thread` with heartbeat-drained `_bridge_queue` pattern. Textual's `call_from_thread` deadlocked on Windows ProactorEventLoop when the main thread was busy
+- **Boot sequence hang** — narrative intro no longer freezes on Windows/Linux during rapid `ui.console.print()` calls
+- **Animation deadlock** — `animate_frame()` uses fire-and-forget queue instead of blocking cross-thread call
+- **Windows UTF-8 fix** — `stdout`/`stderr` reconfigured to `utf-8` with `errors="replace"` on startup
+
+### Changed
+
+- **Sound system rewrite** — replaced platform-specific beep patterns with `chime` library (bundled `.wav` files, cross-platform). macOS voice mode via `say` preserved
+- **Logging consolidated** — single log file `~/.moonwalker/dev/game.log` replaces separate `startup.log` + `dev_diagnostics.jsonl`. All modules use Python `logging`
+- **Silent failure audit** — 29 bare `except: pass` replaced with `logger.debug(exc_info=True)` across 11 files. Visible in `game.log` with `--dev`
+- **Debug logging** — `_setup_logging()` configures file + stderr handlers when `--dev` active. All game stages logged: startup, mode selection, LLM loading, boot sequence, game loop
+
+### Added
+
+- **`chime` dependency** — cross-platform sound effects via bundled `.wav` files
+- **`_create_llama()` wrapper** — safe model loading that preserves stdout for Textual
+- **Heartbeat timer** — 30 FPS timer drains `_bridge_queue` on the main thread, replacing `call_from_thread`/`call_soon_threadsafe`
+
 ## [0.5.2] - 2026-04-22
 
 ### Added

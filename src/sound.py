@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 _enabled = True
 _voice_enabled = False
 _lock = threading.Lock()
+_chime_available = None  # None = not checked yet, True/False = cached result
 
 # Map game events → chime function names (success, error, warning, info)
 _EVENT_MAP = {
@@ -120,12 +121,21 @@ def _play_chime(event: str):
                 logger.debug("voice playback failed", exc_info=True)
 
     # Map event to chime type and play
+    global _chime_available
+    if _chime_available is False:
+        return  # Already failed — don't retry every call
+
     chime_type = _EVENT_MAP.get(event, "info")
     try:
         import chime
 
+        if _chime_available is None:
+            _chime_available = True
         fn = getattr(chime, chime_type, chime.info)
         fn(sync=False)
+    except ImportError:
+        _chime_available = False
+        logger.warning("chime library not available — sound disabled for this session")
     except Exception:
         logger.debug("chime playback failed", exc_info=True)
 

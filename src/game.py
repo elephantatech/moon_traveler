@@ -410,7 +410,13 @@ def _setup_logging(dev: bool) -> None:
     fmt = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S")
 
     if dev:
-        # File handler → ~/.moonwalker/dev/startup.log
+        # Stderr handler first — so log file errors are visible
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.DEBUG)
+        sh.setFormatter(fmt)
+        root.addHandler(sh)
+
+        # File handler → ~/.moonwalker/dev/game.log
         try:
             log_dir = Path.home() / ".moonwalker" / "dev"
             log_dir.mkdir(parents=True, exist_ok=True)
@@ -420,10 +426,6 @@ def _setup_logging(dev: bool) -> None:
             root.addHandler(fh)
         except Exception:
             logger.debug("Failed to create log file handler", exc_info=True)
-        sh = logging.StreamHandler()
-        sh.setLevel(logging.DEBUG)
-        sh.setFormatter(fmt)
-        root.addHandler(sh)
 
 
 def main():

@@ -21,7 +21,13 @@ class DevMode:
     def toggle(self):
         self.enabled = not self.enabled
         if self.enabled:
-            ui.success("Dev mode ON — logging to ~/.moonwalker/dev/game.log")
+            # Check if file handler exists (only when launched with --dev)
+            has_file = any(isinstance(h, logging.FileHandler) for h in logging.getLogger().handlers)
+            if has_file:
+                ui.success("Dev mode ON — logging to ~/.moonwalker/dev/game.log")
+            else:
+                ui.success("Dev mode ON — diagnostics in game log.")
+                ui.dim("  (Launch with --dev for full file logging)")
         else:
             ui.info("Dev mode OFF — logging stopped.")
 
