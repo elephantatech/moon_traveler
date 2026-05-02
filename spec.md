@@ -1375,7 +1375,9 @@ In-place upgrade via GitHub Releases API.
 
 ### 22.1 Architecture
 
-Worker thread with message bridge. Game logic runs synchronously in a Textual `run_worker(thread=True)`. A `UIBridge` object translates between the worker and Textual's async event loop via thread-safe `queue.Queue`.
+Worker thread with message bridge. Game logic runs synchronously in a Textual `run_worker(thread=True)`. A `UIBridge` object translates between the worker and Textual's main thread.
+
+**Bridge pattern (v0.5.3+):** All worker→main thread calls use `_bridge_queue` (an unbounded `queue.Queue`). A heartbeat timer on the main thread drains the queue every ~33ms (30 FPS), calling widget methods like `RichLog.write()` and `Static.update()`. This replaced `call_from_thread` which deadlocked on Windows' `ProactorEventLoop`. Only `input()` blocks the worker thread (waiting for user response via `_ask_queue`).
 
 ### 22.2 Layout
 
@@ -1394,7 +1396,7 @@ Worker thread with message bridge. Game logic runs synchronously in a Textual `r
 ### 22.3 Key Design
 
 - `_BridgeConsoleShim` replaces `ui.console` — all existing `console.print()` / `console.input()` calls route through Textual automatically
-- `bridge.ask(prompt)` blocks worker thread on queue; Textual routes input based on command mode vs ask mode
+- `bridge.input(prompt)` blocks worker thread on `_ask_queue`; Textual routes input based on command mode vs ask mode
 - `time.sleep` in worker thread (narration, tutorial, travel) stays as-is — doesn't block Textual reactor
 - LLM inference runs in worker thread; UI stays responsive
 - Autocomplete: `GameSuggester` provides inline tab-completion (CLI GameCompleter removed in v0.5.0)
@@ -1402,12 +1404,19 @@ Worker thread with message bridge. Game logic runs synchronously in a Textual `r
 ### 22.4 New Files
 
 - `src/tui_app.py` (~200 lines) — Textual App, widget composition, worker dispatch
-- `src/tui_bridge.py` (~150 lines) — UIBridge, console shim, ask/response queues
+- `src/tui_bridge.py` (~170 lines) — UIBridge, `_safe_call`, heartbeat queue, ask/response
 - `src/game.tcss` (~40 lines) — Textual CSS layout
 
-### 22.5 Unchanged Files
+### 22.5 Logging (v0.5.3+)
 
-`commands.py`, `travel.py`, `creatures.py`, `player.py`, `drone.py`, `world.py`, `llm.py`, `save_load.py`, `ship_ai.py`, `tutorial.py`, `sound.py`, `config.py`, `dev_mode.py`
+`_setup_logging(dev)` in `game.py` configures Python's `logging` module:
+
+- **Production:** Root logger at WARNING level, no file handler
+- **`--dev` mode:** Root logger at DEBUG, two handlers:
+  - `StreamHandler` → stderr (bypasses TUI, always visible)
+  - `FileHandler` → `~/.moonwalker/dev/game.log` (overwritten each session)
+- All modules use `logging.getLogger(__name__)` — output goes to single log file
+- DevMode diagnostics (game state, LLM metrics) also route through logging
 
 ### 22.6 Migration Phases
 

@@ -5,6 +5,7 @@ import os
 import random
 import re
 import sys
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -427,6 +428,9 @@ def _download_custom_model() -> bool:
         return False
 
 
+_llama_load_lock = threading.Lock()
+
+
 def _create_llama(**kwargs):
     """Create a Llama instance without killing Textual's WriterThread.
 
@@ -440,27 +444,30 @@ def _create_llama(**kwargs):
     Fix: pass ``verbose=True`` so ``suppress_stdout_stderr`` is skipped,
     then redirect only stderr (fd 2) ourselves so llama.cpp's C-level
     diagnostic output is still suppressed.
+
+    Lock prevents concurrent calls from racing on the fd 2 redirect.
     """
     kwargs["verbose"] = True  # Prevents suppress_stdout_stderr from running
 
-    saved_stderr = None
-    try:
-        saved_stderr = os.dup(2)
-        devnull = os.open(os.devnull, os.O_WRONLY)
-        os.dup2(devnull, 2)
-        os.close(devnull)
-    except OSError:
-        logger.debug("stderr redirect failed", exc_info=True)
+    with _llama_load_lock:
+        saved_stderr = None
+        try:
+            saved_stderr = os.dup(2)
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, 2)
+            os.close(devnull)
+        except OSError:
+            logger.debug("stderr redirect failed", exc_info=True)
 
-    try:
-        return Llama(**kwargs)
-    finally:
-        if saved_stderr is not None:
-            try:
-                os.dup2(saved_stderr, 2)
-                os.close(saved_stderr)
-            except OSError:
-                logger.debug("OSError suppressed", exc_info=True)
+        try:
+            return Llama(**kwargs)
+        finally:
+            if saved_stderr is not None:
+                try:
+                    os.dup2(saved_stderr, 2)
+                    os.close(saved_stderr)
+                except OSError:
+                    logger.debug("stderr restore failed", exc_info=True)
 
 
 def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
