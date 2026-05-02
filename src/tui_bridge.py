@@ -146,7 +146,7 @@ class UIBridge:
             result.append(self._app.take_screenshot())
             done.set()
 
-        self._app.call_from_thread(_do)
+        self._app._bridge_queue.put_nowait((_do, ()))
         done.wait(timeout=5)
         return result[0] if result else ""
 

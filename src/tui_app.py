@@ -95,7 +95,7 @@ class MoonTravelerApp(App):
             try:
                 self._game_log.write(f"[dim]Autocomplete init: {e}[/dim]")
             except Exception:
-                logger.debug("Exception suppressed", exc_info=True)
+                logger.debug("Autocomplete error display failed", exc_info=True)
 
     def _game_worker(self) -> None:
         """Run the full game in a worker thread."""
@@ -134,22 +134,13 @@ class MoonTravelerApp(App):
                 msg = f"[red]CRASH: {_esc(str(e))}[/red]\n[dim]{_esc(tb)}[/dim]"
                 self._bridge_queue.put_nowait((game_log.write, (msg,)))
             except Exception:
-                logger.debug("Exception suppressed", exc_info=True)
+                logger.debug("Crash error display failed", exc_info=True)
             import time
 
             time.sleep(10)  # Keep visible before exit
         finally:
-            # Game ended — wait for exit to process on main thread
-            import threading
-
-            exit_done = threading.Event()
-
-            def _do_exit():
-                self.exit()
-                exit_done.set()
-
-            self.call_from_thread(_do_exit)
-            exit_done.wait(timeout=5)
+            # Game ended — queue exit via bridge (avoids call_from_thread deadlock)
+            self._bridge_queue.put_nowait((self.exit, ()))
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Reset tab cycling when the user types a new character."""
@@ -346,7 +337,7 @@ def run_tui():
                 try:
                     stream.reconfigure(encoding="utf-8", errors="replace")
                 except Exception:
-                    logger.debug("Exception suppressed", exc_info=True)
+                    logger.debug("Stream reconfigure failed", exc_info=True)
 
     app = MoonTravelerApp()
     app.run()

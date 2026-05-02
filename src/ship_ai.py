@@ -84,7 +84,7 @@ class ShipAI:
 
                     sound.play("aria_warning")
                 except Exception:
-                    logger.debug("Exception suppressed", exc_info=True)
+                    logger.debug("ARIA warning sound failed", exc_info=True)
                 return self.speak(warnings[threshold])
         return None
 

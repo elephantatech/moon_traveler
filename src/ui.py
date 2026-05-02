@@ -127,7 +127,7 @@ def _safe_sound(event: str):
 
         sound.play(event)
     except Exception:
-        logger.debug("Exception suppressed", exc_info=True)
+        logger.debug("Sound event playback failed", exc_info=True)
 
 
 def show_title():

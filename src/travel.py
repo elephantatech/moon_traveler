@@ -329,7 +329,7 @@ def execute_travel(
                     else:
                         sound.play("hazard_ice")
                 except Exception:
-                    logger.debug("Exception suppressed", exc_info=True)
+                    logger.debug("Hazard sound playback failed", exc_info=True)
                 messages.append(f"[bold red]{hazard['message']}[/bold red]")
                 for key, delta in hazard["effect"].items():
                     if key == "suit_integrity":

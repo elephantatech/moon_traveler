@@ -99,14 +99,14 @@ def detect_gpu() -> dict:
             if llama_cpp.LLAMA_SUPPORTS_GPU_OFFLOAD:
                 return {"available": True, "backend": "gpu"}
     except Exception:
-        logger.debug("Last resort: check if the compiled lib mentions GPU backends", exc_info=True)
+        logger.debug("GPU backend constant check failed", exc_info=True)
     try:
         import llama_cpp.llama_cpp as _ll
 
         if hasattr(_ll, "GGML_USE_CUDA") or hasattr(_ll, "GGML_USE_METAL") or hasattr(_ll, "GGML_USE_VULKAN"):
             return {"available": True, "backend": "gpu"}
     except Exception:
-        logger.debug("Exception suppressed", exc_info=True)
+        logger.debug("Memory compaction failed", exc_info=True)
 
     return {"available": False, "backend": "none"}
 
@@ -450,7 +450,7 @@ def _create_llama(**kwargs):
         os.dup2(devnull, 2)
         os.close(devnull)
     except OSError:
-        logger.debug("If we can't redirect, just let C output through", exc_info=True)
+        logger.debug("stderr redirect failed", exc_info=True)
 
     try:
         return Llama(**kwargs)
@@ -787,7 +787,7 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
                 current = _sanitize_memory(compact_text)[:4096]
                 creature.memory = current
         except Exception:
-            logger.debug("Exception suppressed", exc_info=True)
+            logger.debug("Memory update failed", exc_info=True)
 
     prompt = _MEMORY_UPDATE_PROMPT.format(
         name=creature.name,
@@ -809,7 +809,7 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
             creature.memory = text[:4096]  # Cap memory size
             return text
     except Exception:
-        logger.debug("Exception suppressed", exc_info=True)
+        logger.debug("Memory update LLM call failed", exc_info=True)
 
     return _update_memory_fallback(creature, recent_count, extra_context)
 

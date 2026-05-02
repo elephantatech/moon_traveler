@@ -30,7 +30,7 @@ class _SafeSound:
             try:
                 _sound_mod.play(event)
             except Exception:
-                logger.debug("Exception suppressed", exc_info=True)
+                logger.debug("Sound playback failed", exc_info=True)
 
     @staticmethod
     def is_enabled():
@@ -780,7 +780,7 @@ def cmd_talk(ctx: GameContext, args: str):
         try:
             llm.update_creature_memory(creature, recent_count=min(max(current_convo_len, 1), 40))
         except Exception:
-            logger.debug("ARIA trust commentary after conversation", exc_info=True)
+            logger.debug("Memory update after conversation failed", exc_info=True)
     if ctx.ship_ai and creature:
         if creature.trust >= 70:
             ui.console.print(ctx.ship_ai.speak(f"{creature.name} appears highly cooperative. Trust is strong."))
@@ -863,7 +863,7 @@ def cmd_give(ctx: GameContext, args: str):
         gift_ctx = f"Player gave {display} as a gift. Trust is now {creature.trust}."
         llm.update_creature_memory(creature, extra_context=gift_ctx)
     except Exception:
-        logger.debug("At high trust, creature acknowledges friendship", exc_info=True)
+        logger.debug("Gift memory update failed", exc_info=True)
     if creature.trust >= 70 and not creature.has_helped_repair:
         creature.has_helped_repair = True
         ui.success(f"{creature.name} considers you a true friend. They may share what they have in conversation.")
