@@ -425,6 +425,42 @@ def _download_custom_model() -> bool:
         return False
 
 
+def _create_llama(**kwargs):
+    """Create a Llama instance without killing Textual's WriterThread.
+
+    llama-cpp-python's ``verbose=False`` uses ``suppress_stdout_stderr`` which
+    redirects **both** fd 1 (stdout) *and* fd 2 (stderr) to NUL via
+    ``os.dup2``.  On Windows, Textual's WriterThread writes to fd 1 — the
+    redirect causes its ``write()`` to fail and the thread dies silently
+    (it has zero error handling).  Once the thread is dead its bounded
+    queue (30 items) fills up and the event loop blocks forever.
+
+    Fix: pass ``verbose=True`` so ``suppress_stdout_stderr`` is skipped,
+    then redirect only stderr (fd 2) ourselves so llama.cpp's C-level
+    diagnostic output is still suppressed.
+    """
+    kwargs["verbose"] = True  # Prevents suppress_stdout_stderr from running
+
+    saved_stderr = None
+    try:
+        saved_stderr = os.dup(2)
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, 2)
+        os.close(devnull)
+    except OSError:
+        pass  # If we can't redirect, just let C output through
+
+    try:
+        return Llama(**kwargs)
+    finally:
+        if saved_stderr is not None:
+            try:
+                os.dup2(saved_stderr, 2)
+                os.close(saved_stderr)
+            except OSError:
+                pass
+
+
 def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
     """Load the LLM model.
 
@@ -471,12 +507,11 @@ def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
             pass  # animations module not available in this context
 
     try:
-        _llm_model = Llama(
+        _llm_model = _create_llama(
             model_path=model_path,
             n_ctx=_get_context_size(),
             n_threads=4,
             n_gpu_layers=n_gpu_layers,
-            verbose=False,
         )
         # Smoke test: run a tiny inference to catch GPU segfaults early
         # (before the player starts a game they could lose)
@@ -500,12 +535,11 @@ def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
         if gpu_mode == "gpu":
             ui.warn("GPU loading failed. Retrying with CPU only...")
             try:
-                _llm_model = Llama(
+                _llm_model = _create_llama(
                     model_path=model_path,
                     n_ctx=_get_context_size(),
                     n_threads=4,
                     n_gpu_layers=0,
-                    verbose=False,
                 )
                 _llm_available = True
                 if quiet:

@@ -211,6 +211,7 @@ Build trust with creatures to obtain repair materials through conversation and t
 | **GPU not detected** | Game auto-falls back to CPU. Check CUDA/Metal/Vulkan drivers if you want GPU acceleration |
 | **Model won't load / crashes** | Game continues with pre-written fallback dialogue. Delete and re-download the model |
 | **Dialogue feels repetitive** | Run `dev` to check if LLM is loaded (`model_loaded: true` in log). Upgrade the Translator Chip |
+| **Game freezes after entering name (Windows)** | Fixed in v0.5.3 — update to the latest version. Caused by llama-cpp-python redirecting stdout during model load |
 | **Game hangs during conversation** | LLM inference can be slow on CPU. Press `Ctrl+C` to exit safely. Progress is auto-saved |
 | **Where are save files?** | `~/.moonwalker/saves/` (SQLite). Run `config` to view/change location |
 

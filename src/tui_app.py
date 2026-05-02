@@ -1,10 +1,13 @@
 """Textual TUI application for Moon Traveler."""
 
+import logging
 import queue
 
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import Input, Label, RichLog, Static
+
+logger = logging.getLogger(__name__)
 
 
 class MoonTravelerApp(App):
@@ -27,6 +30,8 @@ class MoonTravelerApp(App):
         self._command_history: list[str] = []
         self._history_index: int = -1
         self._history_temp: str = ""  # Stores current input when navigating history
+        self._heartbeat_active = False
+        self._bridge_queue: queue.Queue[tuple] = queue.Queue()
 
     def compose(self) -> ComposeResult:
         yield Static("Moon Traveler Terminal", id="header")
@@ -47,7 +52,38 @@ class MoonTravelerApp(App):
         self._prompt_label = self.query_one("#prompt-label", Label)
         self._game_input = self.query_one("#game-input", Input)
         self._game_input.focus()
+        # Heartbeat: a chain of one-shot timers that drains the bridge queue
+        # (worker thread → main thread) and nudges the screen to repaint.
+        # Bypasses call_soon_threadsafe/post_message entirely — the event
+        # loop's own timer mechanism is reliable on Windows.
+        self._heartbeat_active = True
+        self._schedule_heartbeat()
+        logger.debug("on_mount: heartbeat started, launching game worker")
         self.run_worker(self._game_worker, thread=True)
+
+    def _schedule_heartbeat(self) -> None:
+        """Schedule the next heartbeat tick (one-shot timer)."""
+        if self._heartbeat_active:
+            self.set_timer(1 / 30, self._heartbeat)
+
+    def _heartbeat(self) -> None:
+        """Drain bridge queue on the main thread.
+
+        Widget methods (RichLog.write, Static.update, etc.) already call
+        refresh() internally, which schedules Textual's own repaint cycle.
+        No forced repaint needed — forcing layout + _update_timer.resume()
+        generates redundant screen renders that overflow WriterThread's
+        bounded queue (30 items), blocking the event loop on Windows.
+        """
+        for _ in range(200):
+            try:
+                fn, args = self._bridge_queue.get_nowait()
+                fn(*args)
+            except queue.Empty:
+                break
+            except Exception:
+                logger.debug("bridge callback failed", exc_info=True)
+        self._schedule_heartbeat()
 
     def set_suggester(self, ctx) -> None:
         """Attach the game-aware suggester to the input widget."""
@@ -94,10 +130,11 @@ class MoonTravelerApp(App):
             from rich.markup import escape as _esc
 
             tb = traceback.format_exc()
-            self.call_from_thread(
-                game_log.write,
-                f"[red]CRASH: {_esc(str(e))}[/red]\n[dim]{_esc(tb)}[/dim]",
-            )
+            try:
+                msg = f"[red]CRASH: {_esc(str(e))}[/red]\n[dim]{_esc(tb)}[/dim]"
+                self._bridge_queue.put_nowait((game_log.write, (msg,)))
+            except Exception:
+                pass
             import time
 
             time.sleep(10)  # Keep visible before exit
@@ -208,6 +245,9 @@ class MoonTravelerApp(App):
                 self._game_log.write(f"[green]Screenshot saved: {path}[/green]")
             except Exception as e:
                 self._game_log.write(f"[red]Screenshot failed: {e}[/red]")
+        elif event.key == "ctrl+q":
+            event.prevent_default()
+            self.exit()
         elif event.key == "ctrl+c":
             if self._ask_mode and self._bridge:
                 self._bridge.push_response(None)
@@ -287,6 +327,7 @@ class MoonTravelerApp(App):
 
     def on_unmount(self) -> None:
         """Unblock worker queues when the app exits."""
+        self._heartbeat_active = False
         self.command_queue.put(None)
         if self._bridge:
             self._bridge.push_response(None)
@@ -294,5 +335,18 @@ class MoonTravelerApp(App):
 
 def run_tui():
     """Launch the Textual TUI."""
+    import sys
+
+    if sys.platform == "win32":
+        # Prevent WriterThread crashes on Unicode characters (░, █, ═, °, ⏱, —)
+        # when Windows console defaults to cp1252 encoding.  If the thread dies,
+        # its bounded queue (30 items) fills up and blocks the event loop forever.
+        for stream in (sys.stdout, sys.stderr):
+            if hasattr(stream, "reconfigure"):
+                try:
+                    stream.reconfigure(encoding="utf-8", errors="replace")
+                except Exception:
+                    pass
+
     app = MoonTravelerApp()
     app.run()

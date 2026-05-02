@@ -29,7 +29,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Build | PyApp (Rust wrapper, bootstraps Python + uv) |
 | Save Storage | SQLite (key-value) |
 | TUI | Textual (>=8.2.4) |
-| Sound | System sounds (macOS say, Windows winsound, Linux paplay) |
+| Sound | chime (cross-platform) + macOS `say` for voice mode |
 | User Data | ~/.moonwalker/ (saves, models, config, dev logs) |
 
 ### 1.2.1 System Requirements
@@ -52,6 +52,7 @@ psutil>=7.2.2
 jinja2>=3.1.6
 markupsafe>=3.0.3
 typing-extensions>=4.15.0
+chime>=0.7.0
 ```
 
 Source of truth: `pyproject.toml` (not `requirements.txt`, which is legacy).
@@ -580,7 +581,12 @@ load_model(callback=None, gpu_mode="cpu")
 | n_ctx | 8192 (configurable) | 8192 (configurable) |
 | n_threads | 4 | 4 |
 | n_gpu_layers | 0 | -1 (all layers) |
-| verbose | False | False |
+| verbose | True (via `_create_llama`) | True (via `_create_llama`) |
+
+**WriterThread protection:** The `_create_llama()` wrapper passes `verbose=True` to skip
+llama-cpp-python's `suppress_stdout_stderr`, which redirects fd 1 (stdout) to NUL and kills
+Textual's WriterThread on Windows. Instead, only stderr (fd 2) is redirected to suppress
+C-level llama.cpp diagnostic output while keeping stdout intact.
 
 If GPU loading fails, automatically retries with CPU. When GPU mode is selected, a smoke test (tiny inference) runs to catch segfaults early.
 
@@ -1231,23 +1237,29 @@ tests/
 
 ## 21. Sound System (`src/sound.py`)
 
-Cross-platform system sounds. No external dependencies.
+Cross-platform sound using the `chime` library (bundled `.wav` files, no system dependencies).
 
 ### 21.1 Platform Support
 
-| Platform | Method | Fallback |
-|----------|--------|----------|
-| macOS | Terminal bell (beep patterns) + `say` command (voice mode) | Beep patterns |
-| Windows | `winsound` module + Windows Media .wav files | `MessageBeep` → beep patterns |
-| Linux | `paplay`/`aplay` with freedesktop sounds | Beep patterns |
+| Platform | Method | Voice Mode |
+|----------|--------|------------|
+| All | `chime` library (bundled .wav files) | N/A |
+| macOS | `chime` + `say` command (voice mode) | Samantha voice at varying speeds |
 
 ### 21.2 Sound Events (22)
 
-error, warning, success, info, discovery, damage, trust, chat_open, chat_close, pickup, repair, victory, game_over, aria_warning, boot, scan, trade, escort, upgrade, hazard_geyser, hazard_ice, hazard_storm
+22 game events mapped to chime's 4 sound types:
 
-### 21.3 Beep Patterns
+| Chime Type | Game Events |
+|------------|-------------|
+| `success` | success, victory, repair, trade, escort, upgrade, pickup, trust |
+| `error` | error, damage, game_over, hazard_geyser, hazard_ice |
+| `warning` | warning, aria_warning, hazard_storm |
+| `info` | info, discovery, boot, scan, chat_open, chat_close |
 
-Different bell rhythms per event (1 beep = info, 2 = success, 3 rapid = warning, 4 = alarm, fanfare pattern for victory). Written to stderr to avoid Rich console conflicts.
+### 21.3 Playback
+
+All sounds play asynchronously in background daemon threads via `chime`'s `sync=False` parameter. A non-blocking lock prevents overlapping sounds — if one is playing, the next is silently dropped. Sound always fires **after** screen output (never before) to avoid blocking the TUI.
 
 ### 21.4 Voice Mode
 

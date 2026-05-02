@@ -128,13 +128,13 @@ def _safe_sound(event: str):
 
 
 def show_title():
-    _safe_sound("boot")
     console.print(TITLE_ART)
+    _safe_sound("boot")
 
 
 def show_crash():
-    _safe_sound("damage")
     console.print(CRASH_ART)
+    _safe_sound("damage")
 
 
 def narrate_lines(lines: list[str], style: str = "italic", pause: float = 0.5):
@@ -150,18 +150,18 @@ def info(text: str):
 
 
 def warn(text: str):
-    _safe_sound("warning")
     console.print(f"[yellow]{text}[/yellow]")
+    _safe_sound("warning")
 
 
 def error(text: str):
-    _safe_sound("error")
     console.print(f"[red]{text}[/red]")
+    _safe_sound("error")
 
 
 def success(text: str):
-    _safe_sound("success")
     console.print(f"[green]{text}[/green]")
+    _safe_sound("success")
 
 
 def dim(text: str):

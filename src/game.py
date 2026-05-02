@@ -1,5 +1,6 @@
 """Main game loop: initialization, intro sequence, win/lose conditions."""
 
+import logging
 import random
 
 from src import llm, ui
@@ -11,6 +12,8 @@ from src.player import Player
 from src.ship_ai import ShipAI
 from src.tutorial import TutorialManager
 from src.world import generate_world
+
+logger = logging.getLogger(__name__)
 
 # Escort requirements by mode — creatures that must help at the ship
 ESCORT_REQUIREMENTS = {
@@ -264,10 +267,13 @@ def game_loop(ctx: GameContext) -> bool:
         raise RuntimeError("game_loop() requires TUI bridge — launch via play_tui.py")
 
     # Initial look
+    logger.debug("game_loop: cmd_look starting")
     cmd_look(ctx, "")
+    logger.debug("game_loop: cmd_look done")
     ui.console.print()
 
     while True:
+        logger.debug("game_loop: top of loop")
         # Check win/lose
         if check_win(ctx):
             if ctx.dev_mode:
@@ -288,14 +294,17 @@ def game_loop(ctx: GameContext) -> bool:
             return True
 
         # Status bar
+        logger.debug("game_loop: render_status_bar")
         loc = ctx.current_location()
         creature_here = ctx.creature_at_location(loc.name)
         followers = [c for c in ctx.creatures if c.following]
         ui.render_status_bar(ctx.player, ctx.drone, ctx.repair_checklist, loc.loc_type, creature_here, followers)
 
         # Get player command via TUI bridge
+        logger.debug("game_loop: get_command waiting...")
         location = ctx.player.location_name
         raw = ui._bridge.get_command(location)
+        logger.debug(f"game_loop: got command: {raw!r}")
 
         if raw is None:
             ui.console.print()
@@ -390,45 +399,46 @@ def _parse_flags() -> tuple[bool, bool, bool, bool]:
     return dev_flag, super_flag, upgrade_flag, no_anim_flag
 
 
-_debug_log_file = None
+def _setup_logging(dev: bool) -> None:
+    """Configure Python logging. In dev mode, write DEBUG to file + stderr."""
+    from pathlib import Path
 
+    root = logging.getLogger()
+    level = logging.DEBUG if dev else logging.WARNING
+    root.setLevel(level)
 
-def _stderr(msg):
-    """Write debug message to stderr and log file (bypasses TUI, always visible)."""
-    import sys as _sys
+    fmt = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s", datefmt="%H:%M:%S")
 
-    if "--dev" not in _sys.argv:
-        return
-
-    import time
-
-    timestamp = time.strftime("%H:%M:%S")
-    line = f"[{timestamp}] [DEBUG] {msg}"
-    print(line, file=_sys.stderr, flush=True)
-
-    # Also write to log file in ~/.moonwalker/dev/
-    global _debug_log_file
-    if _debug_log_file is None:
+    if dev:
+        # File handler → ~/.moonwalker/dev/startup.log
         try:
-            from pathlib import Path
-
             log_dir = Path.home() / ".moonwalker" / "dev"
             log_dir.mkdir(parents=True, exist_ok=True)
-            log_path = log_dir / "startup.log"
-            _debug_log_file = open(log_path, "w")  # noqa: SIM115
-            _debug_log_file.write(f"[{timestamp}] Debug log started\n")
-            _debug_log_file.flush()
+            fh = logging.FileHandler(log_dir / "startup.log", mode="w", encoding="utf-8")
+            fh.setLevel(logging.DEBUG)
+            fh.setFormatter(fmt)
+            root.addHandler(fh)
         except Exception:
-            _debug_log_file = False  # disable file logging on error
-    if _debug_log_file and _debug_log_file is not False:
-        _debug_log_file.write(line + "\n")
-        _debug_log_file.flush()
+            pass
+
+        # Stderr handler (bypasses TUI, always visible in console)
+        sh = logging.StreamHandler()
+        sh.setLevel(logging.DEBUG)
+        sh.setFormatter(fmt)
+        root.addHandler(sh)
 
 
 def main():
     """Entry point. Runs game sessions in a loop (play-again restarts without recursion)."""
     dev_flag, super_flag, upgrade_flag, no_anim_flag = _parse_flags()
-    _stderr(f"main() started. flags: dev={dev_flag} super={super_flag} upgrade={upgrade_flag} no_anim={no_anim_flag}")
+    _setup_logging(dev_flag)
+    logger.debug(
+        "main() started. flags: dev=%s super=%s upgrade=%s no_anim=%s",
+        dev_flag,
+        super_flag,
+        upgrade_flag,
+        no_anim_flag,
+    )
 
     # --upgrade: check for updates and exit
     if upgrade_flag:
@@ -472,11 +482,11 @@ def main():
 
 def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     """Run a single game session (new or loaded). Returns True if game ended (win/lose)."""
-    _stderr("_run_session() started")
+    logger.debug("_run_session() started")
     from src.save_load import list_saves, load_game
 
     saves = list_saves()
-    _stderr(f"saves found: {saves}")
+    logger.debug(f"saves found: {saves}")
 
     choice = "new"
     if saves:
@@ -484,7 +494,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             "What would you like to do?",
             ["New Game", "Load Game"],
         )
-    _stderr(f"choice: {choice}")
+    logger.debug(f"choice: {choice}")
 
     if choice == "Load Game":
         ui.info("Available saves: " + ", ".join(saves))
@@ -545,9 +555,9 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             from src.difficulty import check_junk_easter_egg
 
             ctx.easter_egg_announced = check_junk_easter_egg(ctx.player, ctx.world_mode)
-            # Wire Textual autocomplete
+            # Wire Textual autocomplete (fire-and-forget via UI queue)
             try:
-                ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
+                ui._bridge._safe_call(ui._bridge._app.set_suggester, ctx)
             except Exception as e:
                 ui.dim(f"(autocomplete unavailable: {e})")
             return game_loop(ctx)
@@ -555,39 +565,39 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
             ui.error("Failed to load. Starting new game.")
 
     # New game
-    _stderr("prompting for game mode...")
+    logger.debug("prompting for game mode...")
     mode = ui.prompt_choice(
         "Choose game length:",
         ["Easy (~30 min)", "Medium (~1-2 hours)", "Hard (~3+ hours)", "Brutal (~5+ hours)"],
     )
     _mode_map = {"easy": "short", "medium": "medium", "hard": "long", "brutal": "brutal"}
     mode_key = _mode_map.get(mode.split()[0].lower(), "short")
-    _stderr(f"mode selected: {mode} -> {mode_key}")
+    logger.debug(f"mode selected: {mode} -> {mode_key}")
 
     # Prompt for player name
-    _stderr("prompting for player name...")
+    logger.debug("prompting for player name...")
     try:
         raw_name = ui.console.input("[bold]Enter your name (Enter for 'Commander'): [/bold]").strip()
         player_name = _sanitize_player_name(raw_name)
     except (EOFError, KeyboardInterrupt):
         player_name = "Commander"
-    _stderr(f"player name: {player_name}")
+    logger.debug(f"player name: {player_name}")
 
     # Clear the mode selection UI before boot sequence
-    _stderr("clearing screen...")
+    logger.debug("clearing screen...")
     ui.console.clear()
     import time as _clear_t
 
     _clear_t.sleep(0.3)  # Let Textual event loop process the clear before animations
 
-    _stderr("calling _ensure_llm_loaded()...")
+    logger.debug("calling _ensure_llm_loaded()...")
     _ensure_llm_loaded(dev_flag=dev_flag)
-    _stderr(f"LLM loaded. is_available={llm.is_available()}")
+    logger.debug(f"LLM loaded. is_available={llm.is_available()}")
 
-    _stderr("calling init_game()...")
+    logger.debug("calling init_game()...")
     ctx = init_game(mode_key)
     ctx.player.name = player_name
-    _stderr(f"game initialized. locations={len(ctx.locations)}, creatures={len(ctx.creatures)}")
+    logger.debug(f"game initialized. locations={len(ctx.locations)}, creatures={len(ctx.creatures)}")
 
     # Apply command-line flags
     if dev_flag and ctx.dev_mode:
@@ -595,14 +605,14 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
     if super_flag:
         apply_super_mode(ctx)
 
-    # Wire Textual autocomplete
+    # Wire Textual autocomplete (fire-and-forget via UI queue)
     try:
-        ui._bridge._app.call_from_thread(ui._bridge._app.set_suggester, ctx)
+        ui._bridge._safe_call(ui._bridge._app.set_suggester, ctx)
     except Exception as e:
         ui.dim(f"(autocomplete unavailable: {e})")
 
     # Run ARIA boot sequence (replaces old show_intro)
-    _stderr("running boot sequence...")
+    logger.debug("running boot sequence...")
     ctx.tutorial.run_boot_sequence(
         ctx.ship_ai,
         ctx.player,
@@ -611,7 +621,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
         ctx.repair_checklist,
         mode_key,
     )
-    _stderr("boot sequence done. entering game loop...")
+    logger.debug("boot sequence done. entering game loop...")
 
     return game_loop(ctx)
 
@@ -630,30 +640,30 @@ def _sanitize_player_name(raw: str) -> str:
 def _ensure_llm_loaded(dev_flag: bool = False):
     """Load the LLM model if not already loaded. Skips reload on play-again."""
     if llm.is_available():
-        _stderr("LLM already loaded, skipping")
+        logger.debug("LLM already loaded, skipping")
         return
     from src.config import get_gpu_mode
 
-    _stderr(f"_LLAMA_AVAILABLE = {llm._LLAMA_AVAILABLE}")
+    logger.debug(f"_LLAMA_AVAILABLE = {llm._LLAMA_AVAILABLE}")
     if not llm._LLAMA_AVAILABLE:
-        _stderr("llama-cpp-python not available")
+        logger.debug("llama-cpp-python not available")
         ui.warn("llama-cpp-python not installed. Using fallback dialogue.")
         return
     gpu_setting = get_gpu_mode()
-    _stderr(f"gpu_setting = {gpu_setting}")
+    logger.debug(f"gpu_setting = {gpu_setting}")
     if gpu_setting == "auto":
         try:
-            _stderr("detect_gpu() starting...")
+            logger.debug("detect_gpu() starting...")
             gpu_info = llm.detect_gpu()
             gpu_mode = "gpu" if gpu_info["available"] else "cpu"
-            _stderr(f"detect_gpu() done: {gpu_info}, mode={gpu_mode}")
+            logger.debug(f"detect_gpu() done: {gpu_info}, mode={gpu_mode}")
         except Exception as e:
             gpu_mode = "cpu"
-            _stderr(f"detect_gpu() FAILED: {e}")
+            logger.debug(f"detect_gpu() FAILED: {e}")
     else:
         gpu_mode = gpu_setting
-    _stderr("maybe_download_model() starting...")
+    logger.debug("maybe_download_model() starting...")
     llm.maybe_download_model()
-    _stderr("load_model() starting...")
+    logger.debug("load_model() starting...")
     llm.load_model(gpu_mode=gpu_mode, quiet=True)
-    _stderr(f"load_model() done. is_available={llm.is_available()}")
+    logger.debug(f"load_model() done. is_available={llm.is_available()}")
