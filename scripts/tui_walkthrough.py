@@ -34,7 +34,7 @@ def run_session(script_name, description):
 
     result = subprocess.run(
         [sys.executable, str(Path(__file__).parent / script_name)],
-        timeout=300,
+        timeout=600,
         capture_output=False,
     )
 
