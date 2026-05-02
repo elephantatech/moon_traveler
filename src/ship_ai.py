@@ -1,7 +1,8 @@
+"""ARIA — the ship's onboard AI. Narrates, warns, and tracks status."""
+
 import logging
 
 logger = logging.getLogger(__name__)
-"""ARIA — the ship's onboard AI. Narrates, warns, and tracks status."""
 
 # Warning thresholds (descending) — each fires once until resource is replenished
 THRESHOLDS = [50, 30, 15, 5]

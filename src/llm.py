@@ -107,7 +107,7 @@ def detect_gpu() -> dict:
         if hasattr(_ll, "GGML_USE_CUDA") or hasattr(_ll, "GGML_USE_METAL") or hasattr(_ll, "GGML_USE_VULKAN"):
             return {"available": True, "backend": "gpu"}
     except Exception:
-        logger.debug("Memory compaction failed", exc_info=True)
+        logger.debug("GPU backend attribute check failed", exc_info=True)
 
     return {"available": False, "backend": "none"}
 
