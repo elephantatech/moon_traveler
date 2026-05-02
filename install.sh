@@ -111,21 +111,20 @@ get_latest_version() {
 install() {
   local filename="moon-traveler-${VERSION}-${PLATFORM}"
   local url="https://github.com/$REPO/releases/download/$VERSION/$filename"
+  local dest="$INSTALL_DIR/moon-traveler"
 
   dim "Downloading $filename..."
-  TMPDIR_INSTALL="$(mktemp -d)"
-  trap 'rm -rf "$TMPDIR_INSTALL"' EXIT
+  mkdir -p "$INSTALL_DIR"
+  TMP_DEST="${dest}.tmp.$$"
+  trap 'rm -f "$TMP_DEST"' EXIT
 
-  curl -fSL --progress-bar -o "$TMPDIR_INSTALL/$filename" "$url" || {
+  curl -fSL --progress-bar -o "$TMP_DEST" "$url" || {
     red "Download failed: $url"
     red "Check https://github.com/$REPO/releases for available downloads."
     exit 1
   }
 
-  # Install binary
-  mkdir -p "$INSTALL_DIR"
-  local dest="$INSTALL_DIR/moon-traveler"
-  cp "$TMPDIR_INSTALL/$filename" "$dest"
+  mv "$TMP_DEST" "$dest"
   chmod +x "$dest"
 
   echo
