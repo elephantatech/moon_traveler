@@ -1,6 +1,7 @@
 """Tests for the DevMode module."""
 
 import json
+import logging
 import tempfile
 from pathlib import Path
 
@@ -40,23 +41,33 @@ class TestSystemMetrics:
 
 
 class TestDevModeLogging:
-    def test_render_panel_writes_jsonl(self):
-        """render_panel should write a valid JSON line to the log file."""
+    def test_render_panel_logs_diagnostics(self):
+        """render_panel should log a valid JSON diagnostics entry."""
         from src.game import init_game
 
         ctx = init_game("short", seed=42)
         dm = ctx.dev_mode
 
-        # Point log to a temp file
+        # Set up a log handler to capture output
         with tempfile.TemporaryDirectory() as tmpdir:
-            dm.log_path = Path(tmpdir) / "test.jsonl"
+            log_file = Path(tmpdir) / "test.log"
+            handler = logging.FileHandler(log_file, mode="w")
+            handler.setLevel(logging.DEBUG)
+            dev_logger = logging.getLogger("dev_mode")
+            dev_logger.addHandler(handler)
+            dev_logger.setLevel(logging.DEBUG)
+
             dm.enabled = True
             dm.render_panel(ctx)
 
-            assert dm.log_path.exists()
-            lines = dm.log_path.read_text().strip().split("\n")
-            assert len(lines) == 1
-            entry = json.loads(lines[0])
+            handler.flush()
+            dev_logger.removeHandler(handler)
+            handler.close()
+
+            assert log_file.exists()
+            content = log_file.read_text().strip()
+            assert content
+            entry = json.loads(content)
             assert entry["event"] == "diagnostics"
             assert "system" in entry
             assert "game" in entry

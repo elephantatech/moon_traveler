@@ -414,7 +414,7 @@ def _setup_logging(dev: bool) -> None:
         try:
             log_dir = Path.home() / ".moonwalker" / "dev"
             log_dir.mkdir(parents=True, exist_ok=True)
-            fh = logging.FileHandler(log_dir / "startup.log", mode="w", encoding="utf-8")
+            fh = logging.FileHandler(log_dir / "game.log", mode="w", encoding="utf-8")
             fh.setLevel(logging.DEBUG)
             fh.setFormatter(fmt)
             root.addHandler(fh)
