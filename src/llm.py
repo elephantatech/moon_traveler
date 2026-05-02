@@ -1,5 +1,6 @@
 """LLM interface: llama-cpp-python with fallback to canned responses."""
 
+import logging
 import os
 import random
 import re
@@ -19,6 +20,8 @@ from src.data.prompts import (
     TRUST_INSTRUCTIONS,
     build_action_instructions,
 )
+
+logger = logging.getLogger(__name__)
 
 # Try to import llama-cpp-python
 _llm_model = None
@@ -96,16 +99,14 @@ def detect_gpu() -> dict:
             if llama_cpp.LLAMA_SUPPORTS_GPU_OFFLOAD:
                 return {"available": True, "backend": "gpu"}
     except Exception:
-        pass
-
-    # Last resort: check if the compiled lib mentions GPU backends
+        logger.debug("Last resort: check if the compiled lib mentions GPU backends", exc_info=True)
     try:
         import llama_cpp.llama_cpp as _ll
 
         if hasattr(_ll, "GGML_USE_CUDA") or hasattr(_ll, "GGML_USE_METAL") or hasattr(_ll, "GGML_USE_VULKAN"):
             return {"available": True, "backend": "gpu"}
     except Exception:
-        pass
+        logger.debug("Exception suppressed", exc_info=True)
 
     return {"available": False, "backend": "none"}
 
@@ -308,6 +309,7 @@ def maybe_download_model() -> bool:
             ui.dim("  Enough RAM for any model")
     except ImportError:
         pass
+
     ui.console.print()
 
     ui.console.print("[bold]Available models:[/bold]")
@@ -448,7 +450,7 @@ def _create_llama(**kwargs):
         os.dup2(devnull, 2)
         os.close(devnull)
     except OSError:
-        pass  # If we can't redirect, just let C output through
+        logger.debug("If we can't redirect, just let C output through", exc_info=True)
 
     try:
         return Llama(**kwargs)
@@ -458,7 +460,7 @@ def _create_llama(**kwargs):
                 os.dup2(saved_stderr, 2)
                 os.close(saved_stderr)
             except OSError:
-                pass
+                logger.debug("OSError suppressed", exc_info=True)
 
 
 def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
@@ -785,7 +787,7 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
                 current = _sanitize_memory(compact_text)[:4096]
                 creature.memory = current
         except Exception:
-            pass
+            logger.debug("Exception suppressed", exc_info=True)
 
     prompt = _MEMORY_UPDATE_PROMPT.format(
         name=creature.name,
@@ -807,7 +809,7 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
             creature.memory = text[:4096]  # Cap memory size
             return text
     except Exception:
-        pass
+        logger.debug("Exception suppressed", exc_info=True)
 
     return _update_memory_fallback(creature, recent_count, extra_context)
 

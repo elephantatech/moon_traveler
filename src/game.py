@@ -78,7 +78,7 @@ def show_win_sequence(ctx: GameContext):
 
         sound.play("victory")
     except Exception:
-        pass
+        logger.debug("Exception suppressed", exc_info=True)
     ui.console.print()
     ui.console.print("[bold green]" + "=" * 60 + "[/bold green]")
     win_lines = [
@@ -140,7 +140,7 @@ def show_lose_sequence(ctx: GameContext):
 
         sound.play("game_over")
     except Exception:
-        pass
+        logger.debug("Exception suppressed", exc_info=True)
     ui.console.print()
     ui.console.print("[bold red]" + "=" * 60 + "[/bold red]")
     lose_lines = [
@@ -419,9 +419,7 @@ def _setup_logging(dev: bool) -> None:
             fh.setFormatter(fmt)
             root.addHandler(fh)
         except Exception:
-            pass
-
-        # Stderr handler (bypasses TUI, always visible in console)
+            logger.debug("Stderr handler (bypasses TUI, always visible in console)", exc_info=True)
         sh = logging.StreamHandler()
         sh.setLevel(logging.DEBUG)
         sh.setFormatter(fmt)
@@ -456,18 +454,14 @@ def main():
 
             _snd.disable()
     except Exception:
-        pass
-
-    # Disable animations if requested via CLI flag
+        logger.debug("Disable animations if requested via CLI flag", exc_info=True)
     if no_anim_flag:
         try:
             from src import animations
 
             animations.force_disable()
         except Exception:
-            pass
-
-    # First-run: prompt for save location
+            logger.debug("First-run: prompt for save location", exc_info=True)
     from src.config import is_first_run, prompt_save_location
 
     if is_first_run():
@@ -540,8 +534,7 @@ def _run_session(dev_flag: bool, super_flag: bool) -> bool:
 
                 sound.set_voice(ctx.drone.voice_enabled)
             except Exception:
-                pass
-            # Persist tutorial completion if the loaded save had it done
+                logger.debug("Persist tutorial completion if the loaded save had it done", exc_info=True)
             if tutorial.completed:
                 from src.config import set_tutorial_completed
 

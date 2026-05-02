@@ -1,5 +1,6 @@
 """Command registry, parser, and handlers."""
 
+import logging
 import random
 import re
 import unicodedata
@@ -11,6 +12,8 @@ from src.player import Player
 from src.save_load import list_saves, load_game, save_game
 from src.travel import execute_travel
 from src.world import Location
+
+logger = logging.getLogger(__name__)
 
 try:
     from src import sound as _sound_mod
@@ -27,7 +30,7 @@ class _SafeSound:
             try:
                 _sound_mod.play(event)
             except Exception:
-                pass
+                logger.debug("Exception suppressed", exc_info=True)
 
     @staticmethod
     def is_enabled():
@@ -777,9 +780,7 @@ def cmd_talk(ctx: GameContext, args: str):
         try:
             llm.update_creature_memory(creature, recent_count=min(max(current_convo_len, 1), 40))
         except Exception:
-            pass
-
-    # ARIA trust commentary after conversation
+            logger.debug("ARIA trust commentary after conversation", exc_info=True)
     if ctx.ship_ai and creature:
         if creature.trust >= 70:
             ui.console.print(ctx.ship_ai.speak(f"{creature.name} appears highly cooperative. Trust is strong."))
@@ -862,9 +863,7 @@ def cmd_give(ctx: GameContext, args: str):
         gift_ctx = f"Player gave {display} as a gift. Trust is now {creature.trust}."
         llm.update_creature_memory(creature, extra_context=gift_ctx)
     except Exception:
-        pass
-
-    # At high trust, creature acknowledges friendship
+        logger.debug("At high trust, creature acknowledges friendship", exc_info=True)
     if creature.trust >= 70 and not creature.has_helped_repair:
         creature.has_helped_repair = True
         ui.success(f"{creature.name} considers you a true friend. They may share what they have in conversation.")

@@ -117,7 +117,7 @@ def _play_chime(event: str):
                 )
                 return
             except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
-                pass
+                logger.debug("voice playback failed", exc_info=True)
 
     # Map event to chime type and play
     chime_type = _EVENT_MAP.get(event, "info")

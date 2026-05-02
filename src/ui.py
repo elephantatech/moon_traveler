@@ -1,10 +1,13 @@
 """Rich console output helpers, ASCII art, and styled text."""
 
+import logging
 import time
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+logger = logging.getLogger(__name__)
 
 _bridge = None  # Set by tui_app on startup
 
@@ -124,7 +127,7 @@ def _safe_sound(event: str):
 
         sound.play(event)
     except Exception:
-        pass
+        logger.debug("Exception suppressed", exc_info=True)
 
 
 def show_title():
@@ -419,6 +422,7 @@ def prompt_choice(prompt_text: str, choices: list[str]) -> str:
             raise
         except (ValueError, EOFError):
             pass
+
         error(f"Please enter a number 1-{len(choices)}.")
 
 

@@ -95,7 +95,7 @@ class MoonTravelerApp(App):
             try:
                 self._game_log.write(f"[dim]Autocomplete init: {e}[/dim]")
             except Exception:
-                pass
+                logger.debug("Exception suppressed", exc_info=True)
 
     def _game_worker(self) -> None:
         """Run the full game in a worker thread."""
@@ -134,7 +134,7 @@ class MoonTravelerApp(App):
                 msg = f"[red]CRASH: {_esc(str(e))}[/red]\n[dim]{_esc(tb)}[/dim]"
                 self._bridge_queue.put_nowait((game_log.write, (msg,)))
             except Exception:
-                pass
+                logger.debug("Exception suppressed", exc_info=True)
             import time
 
             time.sleep(10)  # Keep visible before exit
@@ -346,7 +346,7 @@ def run_tui():
                 try:
                     stream.reconfigure(encoding="utf-8", errors="replace")
                 except Exception:
-                    pass
+                    logger.debug("Exception suppressed", exc_info=True)
 
     app = MoonTravelerApp()
     app.run()
