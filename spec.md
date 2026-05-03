@@ -1181,8 +1181,8 @@ src/
   save_load.py             SQLite save/load, creature_memory table, leaderboard, version validation
   input_handler.py         GameSuggester (Textual tab-autocomplete)
   config.py                ~/.moonwalker/ config (save_dir, gpu, context, sound, tutorial)
-  sound.py                 Cross-platform sound (22 events, beeps + voice via say)
-  dev_mode.py              Developer diagnostics (JSON log to ~/.moonwalker/dev/)
+  sound.py                 Cross-platform sound (22 events, chime + macOS voice via say)
+  dev_mode.py              Developer diagnostics (JSON entries via Python logging)
   data/
     __init__.py             Package marker
     names.py                Name pools (28 prefixes, 20 species, 30 creature names)

@@ -84,7 +84,7 @@ def _get_db() -> sqlite3.Connection:
         conn.execute("ALTER TABLE leaderboard ADD COLUMN player_name TEXT DEFAULT 'Commander'")
         conn.commit()
     except sqlite3.OperationalError:
-        logger.debug("Column already exists", exc_info=True)
+        logger.debug("Column already exists")
     return conn
 
 
@@ -107,7 +107,7 @@ def list_saves() -> list[str]:
             slots.extend(row[0] for row in cursor.fetchall())
             conn.close()
         except Exception:
-            logger.debug("SQLite save listing failed", exc_info=True)
+            logger.warning("SQLite save listing failed", exc_info=True)
     for f in saves_dir.glob("*.json"):
         if f.stem not in slots:
             slots.append(f.stem)
@@ -436,7 +436,7 @@ def delete_save(slot: str) -> bool:
             conn.close()
             deleted = True
         except Exception:
-            logger.debug("Save deletion failed", exc_info=True)
+            logger.warning("Save deletion failed", exc_info=True)
     json_path = _saves_dir() / f"{slot}.json"
     if json_path.exists():
         json_path.unlink()
@@ -506,7 +506,7 @@ def record_score(
         )
         conn.commit()
     except Exception:
-        logger.debug("Non-critical — don't block gameplay", exc_info=True)
+        logger.debug("Leaderboard score recording failed", exc_info=True)
     finally:
         if conn:
             conn.close()

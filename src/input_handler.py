@@ -1,6 +1,10 @@
 """Tab-autocomplete input for Textual TUI mode."""
 
+import logging
+
 from textual.suggester import Suggester as _TextualSuggester
+
+logger = logging.getLogger(__name__)
 
 # Base commands (always available)
 BASE_COMMANDS = [
@@ -69,6 +73,7 @@ class GameSuggester(_TextualSuggester):
         try:
             return self._suggest(value)
         except Exception:
+            logger.debug("suggestion failed", exc_info=True)
             return None
 
     def _suggest(self, text: str) -> str | None:

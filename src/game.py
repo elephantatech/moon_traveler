@@ -425,7 +425,7 @@ def _setup_logging(dev: bool) -> None:
             fh.setFormatter(fmt)
             root.addHandler(fh)
         except Exception:
-            logger.debug("Failed to create log file handler", exc_info=True)
+            logger.warning("Failed to create log file handler", exc_info=True)
 
 
 def main():

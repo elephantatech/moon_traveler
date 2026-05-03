@@ -37,7 +37,7 @@ class UIBridge:
         try:
             self._app._bridge_queue.put_nowait((fn, args))
         except Exception:
-            logger.debug("_safe_call: queue put failed", exc_info=True)
+            logger.warning("_safe_call: queue put failed", exc_info=True)
 
     def write(self, renderable):
         """Write a Rich renderable to the game log."""
@@ -92,8 +92,8 @@ class UIBridge:
 
         clean_prompt = re.sub(r"\[/?[a-z_ ]+\]", "", prompt)
 
-        # Enter ask mode: set flag directly (atomic via GIL) and queue
-        # the label update.  No call_from_thread — avoids Windows deadlock.
+        # Enter ask mode: set flag directly (simple bool assignment, safe
+        # without lock) and queue the label update.  Avoids Windows deadlock.
         self._app._ask_mode = True
         self._safe_call(self._app.update_prompt_label, clean_prompt)
 

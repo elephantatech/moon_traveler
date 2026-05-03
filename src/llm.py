@@ -151,6 +151,7 @@ def _get_context_size() -> int:
 
         return get_context_size()
     except Exception:
+        logger.debug("context size config read failed, using default 8192", exc_info=True)
         return 8192
 
 
@@ -457,7 +458,7 @@ def _create_llama(**kwargs):
             os.dup2(devnull, 2)
             os.close(devnull)
         except OSError:
-            logger.debug("stderr redirect failed", exc_info=True)
+            logger.warning("stderr redirect failed — WriterThread protection bypassed", exc_info=True)
 
         try:
             return Llama(**kwargs)
@@ -467,7 +468,7 @@ def _create_llama(**kwargs):
                     os.dup2(saved_stderr, 2)
                     os.close(saved_stderr)
                 except OSError:
-                    logger.debug("stderr restore failed", exc_info=True)
+                    logger.error("stderr restore failed — fd 2 permanently lost", exc_info=True)
 
 
 def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
@@ -1059,4 +1060,5 @@ def generate_drone_hint(creature, player, repair_checklist: dict) -> str | None:
         text = result["choices"][0]["text"].strip()
         return text if text else None
     except Exception:
+        logger.debug("drone hint generation failed", exc_info=True)
         return None

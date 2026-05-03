@@ -53,7 +53,7 @@ class MoonTravelerApp(App):
         self._game_input = self.query_one("#game-input", Input)
         self._game_input.focus()
         # Heartbeat: a chain of one-shot timers that drains the bridge queue
-        # (worker thread → main thread) and nudges the screen to repaint.
+        # (worker thread → main thread).
         # Bypasses call_soon_threadsafe/post_message entirely — the event
         # loop's own timer mechanism is reliable on Windows.
         self._heartbeat_active = True
@@ -82,7 +82,7 @@ class MoonTravelerApp(App):
             except queue.Empty:
                 break
             except Exception:
-                logger.debug("bridge callback failed", exc_info=True)
+                logger.warning("bridge callback failed", exc_info=True)
         self._schedule_heartbeat()
 
     def set_suggester(self, ctx) -> None:
@@ -134,13 +134,19 @@ class MoonTravelerApp(App):
                 msg = f"[red]CRASH: {_esc(str(e))}[/red]\n[dim]{_esc(tb)}[/dim]"
                 self._bridge_queue.put_nowait((game_log.write, (msg,)))
             except Exception:
-                logger.debug("Crash error display failed", exc_info=True)
+                logger.error("Crash error display failed", exc_info=True)
             import time
 
             time.sleep(10)  # Keep visible before exit
         finally:
             # Game ended — queue exit via bridge (avoids call_from_thread deadlock)
-            self._bridge_queue.put_nowait((self.exit, ()))
+            try:
+                self._bridge_queue.put_nowait((self.exit, ()))
+            except Exception:
+                logger.error("Failed to queue exit — forcing shutdown", exc_info=True)
+                import os
+
+                os._exit(1)
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Reset tab cycling when the user types a new character."""

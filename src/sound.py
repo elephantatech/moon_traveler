@@ -101,7 +101,7 @@ def is_voice_enabled() -> bool:
 
 
 def _play_chime(event: str):
-    """Play a chime sound for the given event. Runs in a background thread."""
+    """Play a chime sound for the given event."""
     import platform
 
     # macOS voice override

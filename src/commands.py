@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from src import sound as _sound_mod
-except Exception:
+except ImportError:
     _sound_mod = None
 
 
