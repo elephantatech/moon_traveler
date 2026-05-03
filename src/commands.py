@@ -2055,7 +2055,7 @@ def cmd_screenshot(ctx: GameContext, args: str):
 def cmd_model(ctx: GameContext, args: str):
     """Re-download or switch the AI model."""
     from src import llm
-    from src.config import get_gpu_mode
+    from src.config import get_gpu_mode, set_model_path
 
     if llm.is_available():
         ui.info("Current model is loaded and working.")
@@ -2067,17 +2067,19 @@ def cmd_model(ctx: GameContext, args: str):
             return
 
     ui.info("Opening model selection...")
-    if llm.maybe_download_model():
+    chosen_path = llm.maybe_download_model(force=True)
+    if chosen_path:
         gpu_setting = get_gpu_mode()
         if gpu_setting == "auto":
             gpu_info = llm.detect_gpu()
             gpu_mode = "gpu" if gpu_info["available"] else "cpu"
         else:
             gpu_mode = gpu_setting
-        try:
-            llm.load_model(gpu_mode=gpu_mode, quiet=False)
-        except Exception as e:
-            ui.error(f"Failed to load model: {e}")
+        llm.load_model(gpu_mode=gpu_mode, quiet=False, model_path=chosen_path)
+        if llm.is_available():
+            set_model_path(chosen_path)
+        else:
+            ui.error("Model failed to load.")
             ui.dim("The game will use fallback dialogue until a working model is loaded.")
     else:
         ui.dim("No model selected. Fallback dialogue will be used.")

@@ -979,7 +979,7 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 |-------|--------|
 | #49 In-place upgrade | **Done** — `update` command + `--upgrade` flag |
 | #29 ASCII animations | **Done** — scan, travel, drone, hazard, exchange sprites |
-| #54 Model download progress | **Done** — progress bars + `model` command |
+| #54 Model download progress | **Done** — progress bars + `model` command with model switching, config persistence, and manual model support |
 | #9 LLM performance diagnostics | **Done** — `_timed_inference` wrapper in dev mode |
 | #25 Cross-platform CI test matrix | **Done** — 3 OS × 3 Python = 9 jobs |
 | #26 Test coverage reporting | **Done** — pytest-cov in CI |

@@ -96,7 +96,7 @@ On first launch, the game offers to download an AI model:
 | **Qwen3.5 2B** (default) | 1.3 GB | ~2.3 GB | Good — best for most machines |
 | **Gemma 4 E2B** (optional) | 3.1 GB | ~4.4 GB | Very Good — richer dialogue |
 
-You can also place any `.gguf` model file manually in `~/.moonwalker/models/`. Any GGUF model is auto-detected — no config needed. The game falls back to pre-written dialogue if no model is found.
+You can also place any `.gguf` model file manually in `~/.moonwalker/models/`. Use the `model` command in-game to switch between installed models or download new ones — your choice is saved automatically. The game falls back to pre-written dialogue if no model is found.
 
 ## Running
 
@@ -151,7 +151,7 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 | `sound` | Toggle sound effects on/off |
 | `tutorial` | Replay the ARIA boot sequence |
 | `config` | View/change settings (save dir, GPU, animations) |
-| `model` | Re-download or switch AI model |
+| `model` | Switch between installed models or download new ones |
 | `update` | Check for game updates |
 | `clear` / `cls` | Clear the screen |
 | `help` | Show all commands |
@@ -203,7 +203,7 @@ Build trust with creatures to obtain repair materials through conversation and t
 |---------|----------|
 | **Model download fails** | Manually place any `.gguf` file in `~/.moonwalker/models/` (SmolLM2, Qwen3.5, or Gemma 4) |
 | **GPU not detected** | Game auto-falls back to CPU. Check CUDA/Metal/Vulkan drivers if you want GPU acceleration |
-| **Model won't load / crashes** | Game continues with pre-written fallback dialogue. Delete and re-download the model |
+| **Model won't load / crashes** | Game continues with pre-written fallback dialogue. Use `model` to switch to a different model |
 | **Dialogue feels repetitive** | Run `dev` to check if LLM is loaded (`model_loaded: true` in log). Upgrade the Translator Chip |
 | **Game freezes after entering name (Windows)** | Fixed in v0.5.3 — update to the latest version. Caused by llama-cpp-python redirecting stdout during model load |
 | **Game hangs during conversation** | LLM inference can be slow on CPU. Press `Ctrl+C` to exit safely. Progress is auto-saved |

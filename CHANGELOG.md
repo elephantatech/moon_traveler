@@ -21,6 +21,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 
 ### Added
 
+- **Model switching** — `model` command now shows installed models and download options. Selected model is persisted in `config.json`. Manually placed `.gguf` files appear in the menu automatically
 - **`chime` dependency** — cross-platform sound effects via bundled `.wav` files
 - **`_create_llama()` wrapper** — safe model loading that preserves stdout for Textual
 - **Heartbeat timer** — 30 FPS timer drains `_bridge_queue` on the main thread, replacing `call_from_thread`/`call_soon_threadsafe`

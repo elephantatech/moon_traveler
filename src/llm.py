@@ -176,9 +176,24 @@ def _get_legacy_models_dir() -> Path:
 def find_model_path() -> str | None:
     """Find a GGUF model file.
 
-    Searches ~/.moonwalker/models first, then the legacy project-local
-    models/ directory for backward compatibility.
+    Checks config for an explicit model_path first, then searches
+    ~/.moonwalker/models and the legacy project-local models/ directory.
     """
+    try:
+        from src.config import get_model_path, set_model_path
+
+        configured = get_model_path()
+        if configured:
+            if os.path.exists(configured):
+                return configured
+            else:
+                logger.warning("Configured model not found: %s — clearing stale entry", configured)
+                set_model_path(None)
+    except ImportError:
+        pass  # config module not available during early bootstrap
+    except Exception:
+        logger.warning("Failed to read model_path from config", exc_info=True)
+
     search_dirs = [_get_models_dir(), _get_legacy_models_dir()]
     candidates = []
 
@@ -273,15 +288,21 @@ def _download_file(url: str, target: Path, expected_sha256: str | None = None) -
         return False
 
 
-def maybe_download_model() -> bool:
-    """Prompt the user to choose and download a model if none present. Returns True if model is ready."""
-    if find_model_path():
-        return True
+def maybe_download_model(force: bool = False) -> str | None:
+    """Prompt the user to choose and download a model. Returns model path or None.
+
+    force: always show the selection menu even if a model already exists.
+    """
+    if not force:
+        path = find_model_path()
+        if path:
+            return path
 
     import platform as _platform
 
     ui.console.print()
-    ui.warn(f"No GGUF model found in {_get_models_dir()}")
+    if not force:
+        ui.warn(f"No GGUF model found in {_get_models_dir()}")
     ui.info("The game uses a local AI model for creature conversations.")
     ui.info("Without it, creatures will use simpler pre-written dialogue.")
     ui.console.print()
@@ -314,52 +335,90 @@ def maybe_download_model() -> bool:
 
     ui.console.print()
 
-    ui.console.print("[bold]Available models:[/bold]")
-    for i, model in enumerate(AVAILABLE_MODELS, 1):
-        ui.console.print(f"  [cyan]{i}[/cyan]. {model['name']}")
+    # Discover locally available models
+    models_dir = _get_models_dir()
+    local_models: list[Path] = []
+    for d in [models_dir, _get_legacy_models_dir()]:
+        if d.exists():
+            for f in sorted(d.glob("*.gguf")):
+                if f not in local_models:
+                    local_models.append(f)
+
+    # Current model (from config)
+    current = find_model_path()
+
+    idx_offset = 0
+    if local_models:
+        ui.console.print("[bold]Installed models:[/bold]")
+        for i, path in enumerate(local_models, 1):
+            active = " [green](active)[/green]" if str(path) == current else ""
+            try:
+                size_str = f"{path.stat().st_size / 1e6:.0f} MB"
+            except OSError:
+                size_str = "unknown size"
+            ui.console.print(f"  [cyan]{i}[/cyan]. {path.name}{active}")
+            ui.console.print(f"      [dim]{size_str} — {path.parent}[/dim]")
+        idx_offset = len(local_models)
+        ui.console.print()
+
+    ui.console.print("[bold]Download new model:[/bold]")
+    for i, model in enumerate(AVAILABLE_MODELS, idx_offset + 1):
+        # Mark if already downloaded
+        already = any(lm.name == model["filename"] for lm in local_models)
+        tag = " [dim](already downloaded)[/dim]" if already else ""
+        ui.console.print(f"  [cyan]{i}[/cyan]. {model['name']}{tag}")
         ui.console.print(f"      [dim]Download: {model['size']} | RAM needed: {model['ram']}[/dim]")
-    custom_idx = len(AVAILABLE_MODELS) + 1
-    skip_idx = len(AVAILABLE_MODELS) + 2
+    custom_idx = idx_offset + len(AVAILABLE_MODELS) + 1
+    skip_idx = idx_offset + len(AVAILABLE_MODELS) + 2
     ui.console.print(f"  [cyan]{custom_idx}[/cyan]. Custom model (paste a HuggingFace GGUF URL)")
     ui.console.print("      [dim]Supports HuggingFace hosted models only.[/dim]")
     ui.console.print(f"  [cyan]{skip_idx}[/cyan]. Skip (use fallback dialogue)")
     ui.console.print("      [dim]No download needed. Creatures use pre-written dialogue.[/dim]")
     ui.console.print()
-    models_dir = _get_models_dir()
     ui.dim(f"  Manual: place any .gguf file in {models_dir} and it will be auto-detected.")
     ui.console.print()
 
     try:
         answer = ui.console.input("[bold]Choose model > [/bold]").strip()
     except (EOFError, KeyboardInterrupt):
-        return False
+        return None
 
     try:
-        idx = int(answer) - 1
+        choice = int(answer)
     except ValueError:
         if answer.lower() in ("y", "yes"):
-            idx = 0  # default to first model
+            choice = 1  # default to first option
         else:
             ui.dim("Skipping download. Fallback dialogue will be used.")
-            return False
+            return None
 
-    # Skip download
-    if idx == skip_idx - 1:
+    # Local model selected
+    if 1 <= choice <= idx_offset:
+        return str(local_models[choice - 1])
+
+    # Skip
+    if choice == skip_idx:
         ui.dim("Skipping download. Fallback dialogue will be used.")
-        return False
+        return None
 
-    # Custom model — user provides a HuggingFace URL
-    if idx == custom_idx - 1:
+    # Custom model
+    if choice == custom_idx:
         return _download_custom_model()
 
-    if idx < 0 or idx >= len(AVAILABLE_MODELS):
+    # Download model from catalog
+    dl_idx = choice - idx_offset - 1
+    if dl_idx < 0 or dl_idx >= len(AVAILABLE_MODELS):
         ui.dim("Skipping download. Fallback dialogue will be used.")
-        return False
+        return None
 
-    model = AVAILABLE_MODELS[idx]
+    model = AVAILABLE_MODELS[dl_idx]
     models_dir = _get_models_dir()
     models_dir.mkdir(parents=True, exist_ok=True)
     target = models_dir / model["filename"]
+
+    if target.exists():
+        ui.info(f"Model already downloaded: {target}")
+        return str(target)
 
     ui.info(f"Downloading {model['name']}...")
     ui.dim(f"File: {model['filename']} ({model['size']})")
@@ -367,7 +426,7 @@ def maybe_download_model() -> bool:
 
     if _download_file(model["url"], target, expected_sha256=model.get("sha256")):
         ui.success(f"Model downloaded to {target}")
-        return True
+        return str(target)
 
     # Download failed or was cancelled — offer to try a different model
     try:
@@ -375,12 +434,12 @@ def maybe_download_model() -> bool:
     except (EOFError, KeyboardInterrupt):
         retry = "n"
     if retry in ("y", "yes"):
-        return maybe_download_model()
+        return maybe_download_model(force=force)
     ui.dim("You can manually download a .gguf model and place it in the models/ directory.")
-    return False
+    return None
 
 
-def _download_custom_model() -> bool:
+def _download_custom_model() -> str | None:
     """Download a custom GGUF model from a user-provided URL (HuggingFace preferred)."""
     ui.console.print()
     ui.info("Paste a direct link to a .gguf file from HuggingFace.")
@@ -390,17 +449,17 @@ def _download_custom_model() -> bool:
     try:
         url = ui.console.input("[bold]URL > [/bold]").strip()
     except (EOFError, KeyboardInterrupt):
-        return False
+        return None
 
     if not url:
         ui.dim("No URL provided. Skipping.")
-        return False
+        return None
 
     # Strip query params and fragments for validation
     clean_url = url.split("?")[0].split("#")[0]
     if not clean_url.endswith(".gguf"):
         ui.error("URL must point to a .gguf file.")
-        return False
+        return None
 
     if "huggingface.co" not in url and "hf.co" not in url:
         ui.warn("URL does not appear to be from HuggingFace. Proceeding anyway...")
@@ -409,24 +468,24 @@ def _download_custom_model() -> bool:
     filename = clean_url.split("/")[-1]
     if not filename or ".." in filename:
         ui.error("Invalid filename in URL.")
-        return False
+        return None
     models_dir = _get_models_dir()
     models_dir.mkdir(parents=True, exist_ok=True)
     target = models_dir / filename
 
     if target.exists():
         ui.info(f"Model already exists: {target}")
-        return True
+        return str(target)
 
     ui.info(f"Downloading {filename}...")
     ui.console.print()
 
     if _download_file(url, target):
         ui.success(f"Custom model downloaded to {target}")
-        return True
+        return str(target)
     else:
         ui.error("Download failed. Check the URL and try again.")
-        return False
+        return None
 
 
 _llama_load_lock = threading.Lock()
@@ -471,11 +530,12 @@ def _create_llama(**kwargs):
                     logger.error("stderr restore failed — fd 2 permanently lost", exc_info=True)
 
 
-def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
+def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False, model_path: str | None = None):
     """Load the LLM model.
 
     gpu_mode: "cpu" for CPU only, "gpu" for GPU offload.
     quiet: suppress info/success messages (boot sequence handles display).
+    model_path: explicit path to load; if None, auto-detect via find_model_path().
     Call callback(success: bool) when done.
     """
     global _llm_model, _llm_available
@@ -486,7 +546,8 @@ def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
             callback(False)
         return
 
-    model_path = find_model_path()
+    if not model_path:
+        model_path = find_model_path()
     if not model_path:
         ui.warn("No GGUF model found. Using fallback dialogue.")
         ui.dim(f"  Place a .gguf model file in: {_get_models_dir()}")

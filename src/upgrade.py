@@ -246,6 +246,6 @@ def run_upgrade():
         try:
             tmp_file.unlink(missing_ok=True)
         except Exception:
-            logger.debug("On failure, clean up the entire temp directory", exc_info=True)
+            logger.debug("Temp file cleanup failed", exc_info=True)
         if not success:
             shutil.rmtree(tmp_dir, ignore_errors=True)

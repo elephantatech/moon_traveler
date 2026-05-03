@@ -573,7 +573,7 @@ Returns `{"available": bool, "backend": str}`.
 ### 10.2 Model Loading
 
 ```python
-load_model(callback=None, gpu_mode="cpu")
+load_model(callback=None, gpu_mode="cpu", model_path=None)
 ```
 
 | Parameter | CPU Mode | GPU Mode |
@@ -594,9 +594,12 @@ GPU mode is configurable via `config gpu auto|gpu|cpu` (persisted in `~/.moonwal
 
 ### 10.3 Model Search Path
 
-1. `~/.moonwalker/models/` — any `.gguf` file (primary)
-2. `models/` (project root) — legacy backward compatibility
-3. Known filenames: `Qwen3.5-2B-Q4_K_M.gguf`, `gemma-4-E2B-it-Q4_K_M.gguf`
+1. `~/.moonwalker/config.json` `model_path` key — explicit user selection (set by `model` command)
+2. `~/.moonwalker/models/` — any `.gguf` file (primary)
+3. `models/` (project root) — legacy backward compatibility
+4. Known filenames: `Qwen3.5-2B-Q4_K_M.gguf`, `gemma-4-E2B-it-Q4_K_M.gguf`
+
+The `model` command shows both installed models and downloadable models. Selecting a model persists the choice in `config.json`. Manually placed `.gguf` files in the models directory appear in the selection menu automatically.
 
 ### 10.4 Response Generation
 
@@ -717,7 +720,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 | dev | devmode | Toggle developer diagnostics panel |
 | help | — | Show command list |
 | clear | cls | Clear terminal screen |
-| model | — | Re-download or switch AI model |
+| model | — | Switch AI model (shows installed + downloadable models, persists choice) |
 | update | — | Check for game updates via GitHub API |
 | quit | exit | Quit game (with confirmation) |
 
@@ -1180,7 +1183,7 @@ src/
   stats.py                 SessionStats dataclass, calculate_score, grades
   save_load.py             SQLite save/load, creature_memory table, leaderboard, version validation
   input_handler.py         GameSuggester (Textual tab-autocomplete)
-  config.py                ~/.moonwalker/ config (save_dir, gpu, context, sound, tutorial)
+  config.py                ~/.moonwalker/ config (save_dir, gpu, context, sound, tutorial, model_path)
   sound.py                 Cross-platform sound (22 events, chime + macOS voice via say)
   dev_mode.py              Developer diagnostics (JSON entries via Python logging)
   data/

@@ -40,7 +40,7 @@ You'll be asked to choose:
 1. **Difficulty** — Easy (~30 min), Medium (~1-2 hours), Hard (~3+ hours), or Brutal (~5+ hours)
 2. **Compute mode** — auto-detected from config (changeable with `config gpu`)
 
-If no AI model is found, the game will offer to **download one automatically**. You can choose between Qwen3.5 2B (1.3 GB, recommended) or Gemma 4 E2B (3.1 GB, richer dialogue). You can also skip — the game works without it using pre-written dialogue.
+If no AI model is found, the game will offer to **download one automatically**. You can choose between Qwen3.5 2B (1.3 GB, recommended) or Gemma 4 E2B (3.1 GB, richer dialogue). You can also skip — the game works without it using pre-written dialogue. Use the `model` command at any time to switch between installed models, download new ones, or use a custom `.gguf` file placed in `~/.moonwalker/models/`.
 
 The game opens with a brief context line and offers to **skip the tutorial** for returning players. New players will see ARIA (your ship's AI) run a boot diagnostic before being dropped at the Crash Site. Follow the tutorial prompts — they'll walk you through the basics and then point you toward key mechanics like giving gifts, trading, escorting, and ship repair.
 
@@ -117,7 +117,7 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 | `quit` | `exit` | Exit the game (prompts for confirmation) |
 | `dev` | `devmode` | Toggle developer logging to `~/.moonwalker/dev/dev_diagnostics.jsonl` |
 | `config` | — | View/change game settings (save path, GPU, animations) |
-| `model` | — | Re-download or switch AI model |
+| `model` | — | Switch between installed models or download new ones |
 | `update` | — | Check for game updates and download new versions |
 | `sound` | — | Toggle sound effects on/off |
 
@@ -513,7 +513,7 @@ Speaks in magenta: `DRONE: ...`
 
 ### AI model won't download
 
-If the automatic download fails (network issues, timeouts), you can manually download the GGUF model file and place it in the `models/` directory. The game looks for any `.gguf` file in that folder — no config changes needed.
+If the automatic download fails (network issues, timeouts), you can manually download the GGUF model file and place it in `~/.moonwalker/models/`. The game looks for any `.gguf` file in that folder. Use the `model` command in-game to select from installed models or download a new one — your choice is saved in `config.json`.
 
 - **SmolLM2 1.7B** — download the `.gguf` file (~1.0 GB) and place it in `~/.moonwalker/models/`
 - **Qwen3.5 2B** — download the `.gguf` file (~1.3 GB) and place it in `~/.moonwalker/models/`

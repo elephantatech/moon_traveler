@@ -1,9 +1,12 @@
 """User configuration: save path and preferences. Persisted as config.json."""
 
 import json
+import logging
 from pathlib import Path
 
 from src import ui
+
+logger = logging.getLogger(__name__)
 
 
 def get_data_dir() -> Path:
@@ -34,6 +37,7 @@ def _load() -> dict:
             with open(CONFIG_PATH) as f:
                 _config = json.load(f)
         except Exception:
+            logger.warning("Failed to load config from %s — using defaults", CONFIG_PATH, exc_info=True)
             _config = {}
     else:
         _config = {}
@@ -120,6 +124,22 @@ def set_gpu_mode(mode: str):
     """Set and persist GPU mode ('gpu', 'cpu', or 'auto')."""
     cfg = _load()
     cfg["gpu_mode"] = mode
+    _save()
+
+
+def get_model_path() -> str | None:
+    """Get the configured model file path, or None for auto-detect."""
+    cfg = _load()
+    return cfg.get("model_path")
+
+
+def set_model_path(path: str | None):
+    """Set and persist the active model file path. None reverts to auto-detect."""
+    cfg = _load()
+    if path is None:
+        cfg.pop("model_path", None)
+    else:
+        cfg["model_path"] = path
     _save()
 
 
