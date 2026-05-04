@@ -62,11 +62,6 @@ All models run on CPU. GPU (CUDA/Metal/Vulkan) is optional for faster inference.
 
 ## Installation
 
-> **Note:** Pre-built binary releases are temporarily unavailable while we migrate
-> the packaging system. Please install from source (see below). Binary releases
-> will return in a future update.
-
-<!--
 ### Quick install (pre-built binary)
 
 **macOS / Linux:**
@@ -81,8 +76,7 @@ curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/in
 irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex
 ```
 
-This downloads the latest release, extracts it, and adds `moon-traveler` to your PATH. No Python required.
--->
+This downloads a self-contained binary that installs dependencies on first run (~30-60 seconds). After that, it launches instantly.
 
 ### From source
 
@@ -211,6 +205,7 @@ Build trust with creatures to obtain repair materials through conversation and t
 | **GPU not detected** | Game auto-falls back to CPU. Check CUDA/Metal/Vulkan drivers if you want GPU acceleration |
 | **Model won't load / crashes** | Game continues with pre-written fallback dialogue. Delete and re-download the model |
 | **Dialogue feels repetitive** | Run `dev` to check if LLM is loaded (`model_loaded: true` in log). Upgrade the Translator Chip |
+| **Game freezes after entering name (Windows)** | Fixed in v0.5.3 — update to the latest version. Caused by llama-cpp-python redirecting stdout during model load |
 | **Game hangs during conversation** | LLM inference can be slow on CPU. Press `Ctrl+C` to exit safely. Progress is auto-saved |
 | **Where are save files?** | `~/.moonwalker/saves/` (SQLite). Run `config` to view/change location |
 
@@ -234,13 +229,13 @@ See **[HOW_TO_PLAY.md](HOW_TO_PLAY.md#troubleshooting)** for the full troublesho
 
 ## Building a Release
 
-A cross-platform build script is included:
+A cross-platform build script is included (requires Rust toolchain):
 
 ```bash
-python scripts/build_release.py
+python scripts/build_pyapp.py
 ```
 
-This creates standalone executables for Windows, macOS, and Linux in the `dist/` directory using PyInstaller. See `scripts/build_release.py` for details.
+This creates standalone executables for Windows, macOS, and Linux using PyApp (a Rust wrapper that embeds Python 3.13 and installs dependencies via uv on first run). See `scripts/build_pyapp.py` for details.
 
 ## Development
 

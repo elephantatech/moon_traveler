@@ -5,8 +5,11 @@ provides thread-safe methods to push output to Textual widgets and
 block the worker until the user provides input.
 """
 
+import logging
 import queue
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class UIBridge:
@@ -24,24 +27,17 @@ class UIBridge:
     # --- Output (worker thread → Textual main thread) ---
 
     def _safe_call(self, fn, *args):
-        """Fire-and-forget call to the Textual main thread.
+        """Queue a callback for the heartbeat to execute on the main thread.
 
-        Uses call_soon_threadsafe instead of call_from_thread to prevent
-        deadlocks on Windows/Linux where the Textual event loop can block
-        if it's busy processing a prior operation. Falls back to blocking
-        call_from_thread if the event loop isn't available yet.
+        Bypasses Textual's cross-thread messaging (post_message,
+        call_soon_threadsafe) entirely.  The App heartbeat drains this queue
+        every ~33 ms using the event loop's own timer, which is reliable on
+        Windows ProactorEventLoop.
         """
         try:
-            loop = self._app._loop
-            if loop is not None and loop.is_running():
-                loop.call_soon_threadsafe(fn, *args)
-            else:
-                self._app.call_from_thread(fn, *args)
-        except Exception as e:
-            import sys
-
-            if "--dev" in sys.argv:
-                print(f"[DEBUG bridge] _safe_call failed: {e}", file=sys.stderr, flush=True)
+            self._app._bridge_queue.put_nowait((fn, args))
+        except Exception:
+            logger.debug("_safe_call: queue put failed", exc_info=True)
 
     def write(self, renderable):
         """Write a Rich renderable to the game log."""
@@ -92,42 +88,21 @@ class UIBridge:
         Used for all console.input() calls — command prompts, confirmations,
         trade menus, conversation input, etc.
         """
-        # Strip Rich markup tags from prompt for the label display
         import re
 
         clean_prompt = re.sub(r"\[/?[a-z_ ]+\]", "", prompt)
 
-        # Enter ask mode and wait for it to execute on the main thread
-        # before blocking, to prevent the race where user submits before
-        # ask_mode is set.
-        import threading
-
-        done = threading.Event()
-
-        def _enter():
-            self._app.enter_ask_mode(clean_prompt)
-            done.set()
-
-        self._app.call_from_thread(_enter)
-        if not done.wait(timeout=10):
-            # Textual main thread unresponsive — fall back to avoid deadlock
-            raise KeyboardInterrupt
+        # Enter ask mode: set flag directly (atomic via GIL) and queue
+        # the label update.  No call_from_thread — avoids Windows deadlock.
+        self._app._ask_mode = True
+        self._safe_call(self._app.update_prompt_label, clean_prompt)
 
         result = self._ask_queue.get()  # Blocks worker thread
 
-        # Exit ask mode synchronously to prevent TOCTOU race
-        exit_done = threading.Event()
-
-        def _exit():
-            self._app.exit_ask_mode()
-            exit_done.set()
-
-        self._app.call_from_thread(_exit)
-        if not exit_done.wait(timeout=10):
-            # Force exit ask mode from worker thread as fallback
-            self._app._ask_mode = False
-
+        # Exit ask mode
+        self._app._ask_mode = False
         self._restore_prompt_label()
+
         if result is None:
             raise KeyboardInterrupt
         return result
@@ -141,7 +116,7 @@ class UIBridge:
     def get_command(self, location_name: str) -> str | None:
         """Block worker until user enters a command. Returns None on quit."""
         self._current_location = location_name
-        self._app.call_from_thread(
+        self._safe_call(
             self._app.update_prompt_label,
             f"{location_name} > ",
         )
@@ -152,11 +127,11 @@ class UIBridge:
 
     def update_status_bar(self, markup: str):
         """Update the fixed status bar with Rich markup."""
-        self._app.call_from_thread(self._app.update_status_bar, markup)
+        self._safe_call(self._app.update_status_bar, markup)
 
     def update_header(self, text: str):
         """Update the header bar."""
-        self._app.call_from_thread(self._app.update_header, text)
+        self._safe_call(self._app.update_header, text)
 
     # --- Screenshot ---
 
@@ -171,7 +146,7 @@ class UIBridge:
             result.append(self._app.take_screenshot())
             done.set()
 
-        self._app.call_from_thread(_do)
+        self._app._bridge_queue.put_nowait((_do, ()))
         done.wait(timeout=5)
         return result[0] if result else ""
 
@@ -180,7 +155,7 @@ class UIBridge:
     def _restore_prompt_label(self):
         """Restore the prompt label to the current location."""
         if self._current_location:
-            self._app.call_from_thread(
+            self._safe_call(
                 self._app.update_prompt_label,
                 f"{self._current_location} > ",
             )

@@ -1,5 +1,9 @@
 """ARIA — the ship's onboard AI. Narrates, warns, and tracks status."""
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # Warning thresholds (descending) — each fires once until resource is replenished
 THRESHOLDS = [50, 30, 15, 5]
 
@@ -81,7 +85,7 @@ class ShipAI:
 
                     sound.play("aria_warning")
                 except Exception:
-                    pass
+                    logger.debug("ARIA warning sound failed", exc_info=True)
                 return self.speak(warnings[threshold])
         return None
 

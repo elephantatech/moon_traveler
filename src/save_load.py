@@ -1,6 +1,7 @@
 """Save and load game state using SQLite with key-value storage."""
 
 import json
+import logging
 import sqlite3
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from src.creatures import Creature
 from src.drone import Drone
 from src.player import Player
 from src.world import Location
+
+logger = logging.getLogger(__name__)
 
 SAVE_VERSION = 4
 
@@ -81,7 +84,7 @@ def _get_db() -> sqlite3.Connection:
         conn.execute("ALTER TABLE leaderboard ADD COLUMN player_name TEXT DEFAULT 'Commander'")
         conn.commit()
     except sqlite3.OperationalError:
-        pass  # Column already exists
+        logger.debug("Column already exists", exc_info=True)
     return conn
 
 
@@ -104,9 +107,7 @@ def list_saves() -> list[str]:
             slots.extend(row[0] for row in cursor.fetchall())
             conn.close()
         except Exception:
-            pass
-
-    # Also check for legacy JSON saves (backwards compat)
+            logger.debug("SQLite save listing failed", exc_info=True)
     for f in saves_dir.glob("*.json"):
         if f.stem not in slots:
             slots.append(f.stem)
@@ -145,7 +146,7 @@ def save_game(
         try:
             conn.close()
         except Exception:
-            pass
+            logger.debug("DB connection close failed", exc_info=True)
         if not quiet:
             ui.error(f"Save failed: {e}")
         return
@@ -241,8 +242,7 @@ def load_game(slot: str) -> dict | None:
                     elif row and row[0] < 3:
                         ui.warn(f"Save '{slot}' is from an old version (v{row[0]}). Some data may be missing.")
                 except Exception:
-                    pass
-                # Load chat history from dedicated table
+                    logger.debug("Chat history validation failed", exc_info=True)
                 chat = _load_chat_history(conn, slot)
                 memories = _load_creature_memory(conn, slot)
                 conn.close()
@@ -436,9 +436,7 @@ def delete_save(slot: str) -> bool:
             conn.close()
             deleted = True
         except Exception:
-            pass
-
-    # Also remove legacy JSON if it exists
+            logger.debug("Save deletion failed", exc_info=True)
     json_path = _saves_dir() / f"{slot}.json"
     if json_path.exists():
         json_path.unlink()
@@ -508,7 +506,7 @@ def record_score(
         )
         conn.commit()
     except Exception:
-        pass  # Non-critical — don't block gameplay
+        logger.debug("Non-critical — don't block gameplay", exc_info=True)
     finally:
         if conn:
             conn.close()

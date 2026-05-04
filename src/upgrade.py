@@ -1,6 +1,7 @@
 """In-place upgrade — check for new versions and download updates."""
 
 import json
+import logging
 import os
 import platform
 import shutil
@@ -11,6 +12,8 @@ import zipfile
 from pathlib import Path
 
 from src import ui
+
+logger = logging.getLogger(__name__)
 
 _REPO = "elephantatech/moon_traveler"
 _API_URL = f"https://api.github.com/repos/{_REPO}/releases/latest"
@@ -243,7 +246,6 @@ def run_upgrade():
         try:
             tmp_file.unlink(missing_ok=True)
         except Exception:
-            pass
-        # On failure, clean up the entire temp directory
+            logger.debug("On failure, clean up the entire temp directory", exc_info=True)
         if not success:
             shutil.rmtree(tmp_dir, ignore_errors=True)

@@ -1,10 +1,13 @@
 """Rich console output helpers, ASCII art, and styled text."""
 
+import logging
 import time
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+logger = logging.getLogger(__name__)
 
 _bridge = None  # Set by tui_app on startup
 
@@ -124,17 +127,17 @@ def _safe_sound(event: str):
 
         sound.play(event)
     except Exception:
-        pass
+        logger.debug("Sound event playback failed", exc_info=True)
 
 
 def show_title():
-    _safe_sound("boot")
     console.print(TITLE_ART)
+    _safe_sound("boot")
 
 
 def show_crash():
-    _safe_sound("damage")
     console.print(CRASH_ART)
+    _safe_sound("damage")
 
 
 def narrate_lines(lines: list[str], style: str = "italic", pause: float = 0.5):
@@ -150,18 +153,18 @@ def info(text: str):
 
 
 def warn(text: str):
-    _safe_sound("warning")
     console.print(f"[yellow]{text}[/yellow]")
+    _safe_sound("warning")
 
 
 def error(text: str):
-    _safe_sound("error")
     console.print(f"[red]{text}[/red]")
+    _safe_sound("error")
 
 
 def success(text: str):
-    _safe_sound("success")
     console.print(f"[green]{text}[/green]")
+    _safe_sound("success")
 
 
 def dim(text: str):
@@ -419,6 +422,7 @@ def prompt_choice(prompt_text: str, choices: list[str]) -> str:
             raise
         except (ValueError, EOFError):
             pass
+
         error(f"Please enter a number 1-{len(choices)}.")
 
 

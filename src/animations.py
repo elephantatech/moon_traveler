@@ -7,9 +7,12 @@ Each animation checks config before playing. If disabled, the function
 either does nothing or falls back to a minimal static message.
 """
 
+import logging
 import time
 
 from src import ui
+
+logger = logging.getLogger(__name__)
 
 _LATE_GAME_HOURS = 24
 _force_disabled = False
@@ -52,10 +55,7 @@ def _animate(frames: list[str], delay: float = 0.2, clear: bool = True):
         try:
             ui.console.animate_frame(frame)
         except Exception as e:
-            import sys
-
-            if "--dev" in sys.argv:
-                print(f"[DEBUG anim] frame failed: {e}", file=sys.stderr, flush=True)
+            logger.debug("animation frame failed: %s", e)
             return  # Widget unavailable — skip remaining frames
         time.sleep(delay)
     # Hold the last frame so the player can read it
@@ -64,10 +64,7 @@ def _animate(frames: list[str], delay: float = 0.2, clear: bool = True):
         try:
             ui.console.clear_animation()
         except Exception as e:
-            import sys
-
-            if "--dev" in sys.argv:
-                print(f"[DEBUG anim] clear failed: {e}", file=sys.stderr, flush=True)
+            logger.debug("animation clear failed: %s", e)
 
 
 # --- Beat (absorption pause) ---

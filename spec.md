@@ -1,6 +1,6 @@
 # Moon Traveler Terminal - Technical Specification
 
-**Version:** 0.5.2
+**Version:** 0.5.3
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -29,7 +29,7 @@ Crash Land → Scan → Travel → Explore → Talk/Trade → Collect Materials 
 | Build | PyApp (Rust wrapper, bootstraps Python + uv) |
 | Save Storage | SQLite (key-value) |
 | TUI | Textual (>=8.2.4) |
-| Sound | System sounds (macOS say, Windows winsound, Linux paplay) |
+| Sound | chime (cross-platform) + macOS `say` for voice mode |
 | User Data | ~/.moonwalker/ (saves, models, config, dev logs) |
 
 ### 1.2.1 System Requirements
@@ -52,6 +52,7 @@ psutil>=7.2.2
 jinja2>=3.1.6
 markupsafe>=3.0.3
 typing-extensions>=4.15.0
+chime>=0.7.0
 ```
 
 Source of truth: `pyproject.toml` (not `requirements.txt`, which is legacy).
@@ -580,7 +581,12 @@ load_model(callback=None, gpu_mode="cpu")
 | n_ctx | 8192 (configurable) | 8192 (configurable) |
 | n_threads | 4 | 4 |
 | n_gpu_layers | 0 | -1 (all layers) |
-| verbose | False | False |
+| verbose | True (via `_create_llama`) | True (via `_create_llama`) |
+
+**WriterThread protection:** The `_create_llama()` wrapper passes `verbose=True` to skip
+llama-cpp-python's `suppress_stdout_stderr`, which redirects fd 1 (stdout) to NUL and kills
+Textual's WriterThread on Windows. Instead, only stderr (fd 2) is redirected to suppress
+C-level llama.cpp diagnostic output while keeping stdout intact.
 
 If GPU loading fails, automatically retries with CPU. When GPU mode is selected, a smoke test (tiny inference) runs to catch segfaults early.
 
@@ -1231,23 +1237,29 @@ tests/
 
 ## 21. Sound System (`src/sound.py`)
 
-Cross-platform system sounds. No external dependencies.
+Cross-platform sound using the `chime` library (bundled `.wav` files, no system dependencies).
 
 ### 21.1 Platform Support
 
-| Platform | Method | Fallback |
-|----------|--------|----------|
-| macOS | Terminal bell (beep patterns) + `say` command (voice mode) | Beep patterns |
-| Windows | `winsound` module + Windows Media .wav files | `MessageBeep` → beep patterns |
-| Linux | `paplay`/`aplay` with freedesktop sounds | Beep patterns |
+| Platform | Method | Voice Mode |
+|----------|--------|------------|
+| All | `chime` library (bundled .wav files) | N/A |
+| macOS | `chime` + `say` command (voice mode) | Samantha voice at varying speeds |
 
 ### 21.2 Sound Events (22)
 
-error, warning, success, info, discovery, damage, trust, chat_open, chat_close, pickup, repair, victory, game_over, aria_warning, boot, scan, trade, escort, upgrade, hazard_geyser, hazard_ice, hazard_storm
+22 game events mapped to chime's 4 sound types:
 
-### 21.3 Beep Patterns
+| Chime Type | Game Events |
+|------------|-------------|
+| `success` | success, victory, repair, trade, escort, upgrade, pickup, trust |
+| `error` | error, damage, game_over, hazard_geyser, hazard_ice |
+| `warning` | warning, aria_warning, hazard_storm |
+| `info` | info, discovery, boot, scan, chat_open, chat_close |
 
-Different bell rhythms per event (1 beep = info, 2 = success, 3 rapid = warning, 4 = alarm, fanfare pattern for victory). Written to stderr to avoid Rich console conflicts.
+### 21.3 Playback
+
+All sounds play asynchronously in background daemon threads via `chime`'s `sync=False` parameter. A non-blocking lock prevents overlapping sounds — if one is playing, the next is silently dropped. Sound always fires **after** screen output (never before) to avoid blocking the TUI.
 
 ### 21.4 Voice Mode
 
@@ -1265,7 +1277,7 @@ ASCII frame animations rendered in a dedicated `Static#animation-bar` widget. An
 
 ### 21b.1 Architecture
 
-- `_animate(frames, delay, clear)` — Core helper: iterates frames via `ui.console.animate_frame()` (thread-safe `call_from_thread`), then clears widget
+- `_animate(frames, delay, clear)` — Core helper: iterates frames via `ui.console.animate_frame()` (thread-safe via heartbeat queue), then clears widget
 - `_can_animate()` — Gate: checks `_enabled()` AND `hasattr(ui.console, "animate_frame")`
 - `_enabled()` — Reads `config.get_animations_enabled()` and checks `_force_disabled` session flag
 - `force_enable()` / `force_disable()` — Runtime toggles (session-only, not persisted)
@@ -1307,7 +1319,7 @@ When `hours_elapsed >= 24`, scan and hazard animations use intensified variants 
 ### 21b.6 TUI Integration
 
 - `#animation-bar` Static widget: `height: auto; max-height: 2` (collapses when empty)
-- `tui_bridge.animate_frame(text)` — thread-safe update via `call_from_thread`
+- `tui_bridge.animate_frame(text)` — thread-safe update via heartbeat-drained `_bridge_queue`
 - `tui_bridge.clear_animation()` — sets widget to empty string
 
 ---
@@ -1363,7 +1375,9 @@ In-place upgrade via GitHub Releases API.
 
 ### 22.1 Architecture
 
-Worker thread with message bridge. Game logic runs synchronously in a Textual `run_worker(thread=True)`. A `UIBridge` object translates between the worker and Textual's async event loop via thread-safe `queue.Queue`.
+Worker thread with message bridge. Game logic runs synchronously in a Textual `run_worker(thread=True)`. A `UIBridge` object translates between the worker and Textual's main thread.
+
+**Bridge pattern (v0.5.3+):** All worker→main thread calls use `_bridge_queue` (an unbounded `queue.Queue`). A heartbeat timer on the main thread drains the queue every ~33ms (30 FPS), calling widget methods like `RichLog.write()` and `Static.update()`. This replaced `call_from_thread` which deadlocked on Windows' `ProactorEventLoop`. Only `input()` blocks the worker thread (waiting for user response via `_ask_queue`).
 
 ### 22.2 Layout
 
@@ -1382,7 +1396,7 @@ Worker thread with message bridge. Game logic runs synchronously in a Textual `r
 ### 22.3 Key Design
 
 - `_BridgeConsoleShim` replaces `ui.console` — all existing `console.print()` / `console.input()` calls route through Textual automatically
-- `bridge.ask(prompt)` blocks worker thread on queue; Textual routes input based on command mode vs ask mode
+- `bridge.input(prompt)` blocks worker thread on `_ask_queue`; Textual routes input based on command mode vs ask mode
 - `time.sleep` in worker thread (narration, tutorial, travel) stays as-is — doesn't block Textual reactor
 - LLM inference runs in worker thread; UI stays responsive
 - Autocomplete: `GameSuggester` provides inline tab-completion (CLI GameCompleter removed in v0.5.0)
@@ -1390,12 +1404,19 @@ Worker thread with message bridge. Game logic runs synchronously in a Textual `r
 ### 22.4 New Files
 
 - `src/tui_app.py` (~200 lines) — Textual App, widget composition, worker dispatch
-- `src/tui_bridge.py` (~150 lines) — UIBridge, console shim, ask/response queues
+- `src/tui_bridge.py` (~170 lines) — UIBridge, `_safe_call`, heartbeat queue, ask/response
 - `src/game.tcss` (~40 lines) — Textual CSS layout
 
-### 22.5 Unchanged Files
+### 22.5 Logging (v0.5.3+)
 
-`commands.py`, `travel.py`, `creatures.py`, `player.py`, `drone.py`, `world.py`, `llm.py`, `save_load.py`, `ship_ai.py`, `tutorial.py`, `sound.py`, `config.py`, `dev_mode.py`
+`_setup_logging(dev)` in `game.py` configures Python's `logging` module:
+
+- **Production:** Root logger at WARNING level, no file handler
+- **`--dev` mode:** Root logger at DEBUG, two handlers:
+  - `StreamHandler` → stderr (bypasses TUI, always visible)
+  - `FileHandler` → `~/.moonwalker/dev/game.log` (overwritten each session)
+- All modules use `logging.getLogger(__name__)` — output goes to single log file
+- DevMode diagnostics (game state, LLM metrics) also route through logging
 
 ### 22.6 Migration Phases
 

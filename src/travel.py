@@ -1,10 +1,13 @@
 """Travel system: movement, time passage, random events, ARIA commentary."""
 
+import logging
 import random
 
 from src.drone import Drone
 from src.player import Player
 from src.world import Location
+
+logger = logging.getLogger(__name__)
 
 TRAVEL_EVENTS = [
     "You spot a faint shimmer in the ice — a small crystal, but nothing collectible.",
@@ -326,7 +329,7 @@ def execute_travel(
                     else:
                         sound.play("hazard_ice")
                 except Exception:
-                    pass
+                    logger.debug("Hazard sound playback failed", exc_info=True)
                 messages.append(f"[bold red]{hazard['message']}[/bold red]")
                 for key, delta in hazard["effect"].items():
                     if key == "suit_integrity":

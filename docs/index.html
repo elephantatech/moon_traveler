@@ -585,12 +585,12 @@
       <span class="badge b-amber">100% Offline</span>
       <span class="badge b-amber">Local LLM</span>
       <span class="badge b-ice">Win / Mac / Linux</span>
-      <span class="badge b-ice">v0.5.2</span>
+      <span class="badge b-ice">v0.5.3</span>
     </div>
     <div class="ctas">
       <a href="https://github.com/elephantatech/moon_traveler" class="btn btn-solid">View on GitHub</a>
       <a href="https://github.com/elephantatech/moon_traveler/releases" class="btn btn-ghost">Download</a>
-      <a href="v052.html" class="btn btn-ghost">What's New in v0.5.2</a>
+      <a href="releases.html" class="btn btn-ghost">What's New in v0.5.3</a>
     </div>
   </header>
 
@@ -713,11 +713,20 @@
   <section class="reveal" aria-labelledby="install-heading">
     <div class="section-label">Start</div>
     <h2 id="install-heading">Quick Start</h2>
-    <div class="install-panel" style="border-color: rgba(200, 148, 80, 0.3); background: rgba(200, 148, 80, 0.05);">
-      <p class="note" style="color: var(--amber);"><strong>Note:</strong> Pre-built binary releases are temporarily unavailable while we migrate the packaging system. Please install from source below.</p>
+    <div class="install-panel">
+      <h3>macOS / Linux</h3>
+      <p class="note">Downloads a self-contained binary. Installs dependencies on first run (~30-60s).</p>
+      <pre><code>curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash</code></pre>
     </div>
+    <div class="install-panel" style="margin-top: 2px;">
+      <h3>Windows (PowerShell)</h3>
+      <pre><code>irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex</code></pre>
+    </div>
+    <a href="https://github.com/elephantatech/moon_traveler/releases" class="release-link">
+      Or download a release directly &rarr;
+    </a>
     <div class="install-panel" style="margin-top: 12px;">
-      <h3>Install from Source</h3>
+      <h3>From Source</h3>
       <p class="note">Requires Python 3.11+ and git.</p>
       <pre><code>git clone https://github.com/elephantatech/moon_traveler.git
 cd moon_traveler
@@ -746,7 +755,7 @@ Gemma 4 E2B     3.1 GB download    ~4.4 GB RAM    (8+ GB, best quality)</code></
 
   <!-- FOOTER -->
   <footer>
-    <p class="footer-meta">Moon Traveler Terminal &middot; v0.5.2 &middot; Apache 2.0</p>
+    <p class="footer-meta">Moon Traveler Terminal &middot; v0.5.3 &middot; Apache 2.0</p>
     <nav aria-label="Footer">
       <a href="https://github.com/elephantatech/moon_traveler">GitHub</a> &middot;
       <a href="releases.html">Release History</a> &middot;

@@ -1,31 +1,33 @@
-"""Developer diagnostics — logs game state to a JSON log file."""
+"""Developer diagnostics — logs game state via Python logging."""
 
 import json
+import logging
 import math
 import os
 import time
 
 from src import ui
-from src.config import get_data_dir
 
-# Log location: ~/.moonwalker/dev/
-DEV_LOG_DIR = get_data_dir() / "dev"
-DEV_LOG_FILE = DEV_LOG_DIR / "dev_diagnostics.jsonl"
+logger = logging.getLogger("dev_mode")
 
 
 class DevMode:
-    """Toggle-able diagnostics logger. Writes JSON lines to a log file."""
+    """Toggle-able diagnostics logger. Routes all output through Python logging."""
 
     def __init__(self):
         self.enabled = False
-        self.log_path = DEV_LOG_FILE
         self._llm_calls: list[dict] = []  # Last N inference calls
 
     def toggle(self):
         self.enabled = not self.enabled
         if self.enabled:
-            DEV_LOG_DIR.mkdir(parents=True, exist_ok=True)
-            ui.success(f"Dev mode ON — logging to {self.log_path}")
+            # Check if file handler exists (only when launched with --dev)
+            has_file = any(isinstance(h, logging.FileHandler) for h in logging.getLogger().handlers)
+            if has_file:
+                ui.success("Dev mode ON — logging to ~/.moonwalker/dev/game.log")
+            else:
+                ui.success("Dev mode ON — diagnostics in game log.")
+                ui.dim("  (Launch with --dev for full file logging)")
         else:
             ui.info("Dev mode OFF — logging stopped.")
 
@@ -50,7 +52,6 @@ class DevMode:
         self._llm_calls.append(entry)
         if len(self._llm_calls) > 5:
             self._llm_calls = self._llm_calls[-5:]
-        # Also write to JSONL log
         self.debug("llm_call", **entry)
 
     def debug(self, event: str, **data):
@@ -64,14 +65,12 @@ class DevMode:
             **data,
         }
         try:
-            DEV_LOG_DIR.mkdir(parents=True, exist_ok=True)
-            with open(self.log_path, "a") as f:
-                f.write(json.dumps(entry, default=str) + "\n")
-        except OSError:
-            pass  # Never crash the game due to logging failure
+            logger.debug(json.dumps(entry, default=str))
+        except Exception:
+            logger.debug("dev_mode.debug() failed to serialize entry", exc_info=True)
 
     def render_panel(self, ctx):
-        """Log diagnostics to JSON file. Never crashes the game."""
+        """Log diagnostics via Python logging. Never crashes the game."""
         if not self.enabled:
             return
 
@@ -86,12 +85,9 @@ class DevMode:
                 "scan_tree": _scan_tree_dict(ctx),
                 "chat_history": _chat_history_dict(ctx),
             }
-
-            DEV_LOG_DIR.mkdir(parents=True, exist_ok=True)
-            with open(self.log_path, "a") as f:
-                f.write(json.dumps(entry, default=str) + "\n")
+            logger.debug(json.dumps(entry, default=str))
         except Exception:
-            pass  # Never crash the game due to logging failure
+            logger.debug("dev_mode.render_panel() failed", exc_info=True)
 
     def _render_scan_tree(self, ctx):
         """No-op: scan tree is now included in the JSON log."""
@@ -127,8 +123,8 @@ def _system_metrics_dict() -> dict:
         result["system_ram_percent"] = sys_mem.percent
 
         result["cpu_percent"] = round(proc.cpu_percent(interval=0.05), 1)
-    except (ImportError, Exception):
-        pass
+    except Exception:
+        logger.debug("system metrics collection failed", exc_info=True)
 
     try:
         from src import llm
@@ -142,9 +138,9 @@ def _system_metrics_dict() -> dict:
                     result["model_file_size_mb"] = round(size_mb, 0)
                     result["model_ram_estimate_mb"] = round(size_mb * 1.3, 0)
                 except OSError:
-                    pass
+                    logger.debug("model file size check failed", exc_info=True)
     except Exception:
-        pass
+        logger.debug("model info collection failed", exc_info=True)
 
     return result
 
@@ -240,7 +236,6 @@ def _scan_tree_dict(ctx) -> dict:
             continue
         d = cur.distance_to(loc.x, loc.y)
         if d <= scanner_range:
-            # Depth-2: what's scannable from that location
             reachable_from = []
             for loc2 in ctx.locations:
                 if loc2.name in (cur.name, loc.name):

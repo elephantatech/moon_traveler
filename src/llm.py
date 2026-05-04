@@ -1,9 +1,11 @@
 """LLM interface: llama-cpp-python with fallback to canned responses."""
 
+import logging
 import os
 import random
 import re
 import sys
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -19,6 +21,8 @@ from src.data.prompts import (
     TRUST_INSTRUCTIONS,
     build_action_instructions,
 )
+
+logger = logging.getLogger(__name__)
 
 # Try to import llama-cpp-python
 _llm_model = None
@@ -96,16 +100,14 @@ def detect_gpu() -> dict:
             if llama_cpp.LLAMA_SUPPORTS_GPU_OFFLOAD:
                 return {"available": True, "backend": "gpu"}
     except Exception:
-        pass
-
-    # Last resort: check if the compiled lib mentions GPU backends
+        logger.debug("GPU backend constant check failed", exc_info=True)
     try:
         import llama_cpp.llama_cpp as _ll
 
         if hasattr(_ll, "GGML_USE_CUDA") or hasattr(_ll, "GGML_USE_METAL") or hasattr(_ll, "GGML_USE_VULKAN"):
             return {"available": True, "backend": "gpu"}
     except Exception:
-        pass
+        logger.debug("GPU backend attribute check failed", exc_info=True)
 
     return {"available": False, "backend": "none"}
 
@@ -308,6 +310,7 @@ def maybe_download_model() -> bool:
             ui.dim("  Enough RAM for any model")
     except ImportError:
         pass
+
     ui.console.print()
 
     ui.console.print("[bold]Available models:[/bold]")
@@ -425,6 +428,48 @@ def _download_custom_model() -> bool:
         return False
 
 
+_llama_load_lock = threading.Lock()
+
+
+def _create_llama(**kwargs):
+    """Create a Llama instance without killing Textual's WriterThread.
+
+    llama-cpp-python's ``verbose=False`` uses ``suppress_stdout_stderr`` which
+    redirects **both** fd 1 (stdout) *and* fd 2 (stderr) to NUL via
+    ``os.dup2``.  On Windows, Textual's WriterThread writes to fd 1 — the
+    redirect causes its ``write()`` to fail and the thread dies silently
+    (it has zero error handling).  Once the thread is dead its bounded
+    queue (30 items) fills up and the event loop blocks forever.
+
+    Fix: pass ``verbose=True`` so ``suppress_stdout_stderr`` is skipped,
+    then redirect only stderr (fd 2) ourselves so llama.cpp's C-level
+    diagnostic output is still suppressed.
+
+    Lock prevents concurrent calls from racing on the fd 2 redirect.
+    """
+    kwargs["verbose"] = True  # Prevents suppress_stdout_stderr from running
+
+    with _llama_load_lock:
+        saved_stderr = None
+        try:
+            saved_stderr = os.dup(2)
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, 2)
+            os.close(devnull)
+        except OSError:
+            logger.debug("stderr redirect failed", exc_info=True)
+
+        try:
+            return Llama(**kwargs)
+        finally:
+            if saved_stderr is not None:
+                try:
+                    os.dup2(saved_stderr, 2)
+                    os.close(saved_stderr)
+                except OSError:
+                    logger.debug("stderr restore failed", exc_info=True)
+
+
 def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
     """Load the LLM model.
 
@@ -471,12 +516,11 @@ def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
             pass  # animations module not available in this context
 
     try:
-        _llm_model = Llama(
+        _llm_model = _create_llama(
             model_path=model_path,
             n_ctx=_get_context_size(),
             n_threads=4,
             n_gpu_layers=n_gpu_layers,
-            verbose=False,
         )
         # Smoke test: run a tiny inference to catch GPU segfaults early
         # (before the player starts a game they could lose)
@@ -500,12 +544,11 @@ def load_model(callback=None, gpu_mode: str = "cpu", quiet: bool = False):
         if gpu_mode == "gpu":
             ui.warn("GPU loading failed. Retrying with CPU only...")
             try:
-                _llm_model = Llama(
+                _llm_model = _create_llama(
                     model_path=model_path,
                     n_ctx=_get_context_size(),
                     n_threads=4,
                     n_gpu_layers=0,
-                    verbose=False,
                 )
                 _llm_available = True
                 if quiet:
@@ -751,7 +794,7 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
                 current = _sanitize_memory(compact_text)[:4096]
                 creature.memory = current
         except Exception:
-            pass
+            logger.debug("Memory update failed", exc_info=True)
 
     prompt = _MEMORY_UPDATE_PROMPT.format(
         name=creature.name,
@@ -773,7 +816,7 @@ def update_creature_memory(creature, recent_count: int = 6, extra_context: str =
             creature.memory = text[:4096]  # Cap memory size
             return text
     except Exception:
-        pass
+        logger.debug("Memory update LLM call failed", exc_info=True)
 
     return _update_memory_fallback(creature, recent_count, extra_context)
 

@@ -151,48 +151,61 @@ async def session2_pilot(pilot):
 
     if escort_target:
         log(f"\n  --- Escorting {escort_target.name} ---")
-        await send(f"travel {escort_target.location_name}", wait=3.0)
-        if await wait_ask(timeout=3.0):
+        await send(f"travel {escort_target.location_name}", wait=5.0)
+        if await wait_ask(timeout=5.0):
             await respond("y", wait=5.0)
 
-        await send("escort", wait=3.0)
+        await send("escort", wait=5.0)
         log_state(ctx, "ESCORTED")
 
         # Return to crash site with escort
-        await send("travel Crash Site", wait=3.0)
-        if await wait_ask(timeout=3.0):
+        await send("travel Crash Site", wait=5.0)
+        if await wait_ask(timeout=5.0):
             await respond("y", wait=5.0)
+
+        # Wait for escort arrival to process via bridge queue
+        await pilot.pause(5.0)
         log(f"  Escorts completed after return: {ctx.escorts_completed}")
 
     # Attempt repair — with super mode materials and escort done
     log("\n  --- FINAL REPAIR ---")
     log_state(ctx, "BEFORE_REPAIR")
 
-    # Handle multiple ask_mode cycles (companion help + install prompt)
+    from src.game import check_win
+
     victory = False
-    for attempt in range(10):
-        if await wait_ask(timeout=15.0):
-            from src.game import check_win
 
-            if check_win(ctx):
-                log(f"  WIN at attempt {attempt}!")
-                victory = True
-                break
-            log(f"  Prompt (attempt {attempt}), answering y")
-            await respond("y", wait=5.0)
+    # Repair loop: send ship repair, answer all interactive prompts, repeat
+    for repair_round in range(5):
+        if check_win(ctx):
+            log(f"  WIN detected before round {repair_round}")
+            victory = True
+            break
 
-            # Wait for ask_mode to clear before re-polling
-            for _ in range(20):
-                if not app._ask_mode:
+        log(f"  Repair round {repair_round}: sending ship repair")
+        await send("ship repair", wait=5.0)
+
+        # Answer interactive prompts (install material, companion help, etc.)
+        for prompt_idx in range(8):
+            if await wait_ask(timeout=10.0):
+                if check_win(ctx):
+                    log(f"  WIN at round {repair_round}, prompt {prompt_idx}!")
+                    victory = True
                     break
-                await pilot.pause(0.3)
-        else:
-            log(f"  ask_mode timeout at attempt {attempt}")
-            # Maybe we need to send ship repair command
-            if attempt == 0:
-                await send("ship repair", wait=3.0)
+                log(f"  Prompt (round {repair_round}, idx {prompt_idx}), answering y")
+                await respond("y", wait=5.0)
+
+                # Wait for ask_mode to clear before re-polling
+                for _ in range(20):
+                    if not app._ask_mode:
+                        break
+                    await pilot.pause(0.3)
             else:
+                log(f"  No more prompts at round {repair_round}, idx {prompt_idx}")
                 break
+
+        if victory:
+            break
 
     log_state(ctx, "AFTER_REPAIR")
 
