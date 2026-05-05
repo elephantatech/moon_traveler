@@ -2,6 +2,24 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
+## [0.5.4] - 2026-05-05
+
+### Added
+
+- **Beta release workflow** — pre-release tag detection (`beta`/`rc`/`alpha`), GitHub pre-releases, pages deploy skipped for betas
+- **Beta testing page** — `docs/beta.html` with install instructions and testing checklist
+- **44 new tests** — `test_sound.py` (16), `test_tui_bridge.py` (21 incl. heartbeat), `test_create_llama.py` (7). Total: 335 → 379
+
+### Fixed
+
+- **Creature responses too verbose (#69)** — `max_tokens` reduced from 200 to 120, enforcing 2-4 sentence responses per prompt instructions
+- **Heartbeat failure escalation (#77)** — tracks consecutive callback failures, escalates from WARNING to ERROR after 5 in a row
+- **Release workflow tag detection** — guards against branch names matching pre-release patterns on `workflow_dispatch`
+
+### Changed
+
+- **CI matrix** — dropped Python 3.11/3.12, now 3 OS x Python 3.13 only
+
 ## [0.5.3] - 2026-05-02
 
 ### Fixed

@@ -1,6 +1,6 @@
 # Moon Traveler Terminal - Technical Specification
 
-**Version:** 0.5.3
+**Version:** 0.5.4
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -609,7 +609,7 @@ generate_response(creature, player_message, translation_quality="low")
 
 | Parameter | Value |
 |-----------|-------|
-| max_tokens | 200 |
+| max_tokens | 120 |
 | temperature | 0.8 |
 | top_p | 0.9 |
 | stop sequences | "Human:", "Player:", "\n\n\n" |
@@ -1234,7 +1234,7 @@ tests/
   test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
-**Total test count:** 335
+**Total test count:** 379
 
 ---
 

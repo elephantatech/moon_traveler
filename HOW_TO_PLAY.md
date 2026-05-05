@@ -115,7 +115,7 @@ A **status bar** is displayed before every prompt showing food, water, suit, bat
 | `clear` | `cls` | Clear the screen |
 | `help` | — | Show the command list |
 | `quit` | `exit` | Exit the game (prompts for confirmation) |
-| `dev` | `devmode` | Toggle developer logging to `~/.moonwalker/dev/dev_diagnostics.jsonl` |
+| `dev` | `devmode` | Toggle developer diagnostics (logs to `~/.moonwalker/dev/game.log`) |
 | `config` | — | View/change game settings (save path, GPU, animations) |
 | `model` | — | Switch between installed models or download new ones |
 | `update` | — | Check for game updates and download new versions |
@@ -593,7 +593,7 @@ dev           # toggle dev mode on/off
 devmode       # same thing
 ```
 
-When enabled, the game writes to `~/.moonwalker/dev/dev_diagnostics.jsonl` (one JSON object per line). Toggle it off to stop logging.
+When enabled, the game logs diagnostics to `~/.moonwalker/dev/game.log` via Python's logging module. JSON diagnostic snapshots are written as DEBUG-level log entries. Toggle it off to stop logging.
 
 ### Full diagnostic snapshots
 
@@ -664,27 +664,20 @@ The `game` section also includes `llm_available` (boolean).
 
 ### Reading the log file
 
-The log is JSON Lines format — one JSON object per line:
+The log file uses Python's logging format with JSON diagnostic entries:
 
 ```bash
-# View the latest diagnostic snapshot
-tail -1 ~/.moonwalker/dev/dev_diagnostics.jsonl | python -m json.tool
+# View the latest log entries
+tail -20 ~/.moonwalker/dev/game.log
+
+# Filter for diagnostic snapshots (JSON entries from dev_mode)
+grep '"event"' ~/.moonwalker/dev/game.log
 
 # Filter for trust changes
-grep '"trust_change"' ~/.moonwalker/dev/dev_diagnostics.jsonl | python -m json.tool
+grep '"trust_change"' ~/.moonwalker/dev/game.log
 
-# View all chat history from the latest snapshot
-tail -1 ~/.moonwalker/dev/dev_diagnostics.jsonl | python -c "
-import json, sys
-data = json.load(sys.stdin)
-for c in data.get('chat_history', []):
-    print(f\"\n=== {c['creature']} (trust: {c['trust']}) ===\")
-    for m in c['messages']:
-        prefix = 'You' if m['role'] == 'user' else c['creature']
-        print(f\"  {prefix}: {m['content']}\")"
-
-# Count events by type
-grep -o '"event":"[^"]*"' ~/.moonwalker/dev/dev_diagnostics.jsonl | sort | uniq -c | sort -rn
+# View warnings and errors only
+grep -E '\[WARNING\]|\[ERROR\]' ~/.moonwalker/dev/game.log
 ```
 
 > **Note:** Dev mode never affects gameplay, save files, or performance. It only writes to the log file. Logging failures are silently ignored — the game never crashes due to dev mode.
