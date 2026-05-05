@@ -924,7 +924,7 @@ Location in bold cyan, prompt in bold.
 
 ## 16. Developer Mode (`src/dev_mode.py`)
 
-Session-only (not saved). Toggle with `dev` command. Logs to `~/.moonwalker/dev/dev_diagnostics.jsonl` (JSON Lines format).
+Session-only (not saved). Toggle with `dev` command. Logs to `~/.moonwalker/dev/game.log` via Python's `logging` module.
 
 ### 16.1 Diagnostic Snapshots (per turn)
 
@@ -1197,6 +1197,7 @@ docs/
   story.html               Story/lore page
   how-to-play.html         Interactive game guide
   releases.html            Release history index
+  beta.html                Beta testing page with install instructions
   release-style.css        Shared CSS for release pages
   v052.html                v0.5.2 release announcement
   v051.html                v0.5.1 release announcement
