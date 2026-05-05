@@ -1,5 +1,6 @@
-"""Tests for src/tui_bridge.py — worker-to-main-thread bridge."""
+"""Tests for src/tui_bridge.py and heartbeat in src/tui_app.py."""
 
+import logging
 import queue
 import threading
 import time
@@ -199,3 +200,96 @@ class TestGetCommand:
         t.join(timeout=1)
 
         assert received_command is None
+
+
+class _FakeApp:
+    """Minimal app stub for heartbeat tests (no Textual dependency)."""
+
+    def __init__(self):
+        self._bridge_queue = queue.Queue()
+        self._heartbeat_active = True
+        self._heartbeat_failures = 0
+
+    def set_timer(self, delay, callback):
+        pass  # Don't actually schedule next tick
+
+    def _schedule_heartbeat(self):
+        pass
+
+
+def _make_heartbeat_app():
+    """Create a fake app and bind the real _heartbeat method to it."""
+    from src.tui_app import MoonTravelerApp
+
+    app = _FakeApp()
+    # Bind the real _heartbeat method to our fake app
+    app._heartbeat = MoonTravelerApp._heartbeat.__get__(app, _FakeApp)
+    app._schedule_heartbeat = lambda: None  # no-op to prevent timer scheduling
+    return app
+
+
+class TestHeartbeatEscalation:
+    def test_success_resets_failure_counter(self):
+        app = _make_heartbeat_app()
+        app._heartbeat_failures = 3
+        app._bridge_queue.put((lambda: None, ()))
+        app._heartbeat()
+        assert app._heartbeat_failures == 0
+
+    def test_failure_increments_counter(self):
+        app = _make_heartbeat_app()
+
+        def bad_callback():
+            raise RuntimeError("widget broken")
+
+        app._bridge_queue.put((bad_callback, ()))
+        app._heartbeat()
+        assert app._heartbeat_failures == 1
+
+    def test_logs_warning_below_threshold(self, caplog):
+        app = _make_heartbeat_app()
+
+        def bad_callback():
+            raise RuntimeError("widget broken")
+
+        app._bridge_queue.put((bad_callback, ()))
+        with caplog.at_level(logging.WARNING):
+            app._heartbeat()
+        assert any("bridge callback failed" in r.message for r in caplog.records)
+        assert all(r.levelno < logging.ERROR for r in caplog.records)
+
+    def test_escalates_to_error_after_5_consecutive(self, caplog):
+        app = _make_heartbeat_app()
+        app._heartbeat_failures = 4  # Next failure is #5
+
+        def bad_callback():
+            raise RuntimeError("widget broken")
+
+        app._bridge_queue.put((bad_callback, ()))
+        with caplog.at_level(logging.ERROR):
+            app._heartbeat()
+        assert app._heartbeat_failures == 5
+        assert any(r.levelno == logging.ERROR for r in caplog.records)
+        assert any("failing repeatedly" in r.message for r in caplog.records)
+
+    def test_mixed_success_and_failure_resets_counter(self):
+        app = _make_heartbeat_app()
+
+        def bad_callback():
+            raise RuntimeError("broken")
+
+        # Queue: fail, fail, succeed, fail
+        app._bridge_queue.put((bad_callback, ()))
+        app._bridge_queue.put((bad_callback, ()))
+        app._bridge_queue.put((lambda: None, ()))
+        app._bridge_queue.put((bad_callback, ()))
+        app._heartbeat()
+        # After succeed, counter reset to 0, then one more failure = 1
+        assert app._heartbeat_failures == 1
+
+    def test_empty_queue_drains_without_error(self, caplog):
+        app = _make_heartbeat_app()
+        with caplog.at_level(logging.WARNING):
+            app._heartbeat()
+        assert len(caplog.records) == 0
+        assert app._heartbeat_failures == 0
