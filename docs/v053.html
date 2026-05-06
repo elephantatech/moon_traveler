@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>v0.5.3 Release &mdash; Moon Traveler Terminal</title>
+  <meta name="description" content="Moon Traveler v0.5.3: Windows freeze fix, model switching, sound rewrite, logging consolidation.">
+  <link rel="stylesheet" href="release-style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #060912; --deep: #0c1020; --surface: #131830;
+      --surface-border: rgba(140, 164, 190, 0.07);
+      --text: #9aa2c0; --text-bright: #dce0ee; --text-muted: #5a6280;
+      --amber: #c89450; --amber-glow: rgba(200, 148, 80, 0.12);
+      --cyan: #5ca8c8; --green: #5ac870; --red: #c85050; --magenta: #c478d0;
+      --font-display: 'Chakra Petch', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { font-size: 17px; scroll-behavior: smooth; }
+    body { font-family: var(--font-body); background: var(--void); color: var(--text); line-height: 1.7; overflow-x: hidden; }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface); padding: 0.15em 0.4em; border-radius: 3px; color: var(--cyan); }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+
+    .hero { padding: 5rem 0 3rem; text-align: center; }
+    .hero-badge { display: inline-block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--magenta); border: 1px solid rgba(196, 120, 208, 0.2); padding: 0.35em 1.2em; border-radius: 999px; margin-bottom: 1.5rem; }
+    .hero h1 { font-family: var(--font-display); font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700; color: var(--text-bright); line-height: 1.1; margin-bottom: 0.4rem; }
+    .hero h1 .version { color: var(--amber); font-weight: 300; }
+    .hero .subtitle { font-size: 1.1rem; color: var(--text-muted); max-width: 560px; margin: 0.8rem auto 2rem; }
+
+    .stats-bar { display: flex; gap: 1px; margin: 2rem 0; border-radius: 6px; overflow: hidden; }
+    .stat { flex: 1; background: var(--deep); padding: 1.2rem 1rem; text-align: center; }
+    .stat-value { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; color: var(--text-bright); line-height: 1; }
+    .stat-label { font-size: 0.68rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); margin-top: 0.3rem; }
+
+    section { padding: 3rem 0; }
+    section + section { border-top: 1px solid var(--surface-border); }
+    .section-label { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .section-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; color: var(--text-bright); margin-bottom: 1.5rem; }
+
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+    .feat { background: var(--deep); border: 1px solid var(--surface-border); border-radius: 8px; padding: 1.5rem 1.6rem; transition: border-color 0.3s, transform 0.3s; }
+    .feat:hover { border-color: rgba(200, 148, 80, 0.15); transform: translateY(-2px); }
+    .feat h3 { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--text-bright); margin-bottom: 0.4rem; }
+    .feat p { font-size: 0.88rem; line-height: 1.6; }
+    .feat-icon { font-family: var(--font-mono); font-size: 0.75rem; color: var(--magenta); margin-bottom: 0.6rem; opacity: 0.7; }
+    .feat-full { grid-column: 1 / -1; }
+
+    .changelog { list-style: none; }
+    .changelog li { position: relative; padding: 0.4rem 0 0.4rem 1.6rem; font-size: 0.9rem; }
+    .changelog li::before { content: ''; position: absolute; left: 0; top: 0.85rem; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); opacity: 0.5; }
+    .tag { font-family: var(--font-mono); font-size: 0.65rem; padding: 0.1em 0.5em; border-radius: 3px; margin-right: 0.3rem; vertical-align: 1px; }
+    .tag-new { background: rgba(90, 200, 112, 0.12); color: var(--green); }
+    .tag-fix { background: rgba(200, 80, 80, 0.12); color: var(--red); }
+    .tag-infra { background: rgba(92, 168, 200, 0.12); color: var(--cyan); }
+
+    .cta { text-align: center; padding: 4rem 0 5rem; }
+    .cta-btn { display: inline-block; font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; color: var(--void); background: var(--amber); padding: 0.8rem 2.4rem; border-radius: 6px; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--amber-glow); text-decoration: none; }
+    .cta-secondary { display: inline-block; margin-left: 1rem; font-size: 0.88rem; color: var(--text-muted); }
+
+    footer { padding: 2rem 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--surface-border); }
+
+    @media (max-width: 680px) { .features { grid-template-columns: 1fr; } .stats-bar { flex-direction: column; } .cta-secondary { display: block; margin: 1rem 0 0; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-badge">Release Notes</div>
+      <h1>Moon Traveler <span class="version">v0.5.3</span></h1>
+      <p class="subtitle">Windows freeze fix. Model switching. Sound rewrite. Silent failure audit.</p>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Fixes</div></div>
+      <div class="stat"><div class="stat-value">335</div><div class="stat-label">Tests</div></div>
+      <div class="stat"><div class="stat-value">25</div><div class="stat-label">Files Changed</div></div>
+      <div class="stat"><div class="stat-value">3</div><div class="stat-label">Platforms</div></div>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap">
+      <div class="section-label">What's New</div>
+      <div class="section-title">Fixes &amp; Improvements</div>
+      <div class="features">
+        <div class="feat">
+          <div class="feat-icon">// FIX</div>
+          <h3>Windows WriterThread Fix</h3>
+          <p><code>_create_llama()</code> wrapper prevents llama-cpp-python from killing Textual's WriterThread by redirecting only stderr, not stdout.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">// FIX</div>
+          <h3>Bridge Deadlock Fix</h3>
+          <p>Replaced all <code>call_from_thread</code> with a heartbeat-drained <code>_bridge_queue</code>. Textual's cross-thread messaging deadlocked on Windows ProactorEventLoop.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">// NEW</div>
+          <h3>Model Switching</h3>
+          <p>The <code>model</code> command now shows installed models alongside the download catalog. Selected model persists in <code>config.json</code>. Manually placed <code>.gguf</code> files appear automatically.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">// NEW</div>
+          <h3>Sound System Rewrite</h3>
+          <p>Replaced 360 lines of platform-specific beep patterns with the <code>chime</code> library. Cross-platform bundled <code>.wav</code> files. macOS voice mode via <code>say</code> preserved.</p>
+        </div>
+        <div class="feat feat-full">
+          <div class="feat-icon">// NEW</div>
+          <h3>Logging Consolidation</h3>
+          <p>Single log file <code>~/.moonwalker/dev/game.log</code> replaces separate <code>startup.log</code> and <code>dev_diagnostics.jsonl</code>. All modules use Python's <code>logging</code> module. 29 silent <code>except:pass</code> replaced with <code>logger.debug</code> across 11 files.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-label">Full Changelog</div>
+      <div class="section-title">All Changes</div>
+      <ul class="changelog">
+        <li><span class="tag tag-fix">fix</span> Windows freeze &mdash; <code>_create_llama()</code> prevents WriterThread death during model load</li>
+        <li><span class="tag tag-fix">fix</span> Bridge deadlock &mdash; heartbeat-drained <code>_bridge_queue</code> replaces <code>call_from_thread</code></li>
+        <li><span class="tag tag-fix">fix</span> Boot sequence and animation hangs on Windows/Linux</li>
+        <li><span class="tag tag-fix">fix</span> Windows UTF-8 &mdash; stdout/stderr reconfigured with <code>errors="replace"</code></li>
+        <li><span class="tag tag-fix">fix</span> 29 silent <code>except:pass</code> replaced with <code>logger.debug</code></li>
+        <li><span class="tag tag-new">new</span> Model switching with config persistence and manual model support</li>
+        <li><span class="tag tag-new">new</span> Sound rewrite using <code>chime</code> library</li>
+        <li><span class="tag tag-new">new</span> Consolidated logging to <code>game.log</code></li>
+        <li><span class="tag tag-new">new</span> <code>_create_llama()</code> wrapper with stderr-only redirect</li>
+        <li><span class="tag tag-new">new</span> 30 FPS heartbeat timer for bridge queue drain</li>
+        <li><span class="tag tag-infra">infra</span> CI matrix: 3 OS &times; Python 3.13</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="cta">
+    <a href="https://github.com/elephantatech/moon_traveler/releases/tag/v0.5.3" class="cta-btn">Download v0.5.3</a>
+    <a href="releases.html" class="cta-secondary">&larr; All releases</a>
+  </div>
+
+  <footer>
+    <div class="wrap">Moon Traveler Terminal &mdash; <a href="https://github.com/elephantatech/moon_traveler">GitHub</a></div>
+  </footer>
+</body>
+</html>
