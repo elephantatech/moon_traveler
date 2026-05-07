@@ -20,8 +20,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Detect whether this is a pre-release (beta/rc) or stable tag
+  check-tag:
+    if: ${{ !inputs.pages_only }}
+    runs-on: ubuntu-latest
+    outputs:
+      is_prerelease: ${{ steps.check.outputs.is_prerelease }}
+    steps:
+      - name: Check tag for pre-release
+        id: check
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" != refs/tags/* ]]; then
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Not a tag push — skipping pre-release detection"
+            exit 0
+          fi
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "$TAG" == *-beta* ]] || [[ "$TAG" == *-rc* ]] || [[ "$TAG" == *-alpha* ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG is a pre-release"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $TAG is a stable release"
+          fi
+
   build:
     if: ${{ !inputs.pages_only }}
+    needs: check-tag
     strategy:
       matrix:
         include:
@@ -60,7 +86,7 @@ jobs:
 
   release:
     if: ${{ !inputs.pages_only }}
-    needs: build
+    needs: [check-tag, build]
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
@@ -72,13 +98,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          prerelease: ${{ needs.check-tag.outputs.is_prerelease == 'true' }}
           files: |
             artifacts/**/*
 
-  # Deploy pages from main — runs after release (tag push) or standalone (dispatch)
+  # Deploy pages from main — only on stable releases or standalone dispatch
   deploy-pages:
-    needs: [release]
-    if: ${{ always() && (inputs.pages_only || needs.release.result == 'success') }}
+    needs: [check-tag, release]
+    if: >-
+      always() && (
+        inputs.pages_only ||
+        (needs.release.result == 'success' && needs.check-tag.outputs.is_prerelease != 'true')
+      )
     runs-on: ubuntu-latest
     environment:
       name: github-pages

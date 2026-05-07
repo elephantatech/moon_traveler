@@ -33,7 +33,7 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 - **In-place upgrade** — check for and download new versions with the `update` command or `--upgrade` flag
 - **Rich terminal UI** with styled text, progress bars, and ASCII art
 - **Save/load system** with silent auto-save and manual slots
-- **CI/CD pipeline** with GitHub Actions for cross-platform builds (3 OS x 2 Python versions)
+- **CI/CD pipeline** with GitHub Actions for cross-platform builds (3 OS x Python 3.13)
 
 ## System Requirements
 
@@ -223,7 +223,7 @@ All persistent data is stored in `~/.moonwalker/` by default:
 
 ### Dev Mode
 
-Type `dev` in-game to toggle developer diagnostics. Logs game state, creature details, chat history, LLM status, and event tracking to `~/.moonwalker/dev/dev_diagnostics.jsonl` (JSON Lines format). Use `/history` during conversations to view the last 10 exchanges with a creature.
+Type `dev` in-game to toggle developer diagnostics. Logs game state, creature details, chat history, LLM status, and event tracking to `~/.moonwalker/dev/game.log`. Use `/history` during conversations to view the last 10 exchanges with a creature.
 
 See **[HOW_TO_PLAY.md](HOW_TO_PLAY.md#troubleshooting)** for the full troubleshooting guide and dev mode reference.
 

@@ -1,6 +1,6 @@
 # Moon Traveler Terminal - Technical Specification
 
-**Version:** 0.5.3
+**Version:** 0.5.4
 **Platform:** Python 3.11+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
@@ -609,7 +609,7 @@ generate_response(creature, player_message, translation_quality="low")
 
 | Parameter | Value |
 |-----------|-------|
-| max_tokens | 200 |
+| max_tokens | 120 |
 | temperature | 0.8 |
 | top_p | 0.9 |
 | stop sequences | "Human:", "Player:", "\n\n\n" |
@@ -924,7 +924,7 @@ Location in bold cyan, prompt in bold.
 
 ## 16. Developer Mode (`src/dev_mode.py`)
 
-Session-only (not saved). Toggle with `dev` command. Logs to `~/.moonwalker/dev/dev_diagnostics.jsonl` (JSON Lines format).
+Session-only (not saved). Toggle with `dev` command. Logs to `~/.moonwalker/dev/game.log` via Python's `logging` module.
 
 ### 16.1 Diagnostic Snapshots (per turn)
 
@@ -1197,6 +1197,7 @@ docs/
   story.html               Story/lore page
   how-to-play.html         Interactive game guide
   releases.html            Release history index
+  beta.html                Beta testing page with install instructions
   release-style.css        Shared CSS for release pages
   v052.html                v0.5.2 release announcement
   v051.html                v0.5.1 release announcement
@@ -1234,7 +1235,7 @@ tests/
   test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
-**Total test count:** 335
+**Total test count:** 379
 
 ---
 

@@ -1,7 +1,7 @@
 # Moon Traveler Terminal — Product Roadmap
 
-**Last updated:** 2026-05-02
-**Current version:** v0.5.3 (released)
+**Last updated:** 2026-05-05
+**Current version:** v0.5.4 (in progress)
 **Next:** v0.6.0 (Screens & Economy)
 
 This roadmap covers planned development from the current dev build through v1.0.0 (full release). Each feature entry includes a description, technical approach grounded in the existing architecture, effort estimate, dependencies, and affected files.
@@ -996,19 +996,18 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 | Log consolidation | **Done** — single `game.log` file via Python logging module |
 | #59 Python 3.14 tarfile deprecation | **Done** — `filter="data"` added |
 
-### v0.5.4 — Accessibility & Tech Debt (next)
+### v0.5.4 — Stability, Testing & Beta (in progress)
 
-Clean up before v0.6.0 feature expansion:
-
-| Priority | Issue | Effort | Impact |
-|----------|-------|--------|--------|
-| **P0** | #68 Beta release strategy | M | PR-triggered pre-release builds. Prerequisite for all future releases. |
-| **P0** | #76 Missing tests for new code | M | _create_llama, _safe_call, sound module, heartbeat |
-| **P0** | #4 Screen reader mode | M | Accessibility — deferred twice, do it now. |
-| **P1** | #22 Split commands.py into package | M | 1,800+ lines. Prerequisite for Screens refactor (#55). |
-| **P1** | #72 Build separate CPU/CUDA binary releases | L | Pre-build llama-cpp-python wheels in CI |
-| **P2** | #69 Creature responses too long | S | Prompt tuning for shorter conversational replies |
-| **P2** | #77 Heartbeat catch-all escalation | S | Count consecutive failures, warn after threshold |
+| Issue | Status |
+|-------|--------|
+| #68 Beta release strategy | **Done** — pre-release tag detection, beta.html, pages skip for betas |
+| #76 Missing tests for new code | **Done** — 44 new tests: test_sound.py, test_tui_bridge.py, test_create_llama.py, heartbeat escalation |
+| #69 Creature responses too long | **Done** — max_tokens 200 → 120 |
+| #77 Heartbeat catch-all escalation | **Done** — consecutive failure tracking, ERROR after 5 |
+| #59 Python 3.14 tarfile deprecation | **Done** — already fixed (closed) |
+| #4 Screen reader mode | Deferred to v0.6.0 (depends on #55 Screens) |
+| #22 Split commands.py into package | Deferred to v0.6.0 |
+| #72 Build separate CPU/CUDA binary releases | Deferred to v0.6.0 |
 
 ### v0.6.0 — Architecture + World Expansion (8-10 weeks)
 

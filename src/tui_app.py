@@ -31,6 +31,7 @@ class MoonTravelerApp(App):
         self._history_index: int = -1
         self._history_temp: str = ""  # Stores current input when navigating history
         self._heartbeat_active = False
+        self._heartbeat_failures = 0
         self._bridge_queue: queue.Queue[tuple] = queue.Queue()
 
     def compose(self) -> ComposeResult:
@@ -74,15 +75,26 @@ class MoonTravelerApp(App):
         No forced repaint needed — forcing layout + _update_timer.resume()
         generates redundant screen renders that overflow WriterThread's
         bounded queue (30 items), blocking the event loop on Windows.
+
+        Tracks consecutive failures — escalates to ERROR after 5 in a row.
         """
         for _ in range(200):
             try:
                 fn, args = self._bridge_queue.get_nowait()
                 fn(*args)
+                self._heartbeat_failures = 0
             except queue.Empty:
                 break
             except Exception:
-                logger.warning("bridge callback failed", exc_info=True)
+                self._heartbeat_failures += 1
+                if self._heartbeat_failures >= 5:
+                    logger.error(
+                        "bridge callbacks failing repeatedly (%d consecutive)",
+                        self._heartbeat_failures,
+                        exc_info=True,
+                    )
+                else:
+                    logger.warning("bridge callback failed", exc_info=True)
         self._schedule_heartbeat()
 
     def set_suggester(self, ctx) -> None:

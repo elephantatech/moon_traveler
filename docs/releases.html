@@ -121,8 +121,27 @@
   <div class="timeline">
     <div class="wrap">
 
-      <!-- v0.5.3 -->
+      <!-- v0.5.4-beta -->
       <div class="release release-latest">
+        <div class="release-header">
+          <span class="release-version">v0.5.4</span>
+          <span class="release-name">Stability, Testing &amp; Beta</span>
+          <span class="release-date">2026-05-05</span>
+        </div>
+        <div class="release-body">
+          <ul>
+            <li><span class="tag tag-feat">new</span> Beta release workflow &mdash; pre-release tags create GitHub pre-releases automatically</li>
+            <li><span class="tag tag-feat">new</span> 44 new tests &mdash; sound, TUI bridge, _create_llama, heartbeat escalation (335 &rarr; 379)</li>
+            <li><span class="tag tag-fix">fix</span> Creature responses too verbose &mdash; <code>max_tokens</code> 200 &rarr; 120</li>
+            <li><span class="tag tag-fix">fix</span> Heartbeat failure escalation &mdash; consecutive failures escalate WARNING &rarr; ERROR</li>
+            <li><span class="tag tag-infra">infra</span> CI matrix: 3 OS &times; Python 3.13 only (dropped 3.11/3.12)</li>
+          </ul>
+          <a href="beta.html" class="release-link">Beta testing page &rarr;</a>
+        </div>
+      </div>
+
+      <!-- v0.5.3 -->
+      <div class="release">
         <div class="release-header">
           <span class="release-version">v0.5.3</span>
           <span class="release-name">Windows Fix &amp; Stability</span>
@@ -133,10 +152,12 @@
             <li><span class="tag tag-fix">fix</span> Windows freeze &mdash; <code>_create_llama()</code> prevents WriterThread death during model load</li>
             <li><span class="tag tag-fix">fix</span> Bridge deadlock &mdash; heartbeat-drained <code>_bridge_queue</code> replaces <code>call_from_thread</code></li>
             <li><span class="tag tag-fix">fix</span> Boot sequence and animation hangs on Windows/Linux</li>
+            <li><span class="tag tag-feat">new</span> Model switching with config persistence and manual model support</li>
             <li><span class="tag tag-feat">new</span> Sound system rewrite &mdash; <code>chime</code> library replaces platform-specific beep patterns</li>
             <li><span class="tag tag-feat">new</span> Consolidated logging &mdash; single <code>game.log</code> via Python logging module</li>
             <li><span class="tag tag-fix">fix</span> 29 silent <code>except:pass</code> replaced with <code>logger.debug</code></li>
           </ul>
+          <a href="v053.html" class="release-link">Full release notes &rarr;</a>
         </div>
       </div>
 

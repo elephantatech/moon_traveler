@@ -745,7 +745,7 @@ def generate_response(
         response = _timed_inference(
             "chat",
             messages=messages,
-            max_tokens=200,
+            max_tokens=120,
             temperature=0.8,
             top_p=0.9,
             stop=["Human:", "Player:", "\n\n\n"],
