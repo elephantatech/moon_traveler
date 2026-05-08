@@ -150,6 +150,36 @@ install() {
     exit 1
   }
 
+  # Verify SHA-256 checksum
+  local checksum_url="${url}.sha256"
+  local expected_hash
+  expected_hash=$(curl -fsSL "$checksum_url" 2>/dev/null | awk '{print $1}')
+  if [ -n "$expected_hash" ]; then
+    dim "Verifying integrity (SHA-256)..."
+    local actual_hash
+    if command -v sha256sum >/dev/null 2>&1; then
+      actual_hash=$(sha256sum "$TMP_DEST" | awk '{print $1}')
+    elif command -v shasum >/dev/null 2>&1; then
+      actual_hash=$(shasum -a 256 "$TMP_DEST" | awk '{print $1}')
+    else
+      yellow "  No sha256sum or shasum found — skipping verification."
+      actual_hash=""
+    fi
+    if [ -n "$actual_hash" ]; then
+      if [ "$actual_hash" != "$expected_hash" ]; then
+        red "Checksum verification failed!"
+        red "  Expected: ${expected_hash:0:16}..."
+        red "  Got:      ${actual_hash:0:16}..."
+        red "  The downloaded file may be corrupted or tampered with."
+        rm -f "$TMP_DEST"
+        exit 1
+      fi
+      dim "  Checksum verified."
+    fi
+  else
+    yellow "  No checksum available — skipping verification."
+  fi
+
   mv "$TMP_DEST" "$dest"
   chmod +x "$dest"
 

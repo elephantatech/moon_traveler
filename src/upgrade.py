@@ -96,6 +96,55 @@ def _find_platform_asset(assets: list, plat: str) -> dict | None:
     return None
 
 
+def _find_checksum_asset(assets: list, binary_name: str) -> dict | None:
+    """Find the .sha256 checksum asset for a given binary."""
+    checksum_name = f"{binary_name}.sha256".lower()
+    for asset in assets:
+        if asset.get("name", "").lower() == checksum_name:
+            return asset
+    return None
+
+
+def _fetch_checksum(url: str) -> str | None:
+    """Download a .sha256 file and return the hex hash.
+
+    Expected format: ``<hex_hash>  <filename>\\n``
+    """
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "moon-traveler"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            content = resp.read().decode().strip()
+        # Parse BSD/GNU checksum format: "hash  filename"
+        parts = content.split()
+        if parts and len(parts[0]) == 64:
+            return parts[0]
+        logger.warning("Unexpected checksum file format: %s", content[:80])
+        return None
+    except Exception as e:
+        logger.warning("Could not download checksum: %s", e)
+        return None
+
+
+def _verify_checksum(file_path: Path, expected_hash: str) -> bool:
+    """Verify SHA-256 hash of a file. Returns True if valid."""
+    import hashlib
+
+    ui.dim("  Verifying integrity (SHA-256)...")
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while chunk := f.read(8192):
+            sha256.update(chunk)
+    actual = sha256.hexdigest()
+    if actual != expected_hash:
+        ui.error("Checksum verification failed!")
+        ui.error(f"  Expected: {expected_hash[:16]}...")
+        ui.error(f"  Got:      {actual[:16]}...")
+        ui.error("  The downloaded file may be corrupted or tampered with.")
+        return False
+    ui.dim("  Checksum verified.")
+    return True
+
+
 def _is_editable_install() -> bool:
     """Check if running from a pip editable install (source checkout)."""
     if getattr(sys, "frozen", False):
@@ -257,6 +306,19 @@ def run_upgrade():
             ui.error(f"Download incomplete: got {actual_size} bytes, expected {expected_size}.")
             ui.dim(f"Manual download: {release['html_url']}")
             return
+
+        # Verify SHA-256 checksum
+        checksum_asset = _find_checksum_asset(release["assets"], asset_name)
+        if checksum_asset:
+            expected_hash = _fetch_checksum(checksum_asset["browser_download_url"])
+            if expected_hash:
+                if not _verify_checksum(tmp_file, expected_hash):
+                    ui.dim(f"Manual download: {release['html_url']}")
+                    return
+            else:
+                ui.warn("Could not parse checksum file — skipping verification.")
+        else:
+            ui.warn("No checksum available for this release — skipping verification.")
 
         # Binary install — direct replacement
         if _is_binary_install():

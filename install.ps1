@@ -63,6 +63,30 @@ try {
     exit 1
 }
 
+# Verify SHA-256 checksum
+$ChecksumUrl = "$Url.sha256"
+try {
+    $ProgressPreference = 'SilentlyContinue'
+    $ChecksumContent = (Invoke-WebRequest -Uri $ChecksumUrl -UseBasicParsing).Content
+    $ProgressPreference = 'Continue'
+    $ExpectedHash = ($ChecksumContent -split '\s+')[0].Trim()
+    if ($ExpectedHash.Length -eq 64) {
+        Write-Host "  Verifying integrity (SHA-256)..." -ForegroundColor DarkGray
+        $ActualHash = (Get-FileHash -Path $TmpFile -Algorithm SHA256).Hash.ToLower()
+        if ($ActualHash -ne $ExpectedHash) {
+            Write-Host "  Checksum verification failed!" -ForegroundColor Red
+            Write-Host "  Expected: $($ExpectedHash.Substring(0,16))..." -ForegroundColor Red
+            Write-Host "  Got:      $($ActualHash.Substring(0,16))..." -ForegroundColor Red
+            Write-Host "  The downloaded file may be corrupted or tampered with." -ForegroundColor Red
+            Remove-Item $TmpDir -Recurse -Force
+            exit 1
+        }
+        Write-Host "  Checksum verified." -ForegroundColor DarkGray
+    }
+} catch {
+    Write-Host "  No checksum available — skipping verification." -ForegroundColor Yellow
+}
+
 # Install binary
 if (-not (Test-Path $InstallDir)) {
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null

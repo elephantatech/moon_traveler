@@ -8,8 +8,11 @@ from unittest.mock import MagicMock, patch
 
 from src.upgrade import (
     _detect_platform,
+    _fetch_checksum,
+    _find_checksum_asset,
     _find_platform_asset,
     _is_editable_install,
+    _verify_checksum,
     check_for_update,
     get_current_version,
     run_upgrade,
@@ -296,3 +299,76 @@ class TestRunUpgradeSecurity:
             run_upgrade()
             dim_calls = [str(c) for c in mock_ui.dim.call_args_list]
             assert any("cancelled" in s for s in dim_calls)
+
+
+class TestFindChecksumAsset:
+    """Tests for _find_checksum_asset()."""
+
+    def test_finds_matching_checksum(self):
+        assets = [
+            {"name": "moon-traveler-v0.5.4-linux", "browser_download_url": "https://..."},
+            {"name": "moon-traveler-v0.5.4-linux.sha256", "browser_download_url": "https://checksum"},
+        ]
+        result = _find_checksum_asset(assets, "moon-traveler-v0.5.4-linux")
+        assert result is not None
+        assert result["name"] == "moon-traveler-v0.5.4-linux.sha256"
+
+    def test_returns_none_when_no_checksum(self):
+        assets = [{"name": "moon-traveler-v0.5.4-linux", "browser_download_url": "https://..."}]
+        assert _find_checksum_asset(assets, "moon-traveler-v0.5.4-linux") is None
+
+    def test_case_insensitive(self):
+        assets = [{"name": "Moon-Traveler-V0.5.4-Linux.SHA256", "browser_download_url": "https://..."}]
+        result = _find_checksum_asset(assets, "moon-traveler-v0.5.4-linux")
+        assert result is not None
+
+
+class TestFetchChecksum:
+    """Tests for _fetch_checksum()."""
+
+    def test_parses_bsd_format(self):
+        content = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2  moon-traveler-linux\n"
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = content.encode()
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            result = _fetch_checksum("https://example.com/file.sha256")
+        assert result == "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+
+    def test_returns_none_on_network_error(self):
+        with patch("urllib.request.urlopen", side_effect=Exception("timeout")):
+            assert _fetch_checksum("https://example.com/file.sha256") is None
+
+    def test_returns_none_on_invalid_format(self):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = b"not a valid checksum"
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            assert _fetch_checksum("https://example.com/file.sha256") is None
+
+
+class TestVerifyChecksum:
+    """Tests for _verify_checksum()."""
+
+    def test_valid_checksum_passes(self):
+        import hashlib
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(b"test binary content")
+            tmp_path = Path(f.name)
+        try:
+            expected = hashlib.sha256(b"test binary content").hexdigest()
+            assert _verify_checksum(tmp_path, expected) is True
+        finally:
+            tmp_path.unlink()
+
+    def test_invalid_checksum_fails(self):
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(b"test binary content")
+            tmp_path = Path(f.name)
+        try:
+            assert _verify_checksum(tmp_path, "0" * 64) is False
+        finally:
+            tmp_path.unlink()

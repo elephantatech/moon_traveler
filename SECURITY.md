@@ -72,7 +72,7 @@ These are not foolproof — small models (2B parameters) can be gradually jailbr
 - Auto-compaction triggers at 2,048 characters
 - Located in `src/llm.py`, `update_creature_memory()`
 
-### Layer 5: Download Integrity (v0.5.0)
+### Layer 5: Download Integrity (v0.5.0, expanded v0.5.4)
 
 **Model checksum verification** via SHA-256:
 
@@ -80,6 +80,22 @@ These are not foolproof — small models (2B parameters) can be gradually jailbr
 - Mismatched files are deleted automatically
 - Custom/manually-placed models show a warning: "Integrity not verified — ensure you trust the source"
 - Located in `src/llm.py`, `_verify_checksum()` and `_download_file()`
+
+**Binary upgrade checksum verification** via SHA-256 (v0.5.4):
+
+- The `update` command downloads the `.sha256` checksum file from GitHub Releases alongside the binary
+- SHA-256 hash is computed and compared before replacing the running binary
+- Mismatched downloads are rejected — the upgrade is aborted
+- If no checksum is available (older releases), a warning is shown but the upgrade proceeds
+- URL domain validation: only `github.com` and `githubusercontent.com` are accepted
+- Located in `src/upgrade.py`, `_verify_checksum()`, `_fetch_checksum()`, `_find_checksum_asset()`
+
+**Installation script checksum verification** (v0.5.4):
+
+- `install.sh` downloads the `.sha256` file and validates using `sha256sum` or `shasum -a 256`
+- `install.ps1` downloads the `.sha256` file and validates using `Get-FileHash -Algorithm SHA256`
+- Mismatched downloads abort installation with a tamper warning
+- If no checksum tool or file is available, a warning is shown
 
 **Custom model downloads** support HuggingFace URLs:
 
@@ -136,7 +152,7 @@ These are not foolproof — small models (2B parameters) can be gradually jailbr
 
 **Dev mode log file permissions**: The dev diagnostics log is created with default file permissions. Dev mode is opt-in and off by default.
 
-**curl/bash install pattern**: The install scripts download and run a binary from GitHub Releases over HTTPS. This is an industry-standard pattern. Users should verify release checksums.
+**curl/bash install pattern**: The install scripts download and run a binary from GitHub Releases over HTTPS. SHA-256 checksums are verified automatically when available (v0.5.4+). HTTPS provides transport security; checksums provide integrity verification.
 
 ## Data Storage
 

@@ -1164,7 +1164,7 @@ src/
   __init__.py              Package marker
   __main__.py              Module entry point
   animations.py            ASCII frame animations (scan, travel, look, drone, hazard sprites)
-  upgrade.py               In-place upgrade via GitHub Releases API
+  upgrade.py               In-place upgrade via GitHub Releases API, SHA-256 checksum validation
   game.py                  Main loop, init, win/lose, --dev/--super/--upgrade/--disable-animation flags
   world.py                 World generation, Location dataclass, MODE_CONFIG
   player.py                Player dataclass, resource management, ship_storage
