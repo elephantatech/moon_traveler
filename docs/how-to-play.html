@@ -709,11 +709,24 @@
     <table>
       <thead><tr><th>Flag</th><th>What it does</th></tr></thead>
       <tbody>
+        <tr><td><code>--help, -h</code></td><td>Show all options</td></tr>
+        <tr><td><code>--dev</code></td><td>Launch with dev diagnostics on</td></tr>
+        <tr><td><code>--super</code></td><td>Max trust, all items, full upgrades (testing)</td></tr>
         <tr><td><code>--upgrade</code></td><td>Check for game updates and exit</td></tr>
         <tr><td><code>--disable-animation</code></td><td>Launch with animations off</td></tr>
-        <tr><td><code>--dev</code></td><td>Launch with dev diagnostics on</td></tr>
       </tbody>
     </table>
+
+    <h3>PyApp Management (binary installs only)</h3>
+    <table>
+      <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>moon-traveler self remove</code></td><td>Remove cached Python environment and packages</td></tr>
+        <tr><td><code>moon-traveler self update</code></td><td>Update the embedded application</td></tr>
+        <tr><td><code>moon-traveler self restore</code></td><td>Restore the cached environment</td></tr>
+      </tbody>
+    </table>
+    <p>To fully uninstall: run <code>self remove</code>, delete the binary, and remove <code>~/.moonwalker/</code>.</p>
   </section>
 
   <section class="guide-section" id="tips">

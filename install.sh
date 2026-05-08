@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # Moon Traveler Terminal — cross-platform installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash
+# Beta:  curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash -s -- --beta
 set -euo pipefail
 
 REPO="elephantatech/moon_traveler"
 INSTALL_DIR="${MOON_TRAVELER_INSTALL_DIR:-$HOME/.local/bin}"
+BETA=false
+
+# Parse arguments
+for arg in "$@"; do
+  case "$arg" in
+    --beta) BETA=true ;;
+  esac
+done
 
 # Colors
 red()    { printf '\033[0;31m%s\033[0m\n' "$*"; }
@@ -95,16 +104,33 @@ check_compiler() {
   fi
 }
 
-# Get latest release tag from GitHub API
+# Get release tag from GitHub API
 get_latest_version() {
-  VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
-    | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+  if $BETA; then
+    yellow ""
+    yellow "  BETA: This build may be unstable and is under active development."
+    yellow "  Re-run without --beta to install the latest stable release."
+    yellow ""
+    VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases" \
+      | grep -B2 '"prerelease": true' | grep '"tag_name"' | head -1 \
+      | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
 
-  if [ -z "$VERSION" ]; then
-    red "Failed to detect latest version."
-    exit 1
+    if [ -z "$VERSION" ]; then
+      red "No beta releases found. Install the stable version instead:"
+      red "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | bash"
+      exit 1
+    fi
+    dim "Latest beta: $VERSION"
+  else
+    VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
+      | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+
+    if [ -z "$VERSION" ]; then
+      red "Failed to detect latest version."
+      exit 1
+    fi
+    dim "Latest version: $VERSION"
   fi
-  dim "Latest version: $VERSION"
 }
 
 # Download and install
@@ -128,7 +154,11 @@ install() {
   chmod +x "$dest"
 
   echo
-  green "Moon Traveler Terminal $VERSION installed!"
+  if $BETA; then
+    green "Moon Traveler Terminal $VERSION (beta) installed!"
+  else
+    green "Moon Traveler Terminal $VERSION installed!"
+  fi
   echo
   dim "  Binary: $dest"
   dim "  Data:   ~/.moonwalker/"

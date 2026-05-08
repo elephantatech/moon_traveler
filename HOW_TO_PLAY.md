@@ -568,11 +568,24 @@ Models placed in the legacy `models/` directory (project root) are still detecte
 ### Command-line flags
 
 ```
-python play_tui.py                    # normal launch
-python play_tui.py --upgrade          # check for updates and exit
-python play_tui.py --disable-animation  # launch with animations off
-python play_tui.py --dev              # launch with dev diagnostics on
+moon-traveler --help              # show all options
+moon-traveler --dev               # launch with dev diagnostics on
+moon-traveler --super             # max trust, all items (testing)
+moon-traveler --upgrade           # check for updates and exit
+moon-traveler --disable-animation # launch with animations off
 ```
+
+### PyApp management (binary installs only)
+
+Binary builds include built-in management commands:
+
+```
+moon-traveler self remove    # remove cached Python environment and packages
+moon-traveler self update    # update the embedded application
+moon-traveler self restore   # restore the cached environment
+```
+
+To fully uninstall: run `moon-traveler self remove`, delete the binary, and remove `~/.moonwalker/`.
 
 ### Game crashes or freezes during conversation
 

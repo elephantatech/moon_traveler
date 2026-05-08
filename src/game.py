@@ -389,14 +389,38 @@ def game_loop(ctx: GameContext) -> bool:
 
 
 def _parse_flags() -> tuple[bool, bool, bool, bool]:
-    """Parse command-line flags."""
-    import sys
+    """Parse command-line flags using argparse."""
+    import argparse
 
-    dev_flag = "--dev" in sys.argv
-    super_flag = "--super" in sys.argv
-    upgrade_flag = "--upgrade" in sys.argv
-    no_anim_flag = "--disable-animation" in sys.argv
-    return dev_flag, super_flag, upgrade_flag, no_anim_flag
+    parser = argparse.ArgumentParser(
+        prog="moon-traveler",
+        description="Moon Traveler Terminal — Survive Saturn's Moon",
+        epilog=(
+            "Data: ~/.moonwalker/  (saves, models, config, dev logs)\n"
+            "\n"
+            "PyApp management (binary builds only):\n"
+            "  moon-traveler self remove   Remove cached Python environment and packages\n"
+            "  moon-traveler self update   Update the embedded application\n"
+            "  moon-traveler self restore  Restore the cached environment"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--dev", action="store_true", help="start with developer diagnostics enabled")
+    parser.add_argument(
+        "--super",
+        action="store_true",
+        dest="super_mode",
+        help="start with max trust, all items, full upgrades (testing)",
+    )
+    parser.add_argument("--upgrade", action="store_true", help="check for and install game updates, then exit")
+    parser.add_argument(
+        "--disable-animation",
+        action="store_true",
+        help="disable ASCII animations for this session",
+    )
+
+    args = parser.parse_args()
+    return args.dev, args.super_mode, args.upgrade, args.disable_animation
 
 
 def _setup_logging(dev: bool) -> None:

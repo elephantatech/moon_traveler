@@ -1,10 +1,12 @@
 """Launch Moon Traveler in Textual TUI mode.
 
 Usage:
-    python play_tui.py              Normal game
-    python play_tui.py --dev        Start with dev mode enabled
-    python play_tui.py --super      Start with super mode (max trust, all items, full upgrades)
-    python play_tui.py --dev --super  Both
+    python play_tui.py                    Normal game
+    python play_tui.py --help             Show all options
+    python play_tui.py --dev              Start with developer diagnostics
+    python play_tui.py --super            Max trust, all items, full upgrades (testing)
+    python play_tui.py --upgrade          Check for game updates
+    python play_tui.py --disable-animation  No ASCII animations
 """
 
 import sys

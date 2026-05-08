@@ -76,9 +76,14 @@ class TestFindPlatformAsset:
     def test_returns_none_for_empty_assets(self):
         assert _find_platform_asset([], "linux") is None
 
-    def test_ignores_non_archive_files(self):
-        assets = [{"name": "moon-traveler-macos.dmg", "browser_download_url": "https://..."}]
+    def test_ignores_sha256_checksum_files(self):
+        assets = [{"name": "moon-traveler-macos.sha256", "browser_download_url": "https://..."}]
         assert _find_platform_asset(assets, "macos") is None
+
+    def test_matches_bare_binary(self):
+        assets = [{"name": "moon-traveler-v0.5.4-linux", "browser_download_url": "https://..."}]
+        result = _find_platform_asset(assets, "linux")
+        assert result is not None
 
     def test_case_insensitive_name_match(self):
         assets = [{"name": "Moon-Traveler-MACOS.zip", "browser_download_url": "https://..."}]
