@@ -77,10 +77,10 @@
   </p>
 
   <h3>macOS / Linux</h3>
-  <pre><code>curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash</code></pre>
+  <pre><code>curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash -s -- --beta</code></pre>
 
   <h3>Windows (PowerShell)</h3>
-  <pre><code>irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1 | iex</code></pre>
+  <pre><code>& ([scriptblock]::Create((irm https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.ps1))) -Beta</code></pre>
 
   <h3>From Source (latest main)</h3>
   <pre><code>git clone https://github.com/elephantatech/moon_traveler.git

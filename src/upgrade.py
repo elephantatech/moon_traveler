@@ -5,10 +5,10 @@ import logging
 import os
 import platform
 import shutil
+import stat
 import sys
 import tempfile
 import urllib.request
-import zipfile
 from pathlib import Path
 
 from src import ui
@@ -82,12 +82,67 @@ def check_for_update() -> dict | None:
 
 
 def _find_platform_asset(assets: list, plat: str) -> dict | None:
-    """Find the download asset matching the current platform."""
+    """Find the download asset matching the current platform.
+
+    Matches bare binaries (PyApp), .zip, and .tar.gz assets.
+    Skips .sha256 checksum files.
+    """
     for asset in assets:
         name = asset.get("name", "").lower()
-        if plat in name and (name.endswith(".zip") or name.endswith(".tar.gz")):
+        if name.endswith(".sha256"):
+            continue
+        if plat in name:
             return asset
     return None
+
+
+def _find_checksum_asset(assets: list, binary_name: str) -> dict | None:
+    """Find the .sha256 checksum asset for a given binary."""
+    checksum_name = f"{binary_name}.sha256".lower()
+    for asset in assets:
+        if asset.get("name", "").lower() == checksum_name:
+            return asset
+    return None
+
+
+def _fetch_checksum(url: str) -> str | None:
+    """Download a .sha256 file and return the hex hash.
+
+    Expected format: ``<hex_hash>  <filename>\\n``
+    """
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "moon-traveler"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            content = resp.read().decode().strip()
+        # Parse BSD/GNU checksum format: "hash  filename"
+        parts = content.split()
+        if parts and len(parts[0]) == 64:
+            return parts[0]
+        logger.warning("Unexpected checksum file format: %s", content[:80])
+        return None
+    except Exception as e:
+        logger.warning("Could not download checksum: %s", e)
+        return None
+
+
+def _verify_checksum(file_path: Path, expected_hash: str) -> bool:
+    """Verify SHA-256 hash of a file. Returns True if valid."""
+    import hashlib
+
+    ui.dim("  Verifying integrity (SHA-256)...")
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while chunk := f.read(8192):
+            sha256.update(chunk)
+    actual = sha256.hexdigest()
+    if actual != expected_hash:
+        ui.error("Checksum verification failed!")
+        ui.error(f"  Expected: {expected_hash[:16]}...")
+        ui.error(f"  Got:      {actual[:16]}...")
+        ui.error("  The downloaded file may be corrupted or tampered with.")
+        return False
+    ui.dim("  Checksum verified.")
+    return True
 
 
 def _is_editable_install() -> bool:
@@ -98,6 +153,65 @@ def _is_editable_install() -> bool:
     pyproject = src_dir.parent / "pyproject.toml"
     git_dir = src_dir.parent / ".git"
     return pyproject.exists() and git_dir.exists()
+
+
+def _is_binary_install() -> bool:
+    """Check if running from a PyApp binary."""
+    exe = Path(sys.executable)
+    name = exe.name.lower()
+    return "moon-traveler" in name or "moon_traveler" in name
+
+
+def _get_binary_path() -> Path:
+    """Get the path to the currently running binary."""
+    return Path(sys.executable).resolve()
+
+
+def _replace_binary(new_binary: Path, target: Path) -> bool:
+    """Replace the running binary with a new one.
+
+    On Windows the running exe is locked, so we rename the old binary
+    first (Windows allows renaming a locked file), then move the new
+    one into place.
+    """
+    backup = target.with_suffix(target.suffix + ".old")
+
+    try:
+        # Remove any leftover backup from a previous upgrade
+        if backup.exists():
+            backup.unlink()
+
+        # Rename current binary to .old (works even on locked Windows exe)
+        target.rename(backup)
+    except OSError as e:
+        logger.warning("Could not rename current binary: %s", e)
+        ui.error(f"Could not rename current binary: {e}")
+        return False
+
+    try:
+        # Move new binary into place
+        shutil.move(str(new_binary), str(target))
+        # Ensure executable permission on Unix
+        if sys.platform != "win32":
+            target.chmod(target.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    except OSError as e:
+        logger.error("Could not install new binary: %s", e)
+        ui.error(f"Could not install new binary: {e}")
+        # Try to restore backup
+        try:
+            backup.rename(target)
+        except OSError:
+            ui.error(f"CRITICAL: Could not restore backup. Recover manually from: {backup}")
+        return False
+
+    # Clean up backup
+    try:
+        backup.unlink()
+    except OSError:
+        # On Windows the old exe may still be locked — it will be cleaned up next run
+        logger.debug("Could not remove backup %s (may be locked)", backup)
+
+    return True
 
 
 def run_upgrade():
@@ -143,7 +257,7 @@ def run_upgrade():
         ui.dim(f"Download manually: {release['html_url']}")
         return
 
-    asset_name = Path(asset["name"]).name  # strip any directory components
+    asset_name = Path(asset["name"]).name
     if not asset_name or ".." in asset_name:
         ui.error("Invalid asset name in release metadata. Aborting.")
         return
@@ -174,7 +288,7 @@ def run_upgrade():
     ui.info(f"Downloading {asset_name}...")
     tmp_dir = Path(tempfile.mkdtemp(prefix="moon-upgrade-"))
     tmp_file = tmp_dir / asset_name
-    success = False
+
     try:
         try:
             urllib.request.urlretrieve(asset_url, str(tmp_file))
@@ -193,24 +307,44 @@ def run_upgrade():
             ui.dim(f"Manual download: {release['html_url']}")
             return
 
-        # Extract and replace
-        game_dir = Path(sys.executable).parent
-        if not game_dir.is_dir():
-            game_dir = Path(__file__).parent.parent
+        # Verify SHA-256 checksum
+        checksum_asset = _find_checksum_asset(release["assets"], asset_name)
+        if checksum_asset:
+            expected_hash = _fetch_checksum(checksum_asset["browser_download_url"])
+            if expected_hash:
+                if not _verify_checksum(tmp_file, expected_hash):
+                    ui.dim(f"Manual download: {release['html_url']}")
+                    return
+            else:
+                ui.warn("Could not parse checksum file — skipping verification.")
+        else:
+            ui.warn("No checksum available for this release — skipping verification.")
 
+        # Binary install — direct replacement
+        if _is_binary_install():
+            target = _get_binary_path()
+            ui.dim(f"Replacing binary: {target}")
+            if _replace_binary(tmp_file, target):
+                ui.console.print()
+                ui.success(f"Upgraded to v{release['latest']}!")
+                ui.dim("Restart the game to use the new version.")
+                ui.dim("Your saves in ~/.moonwalker/ are untouched.")
+            return
+
+        # Archive install (legacy — .zip or .tar.gz)
         extract_dir = tmp_dir / "extracted"
         if asset_name.endswith(".zip"):
+            import zipfile
+
             with zipfile.ZipFile(tmp_file) as zf:
-                # Safe extraction: filter out absolute paths and path traversal
                 safe_names = [
                     n for n in zf.namelist() if not os.path.isabs(n) and ".." not in os.path.normpath(n).split(os.sep)
                 ]
                 zf.extractall(extract_dir, members=safe_names)
-        else:
+        elif asset_name.endswith((".tar.gz", ".tgz")):
             import tarfile
 
             with tarfile.open(tmp_file) as tf:
-                # Safe extraction: filter out absolute paths and path traversal
                 safe_members = []
                 for member in tf.getmembers():
                     norm = os.path.normpath(member.name)
@@ -218,8 +352,11 @@ def run_upgrade():
                         continue
                     safe_members.append(member)
                 tf.extractall(extract_dir, members=safe_members)
+        else:
+            ui.error(f"Unknown archive format: {asset_name}")
+            ui.dim(f"Manual download: {release['html_url']}")
+            return
 
-        # Find the extracted contents (may be in a subdirectory)
         contents = list(extract_dir.iterdir())
         if not contents:
             ui.error("Archive appears to be empty after extraction.")
@@ -232,20 +369,17 @@ def run_upgrade():
         ui.info("To complete the upgrade:")
         ui.console.print("  1. Close the game")
         ui.console.print(f"  2. Copy files from: [cyan]{source_dir}[/cyan]")
+        game_dir = Path(sys.executable).parent
         ui.console.print(f"     to: [cyan]{game_dir}[/cyan]")
         ui.console.print("  3. Restart the game")
         ui.console.print()
         ui.dim("Your saves in ~/.moonwalker/ are safe — they're never touched by upgrades.")
         ui.dim(f"Clean up when done: delete {tmp_dir}")
-        success = True
+
     except Exception as e:
-        ui.error(f"Extract failed: {e}")
+        ui.error(f"Upgrade failed: {e}")
         ui.dim(f"Manual download: {release['html_url']}")
     finally:
-        # Always clean up the downloaded archive
-        try:
-            tmp_file.unlink(missing_ok=True)
-        except Exception:
-            logger.debug("Temp file cleanup failed", exc_info=True)
-        if not success:
+        # Clean up temp files (but not if we told the user to copy from there)
+        if _is_binary_install():
             shutil.rmtree(tmp_dir, ignore_errors=True)

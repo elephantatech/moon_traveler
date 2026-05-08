@@ -346,6 +346,14 @@ def run_tui():
     """Launch the Textual TUI."""
     import sys
 
+    # Handle --help before starting the TUI (argparse runs inside the worker
+    # thread via game.main(), but --help must print to the raw terminal)
+    if "--help" in sys.argv or "-h" in sys.argv:
+        from src.game import _parse_flags
+
+        _parse_flags()  # prints help and calls sys.exit(0)
+        return
+
     if sys.platform == "win32":
         # Prevent WriterThread crashes on Unicode characters (░, █, ═, °, ⏱, —)
         # when Windows console defaults to cp1252 encoding.  If the thread dies,

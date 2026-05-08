@@ -208,6 +208,19 @@ Build trust with creatures to obtain repair materials through conversation and t
 | **Game freezes after entering name (Windows)** | Fixed in v0.5.3 — update to the latest version. Caused by llama-cpp-python redirecting stdout during model load |
 | **Game hangs during conversation** | LLM inference can be slow on CPU. Press `Ctrl+C` to exit safely. Progress is auto-saved |
 | **Where are save files?** | `~/.moonwalker/saves/` (SQLite). Run `config` to view/change location |
+| **Need to reinstall / reset** | Run `moon-traveler self remove` to clear the cached Python environment, then re-run the binary |
+
+### Uninstall
+
+For binary installs (PyApp), the binary includes management commands:
+
+```bash
+moon-traveler self remove    # Remove cached Python environment and packages
+moon-traveler self update    # Update the embedded application
+moon-traveler self restore   # Restore the cached environment
+```
+
+To fully uninstall, run `self remove` then delete the binary and `~/.moonwalker/` directory.
 
 ### User Data
 

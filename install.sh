@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # Moon Traveler Terminal — cross-platform installer
 # Usage: curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash
+# Beta:  curl -fsSL https://raw.githubusercontent.com/elephantatech/moon_traveler/main/install.sh | bash -s -- --beta
 set -euo pipefail
 
 REPO="elephantatech/moon_traveler"
 INSTALL_DIR="${MOON_TRAVELER_INSTALL_DIR:-$HOME/.local/bin}"
+BETA=false
+
+# Parse arguments
+for arg in "$@"; do
+  case "$arg" in
+    --beta) BETA=true ;;
+  esac
+done
 
 # Colors
 red()    { printf '\033[0;31m%s\033[0m\n' "$*"; }
@@ -95,16 +104,33 @@ check_compiler() {
   fi
 }
 
-# Get latest release tag from GitHub API
+# Get release tag from GitHub API
 get_latest_version() {
-  VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
-    | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+  if $BETA; then
+    yellow ""
+    yellow "  BETA: This build may be unstable and is under active development."
+    yellow "  Re-run without --beta to install the latest stable release."
+    yellow ""
+    VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases" \
+      | grep -B2 '"prerelease": true' | grep '"tag_name"' | head -1 \
+      | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
 
-  if [ -z "$VERSION" ]; then
-    red "Failed to detect latest version."
-    exit 1
+    if [ -z "$VERSION" ]; then
+      red "No beta releases found. Install the stable version instead:"
+      red "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | bash"
+      exit 1
+    fi
+    dim "Latest beta: $VERSION"
+  else
+    VERSION=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
+      | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
+
+    if [ -z "$VERSION" ]; then
+      red "Failed to detect latest version."
+      exit 1
+    fi
+    dim "Latest version: $VERSION"
   fi
-  dim "Latest version: $VERSION"
 }
 
 # Download and install
@@ -124,11 +150,45 @@ install() {
     exit 1
   }
 
+  # Verify SHA-256 checksum
+  local checksum_url="${url}.sha256"
+  local expected_hash
+  expected_hash=$(curl -fsSL "$checksum_url" 2>/dev/null | awk '{print $1}')
+  if [ -n "$expected_hash" ]; then
+    dim "Verifying integrity (SHA-256)..."
+    local actual_hash
+    if command -v sha256sum >/dev/null 2>&1; then
+      actual_hash=$(sha256sum "$TMP_DEST" | awk '{print $1}')
+    elif command -v shasum >/dev/null 2>&1; then
+      actual_hash=$(shasum -a 256 "$TMP_DEST" | awk '{print $1}')
+    else
+      yellow "  No sha256sum or shasum found — skipping verification."
+      actual_hash=""
+    fi
+    if [ -n "$actual_hash" ]; then
+      if [ "$actual_hash" != "$expected_hash" ]; then
+        red "Checksum verification failed!"
+        red "  Expected: ${expected_hash:0:16}..."
+        red "  Got:      ${actual_hash:0:16}..."
+        red "  The downloaded file may be corrupted or tampered with."
+        rm -f "$TMP_DEST"
+        exit 1
+      fi
+      dim "  Checksum verified."
+    fi
+  else
+    yellow "  No checksum available — skipping verification."
+  fi
+
   mv "$TMP_DEST" "$dest"
   chmod +x "$dest"
 
   echo
-  green "Moon Traveler Terminal $VERSION installed!"
+  if $BETA; then
+    green "Moon Traveler Terminal $VERSION (beta) installed!"
+  else
+    green "Moon Traveler Terminal $VERSION installed!"
+  fi
   echo
   dim "  Binary: $dest"
   dim "  Data:   ~/.moonwalker/"
