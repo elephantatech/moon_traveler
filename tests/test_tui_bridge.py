@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from src.tui_bridge import UIBridge
 
-THREAD_SETTLE = 0.05  # seconds to let worker thread reach blocking call
+THREAD_TIMEOUT = 1.0  # max seconds to wait for worker thread
 
 
 class MockApp:
@@ -32,11 +32,10 @@ def _make_bridge():
     return bridge, app, game_log, command_queue
 
 
-def _run_in_thread(fn, settle=THREAD_SETTLE):
-    """Run fn in a thread, wait for it to settle, return the thread."""
-    t = threading.Thread(target=fn)
+def _run_in_thread(fn):
+    """Run fn in a daemon thread and return the thread."""
+    t = threading.Thread(target=fn, daemon=True)
     t.start()
-    time.sleep(settle)
     return t
 
 
@@ -115,6 +114,15 @@ class TestOutput:
 
 
 class TestInput:
+    def _wait_for_ask_mode(self, app, timeout=THREAD_TIMEOUT):
+        """Poll until ask mode is set."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if app._ask_mode:
+                return True
+            time.sleep(0.005)
+        return False
+
     def test_blocks_until_response_and_toggles_ask_mode(self):
         bridge, app, _, _ = _make_bridge()
         response = None
@@ -124,17 +132,11 @@ class TestInput:
             response = bridge.input("[bold]Name > [/bold]")
 
         t = _run_in_thread(worker)
-
-        # Wait for ask mode to be set
-        for _ in range(50):
-            if app._ask_mode:
-                break
-            time.sleep(0.01)
-
+        assert self._wait_for_ask_mode(app), "ask_mode was never set"
         assert app._ask_mode is True
 
         bridge.push_response("Alice")
-        t.join(timeout=1)
+        t.join(timeout=THREAD_TIMEOUT)
 
         assert response == "Alice"
         assert app._ask_mode is False
@@ -151,8 +153,9 @@ class TestInput:
                 caught_exception = e
 
         t = _run_in_thread(worker)
+        assert self._wait_for_ask_mode(app), "ask_mode was never set"
         bridge.push_response(None)
-        t.join(timeout=1)
+        t.join(timeout=THREAD_TIMEOUT)
 
         assert isinstance(caught_exception, KeyboardInterrupt)
 
@@ -163,8 +166,9 @@ class TestInput:
             bridge.input("[bold cyan]Name > [/bold cyan]")
 
         t = _run_in_thread(worker)
+        assert self._wait_for_ask_mode(app), "ask_mode was never set"
         bridge.push_response("test")
-        t.join(timeout=1)
+        t.join(timeout=THREAD_TIMEOUT)
 
         queued_fn, queued_args = app._bridge_queue.get_nowait()
         assert queued_fn is app.update_prompt_label
@@ -181,8 +185,9 @@ class TestGetCommand:
             received_command = bridge.get_command("Crash Site")
 
         t = _run_in_thread(worker)
+        time.sleep(0.02)  # let thread reach queue.get()
         command_queue.put("look")
-        t.join(timeout=1)
+        t.join(timeout=THREAD_TIMEOUT)
 
         assert received_command == "look"
         assert bridge._current_location == "Crash Site"
@@ -196,8 +201,9 @@ class TestGetCommand:
             received_command = bridge.get_command("Crash Site")
 
         t = _run_in_thread(worker)
+        time.sleep(0.02)  # let thread reach queue.get()
         command_queue.put(None)
-        t.join(timeout=1)
+        t.join(timeout=THREAD_TIMEOUT)
 
         assert received_command is None
 
@@ -208,10 +214,9 @@ class _FakeApp:
     def __init__(self):
         self._bridge_queue = queue.Queue()
         self._heartbeat_active = True
-        self._heartbeat_failures = 0
 
     def set_timer(self, delay, callback):
-        pass  # Don't actually schedule next tick
+        pass
 
     def _schedule_heartbeat(self):
         pass
@@ -222,74 +227,81 @@ def _make_heartbeat_app():
     from src.tui_app import MoonTravelerApp
 
     app = _FakeApp()
-    # Bind the real _heartbeat method to our fake app
     app._heartbeat = MoonTravelerApp._heartbeat.__get__(app, _FakeApp)
-    app._schedule_heartbeat = lambda: None  # no-op to prevent timer scheduling
+    app._schedule_heartbeat = lambda: None
     return app
 
 
+def _bad_callback():
+    raise RuntimeError("widget broken")
+
+
 class TestHeartbeatEscalation:
-    def test_success_resets_failure_counter(self):
+    def test_successful_callback_produces_no_logs(self, caplog):
         app = _make_heartbeat_app()
-        app._heartbeat_failures = 3
         app._bridge_queue.put((lambda: None, ()))
-        app._heartbeat()
-        assert app._heartbeat_failures == 0
+        with caplog.at_level(logging.WARNING):
+            app._heartbeat()
+        assert len(caplog.records) == 0
 
-    def test_failure_increments_counter(self):
+    def test_single_failure_logs_warning(self, caplog):
         app = _make_heartbeat_app()
-
-        def bad_callback():
-            raise RuntimeError("widget broken")
-
-        app._bridge_queue.put((bad_callback, ()))
-        app._heartbeat()
-        assert app._heartbeat_failures == 1
-
-    def test_logs_warning_below_threshold(self, caplog):
-        app = _make_heartbeat_app()
-
-        def bad_callback():
-            raise RuntimeError("widget broken")
-
-        app._bridge_queue.put((bad_callback, ()))
+        app._bridge_queue.put((_bad_callback, ()))
         with caplog.at_level(logging.WARNING):
             app._heartbeat()
         assert any("bridge callback failed" in r.message for r in caplog.records)
         assert all(r.levelno < logging.ERROR for r in caplog.records)
 
-    def test_escalates_to_error_after_5_consecutive(self, caplog):
+    def test_5_consecutive_failures_escalates_to_error(self, caplog):
         app = _make_heartbeat_app()
-        app._heartbeat_failures = 4  # Next failure is #5
-
-        def bad_callback():
-            raise RuntimeError("widget broken")
-
-        app._bridge_queue.put((bad_callback, ()))
-        with caplog.at_level(logging.ERROR):
+        for _ in range(5):
+            app._bridge_queue.put((_bad_callback, ()))
+        with caplog.at_level(logging.WARNING):
             app._heartbeat()
-        assert app._heartbeat_failures == 5
-        assert any(r.levelno == logging.ERROR for r in caplog.records)
-        assert any("failing repeatedly" in r.message for r in caplog.records)
+        error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
+        assert len(error_records) == 1
+        assert "failing repeatedly" in error_records[0].message
 
-    def test_mixed_success_and_failure_resets_counter(self):
+    def test_success_between_failures_resets_escalation(self, caplog):
         app = _make_heartbeat_app()
-
-        def bad_callback():
-            raise RuntimeError("broken")
-
-        # Queue: fail, fail, succeed, fail
-        app._bridge_queue.put((bad_callback, ()))
-        app._bridge_queue.put((bad_callback, ()))
+        # 4 failures, then success, then 4 more — never hits 5 consecutive
+        for _ in range(4):
+            app._bridge_queue.put((_bad_callback, ()))
         app._bridge_queue.put((lambda: None, ()))
-        app._bridge_queue.put((bad_callback, ()))
-        app._heartbeat()
-        # After succeed, counter reset to 0, then one more failure = 1
-        assert app._heartbeat_failures == 1
+        for _ in range(4):
+            app._bridge_queue.put((_bad_callback, ()))
+        with caplog.at_level(logging.WARNING):
+            app._heartbeat()
+        error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
+        assert len(error_records) == 0
 
-    def test_empty_queue_drains_without_error(self, caplog):
+    def test_error_log_is_rate_limited(self, caplog):
+        app = _make_heartbeat_app()
+        # Queue 110 failures — should get ERROR at #5 and #105, not every failure
+        for _ in range(110):
+            app._bridge_queue.put((_bad_callback, ()))
+        with caplog.at_level(logging.WARNING):
+            app._heartbeat()
+        error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
+        assert len(error_records) == 2  # failure #5 and #105
+
+    def test_empty_queue_produces_no_logs(self, caplog):
         app = _make_heartbeat_app()
         with caplog.at_level(logging.WARNING):
             app._heartbeat()
         assert len(caplog.records) == 0
-        assert app._heartbeat_failures == 0
+
+    def test_counter_does_not_persist_across_ticks(self, caplog):
+        app = _make_heartbeat_app()
+        # Tick 1: 3 failures
+        for _ in range(3):
+            app._bridge_queue.put((_bad_callback, ()))
+        app._heartbeat()
+        caplog.clear()
+        # Tick 2: 3 more failures — should NOT escalate (counter reset)
+        for _ in range(3):
+            app._bridge_queue.put((_bad_callback, ()))
+        with caplog.at_level(logging.WARNING):
+            app._heartbeat()
+        error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
+        assert len(error_records) == 0

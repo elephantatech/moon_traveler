@@ -36,6 +36,7 @@ class TestCreateLlama:
             after = os.fstat(2)
             expected = os.fstat(saved_fd)
             assert after.st_dev == expected.st_dev
+            assert after.st_ino == expected.st_ino
         finally:
             os.close(saved_fd)
 
@@ -49,6 +50,7 @@ class TestCreateLlama:
             after = os.fstat(2)
             expected = os.fstat(saved_fd)
             assert after.st_dev == expected.st_dev
+            assert after.st_ino == expected.st_ino
         finally:
             os.close(saved_fd)
 

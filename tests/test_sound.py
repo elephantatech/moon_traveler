@@ -1,11 +1,13 @@
 """Tests for src/sound.py — chime-based sound system."""
 
+import threading
 import time
 from unittest.mock import MagicMock, patch
 
 from src import sound
 
-THREAD_SETTLE = 0.1  # seconds for daemon thread to execute
+MAX_WAIT = 1.0  # max seconds to wait for daemon thread
+POLL_INTERVAL = 0.01  # polling interval
 
 
 class TestEnableDisable:
@@ -38,14 +40,22 @@ class TestPlay:
         sound.enable()
         sound.set_voice(False)
         sound._chime_available = None
-        if sound._lock.locked():
-            sound._lock.release()
+        sound._lock = threading.Lock()
+
+    def _wait_for_call(self, mock, timeout=MAX_WAIT):
+        """Poll until mock is called or timeout."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if mock.call_count > 0:
+                return True
+            time.sleep(POLL_INTERVAL)
+        return False
 
     def test_noop_when_disabled(self):
         sound.disable()
         with patch.object(sound, "_play_chime") as mock_chime:
             sound.play("success")
-            time.sleep(THREAD_SETTLE)
+            time.sleep(0.05)  # brief wait — should NOT be called
             mock_chime.assert_not_called()
 
     def test_skips_when_another_sound_playing(self):
@@ -53,7 +63,7 @@ class TestPlay:
         try:
             with patch.object(sound, "_play_chime") as mock_chime:
                 sound.play("success")
-                time.sleep(THREAD_SETTLE)
+                time.sleep(0.05)  # brief wait — should NOT be called
                 mock_chime.assert_not_called()
         finally:
             sound._lock.release()
@@ -61,7 +71,7 @@ class TestPlay:
     def test_dispatches_to_play_chime(self):
         with patch.object(sound, "_play_chime") as mock_chime:
             sound.play("info")
-            time.sleep(THREAD_SETTLE)
+            assert self._wait_for_call(mock_chime), "play_chime was never called"
             mock_chime.assert_called_once_with("info")
 
 
