@@ -12,13 +12,13 @@
     {"type": "text", "id": "app_t", "x": 60, "y": 90, "width": 220, "height": 80, "text": "MoonTravelerApp\n[Textual App — Main Thread]\nHeader, RichLog, StatusBar, Input\non_mount → run_worker(thread=True)", "fontSize": 12, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
 
     {"type": "rectangle", "id": "bridge", "x": 320, "y": 85, "width": 240, "height": 90, "strokeColor": "#5caa78", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
-    {"type": "text", "id": "bridge_t", "x": 330, "y": 90, "width": 220, "height": 80, "text": "UIBridge\n[Thread-safe bridge]\nprint() → call_from_thread(log.write)\ninput() → ask_mode + Event barrier\nget_command() → blocks on queue", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
+    {"type": "text", "id": "bridge_t", "x": 330, "y": 90, "width": 220, "height": 80, "text": "UIBridge\n[Thread-safe bridge]\nprint() → _safe_call(log.write) via bridge queue\ninput() → ask_mode + _ask_queue barrier\nget_command() → blocks on command_queue", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
 
     {"type": "rectangle", "id": "suggester", "x": 590, "y": 85, "width": 200, "height": 90, "strokeColor": "#5caa78", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
     {"type": "text", "id": "suggester_t", "x": 600, "y": 90, "width": 180, "height": 80, "text": "GameSuggester\n[Textual Suggester]\nTab cycling through\nmultiple candidates\nCommands, locations, items", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#5caa78"},
 
     {"type": "rectangle", "id": "queues", "x": 50, "y": 200, "width": 350, "height": 80, "strokeColor": "#c89450", "backgroundColor": "#0e1122", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
-    {"type": "text", "id": "queues_t", "x": 60, "y": 205, "width": 330, "height": 70, "text": "Queue System\ncommand_queue: user commands → worker thread\nask_queue: sub-prompts (y/n, trade) → worker\ncall_from_thread(): worker → main thread UI updates", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
+    {"type": "text", "id": "queues_t", "x": 60, "y": 205, "width": 330, "height": 70, "text": "Queue System\ncommand_queue: user commands → worker thread\nask_queue: sub-prompts (y/n, trade) → worker\n_bridge_queue: worker → main thread (30 FPS heartbeat drain)", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
 
     {"type": "rectangle", "id": "shim", "x": 430, "y": 200, "width": 380, "height": 80, "strokeColor": "#c89450", "backgroundColor": "#111525", "fillStyle": "solid", "strokeWidth": 2, "roundness": {"type": 3}},
     {"type": "text", "id": "shim_t", "x": 440, "y": 205, "width": 360, "height": 70, "text": "_BridgeConsoleShim\n[15-line proxy in ui.py]\nprint(*args) → bridge.print() or real_console.print()\ninput(prompt) → bridge.input() or real_console.input()", "fontSize": 11, "fontFamily": 1, "textAlign": "center", "strokeColor": "#c89450"},
