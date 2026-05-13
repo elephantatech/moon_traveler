@@ -1,7 +1,7 @@
 # Moon Traveler Terminal - Technical Specification
 
 **Version:** 0.5.4
-**Platform:** Python 3.11+, Windows / macOS / Linux
+**Platform:** Python 3.13+, Windows / macOS / Linux
 **Genre:** Text-based survival adventure
 
 ---
@@ -1049,7 +1049,7 @@ Triggered on pull requests to `main`. Uses `uv sync --group dev` for dependencie
 
 | Job | Tool | Checks |
 |-----|------|--------|
-| test | pytest | 3 OS (ubuntu, windows, macos) × 3 Python (3.11, 3.12, 3.13) = 9 jobs, with `pytest-cov` coverage |
+| test | pytest | 3 OS (ubuntu, windows, macos) × Python 3.13 = 3 jobs, with `pytest-cov` coverage |
 | lint | ruff | Python lint + format |
 | markdown | markdownlint-cli2 | Markdown formatting |
 | shellcheck | shellcheck | Bash scripts |
@@ -1235,7 +1235,7 @@ tests/
   test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
-**Total test count:** 379
+**Total test count:** 388
 
 ---
 
@@ -1328,9 +1328,9 @@ When `hours_elapsed >= 24`, scan and hazard animations use intensified variants 
 
 ---
 
-## 21c. Upgrade System (`src/upgrade.py`) — v0.5.2
+## 21c. Upgrade System (`src/upgrade.py`) — v0.5.2, expanded v0.5.4
 
-In-place upgrade via GitHub Releases API.
+In-place upgrade via GitHub Releases API with SHA-256 checksum validation.
 
 ### 21c.1 Version Check
 
@@ -1340,17 +1340,31 @@ In-place upgrade via GitHub Releases API.
 
 `run_upgrade()`:
 
-1. Check current version vs latest
-2. Validate download URL domain (must be `github.com` or `*.githubusercontent.com`)
-3. Download archive with size verification (`actual_size != expected_size` check)
-4. Safe extraction: `os.path.normpath` + `os.sep` split for path traversal protection
-5. Empty archive check (reject if no files extracted)
-6. `_is_editable_install()` checks `sys.frozen` first (PyInstaller vs editable install)
+1. Check current version vs latest release
+2. Detect install type: source (`_is_editable_install`) → show `git pull` instructions; binary (`_is_binary_install`) → self-replace flow
+3. Find platform asset via `_find_platform_asset()` — matches bare binaries (PyApp) and archives, skips `.sha256` files
+4. Validate download URL domain (must be `github.com` or `*.githubusercontent.com`)
+5. Download binary with size verification (`actual_size != expected_size` check)
+6. **SHA-256 checksum validation** (v0.5.4):
+   - `_find_checksum_asset()` locates the `.sha256` file in release assets
+   - `_fetch_checksum()` downloads and parses BSD/GNU format (`<hash>  <filename>`)
+   - `_verify_checksum()` computes SHA-256 of downloaded file and compares
+   - Mismatch → abort upgrade. No checksum available → warn and proceed
+7. **Binary self-replace** via `_replace_binary()` (v0.5.4):
+   - Rename running binary to `.old` (Windows allows renaming a locked exe)
+   - Move new binary into place, set executable permission (Unix)
+   - On failure: restore `.old` backup automatically
+   - Clean up `.old` on success (deferred to next run if locked on Windows)
+8. **Archive extraction** (legacy fallback for `.zip`/`.tar.gz`):
+   - Safe extraction with `os.path.normpath` path traversal protection
+   - Empty archive check
+   - Shows manual copy instructions
 
 ### 21c.3 Commands
 
-- `update` command — Interactive check and upgrade prompt
+- `update` command — Interactive check, download, verify, and upgrade
 - `--upgrade` CLI flag — Check for updates and exit
+- PyApp management: `self remove`, `self update`, `self restore` (built into PyApp binary)
 
 ---
 

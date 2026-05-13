@@ -45,7 +45,7 @@ A text-based survival game set on Enceladus, Saturn's icy moon. You've crash-lan
 | **RAM** | 256 MB |
 | **Disk** | 50 MB (game only) |
 | **OS** | Windows 10+, macOS 12+, Linux (glibc 2.31+) |
-| **Python** | 3.11+ (not needed for pre-built releases) |
+| **Python** | 3.13+ (not needed for pre-built releases) |
 
 ### AI Models (choose one on first launch)
 
