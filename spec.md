@@ -1235,7 +1235,7 @@ tests/
   test_world.py             World gen (4 modes), reachability, food/water guarantee
 ```
 
-**Total test count:** 388
+**Total test count:** 389
 
 ---
 

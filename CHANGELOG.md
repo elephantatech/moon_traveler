@@ -12,7 +12,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - **SHA-256 checksum validation** — binary upgrades and install scripts verify `.sha256` checksums from GitHub Releases
 - **Beta release workflow** — pre-release tag detection (`beta`/`rc`/`alpha`), GitHub pre-releases, pages deploy skipped for betas
 - **Beta testing page** — `docs/beta.html` with install instructions and testing checklist
-- **53 new tests** — `test_sound.py` (16), `test_tui_bridge.py` (21 incl. heartbeat), `test_create_llama.py` (7), `test_upgrade.py` (+9 checksum tests). Total: 335 → 388
+- **53 new tests** — `test_sound.py` (16), `test_tui_bridge.py` (21 incl. heartbeat), `test_create_llama.py` (7), `test_upgrade.py` (+9 checksum tests). Total: 335 → 389
 
 ### Fixed
 
