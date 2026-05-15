@@ -129,7 +129,7 @@ For a comprehensive guide covering survival mechanics, creature interactions, dr
 |---------|-------------|
 | `look` | Describe current location |
 | `scan` | Use drone to discover nearby locations |
-| `gps` / `map` | Show known locations with distances |
+| `gps` / `map` | ASCII terrain map with distances and risk indicators |
 | `travel <location>` | Travel to a discovered location |
 | `take <item>` | Pick up an item |
 | `inventory` / `inv` | Show your inventory |

@@ -3,6 +3,7 @@
 import logging
 import time
 
+from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -221,8 +222,201 @@ def show_inventory(items: dict[str, int]):
     console.print(table)
 
 
+_LOC_ABBREV = {
+    "crash_site": ("X", "bold red"),
+    "cave": ("Cv", "dim"),
+    "forest": ("Fr", "green"),
+    "ridge": ("Rd", "yellow"),
+    "ruins": ("Rn", "magenta"),
+    "geyser_field": ("Gy", "cyan"),
+    "settlement": ("St", "bold yellow"),
+    "plains": ("Pl", "dim"),
+    "ice_lake": ("Lk", "cyan"),
+    "canyon": ("Cn", "yellow"),
+}
+
+_MAP_COLS = 36
+_MAP_ROWS = 17
+_RISK_THRESHOLD_KM = 8.0
+
+# Biome halo density falloff by distance from location
+_BIOME_DENSITY = {1: 70, 2: 30, 3: 10}  # radius → % chance
+
+# Terrain symbols scattered around each location type
+_TERRAIN_CHARS = {
+    "cave": ("\u25cb", "dim"),  # ○
+    "forest": ("\u2660", "green"),  # ♠
+    "ridge": ("\u2227", "yellow"),  # ∧
+    "ruins": ("\u25aa", "magenta"),  # ▪
+    "geyser_field": ("\u25ca", "cyan"),  # ◊
+    "settlement": ("\u25a1", "bold yellow"),  # □
+    "plains": ("\u2500", "dim"),  # ─
+    "crash_site": ("\u2737", "red"),  # ✷
+    "ice_lake": ("~", "cyan"),  # ~ water
+    "canyon": ("\u2228", "yellow"),  # ∨ deep
+}
+
+# Ambient terrain for open ice
+_AMBIENT = [
+    ("\u2227", "dim"),  # ∧ hill
+    ("\u2228", "dim"),  # ∨ valley
+    ("\u2502", "dim"),  # │ cliff
+]
+
+_DOT = ". "
+
+
+def show_map(locations: list[dict], player_x: float, player_y: float):
+    """Render an ASCII terrain map with biome halos and sidebar legend."""
+    if not locations:
+        info("No locations discovered yet. Use 'scan' first.")
+        return
+
+    cols, rows = _MAP_COLS, _MAP_ROWS
+
+    # Determine world bounds with padding
+    all_x = [loc["x"] for loc in locations] + [player_x]
+    all_y = [loc["y"] for loc in locations] + [player_y]
+    min_x, max_x = min(all_x) - 2, max(all_x) + 2
+    min_y, max_y = min(all_y) - 2, max(all_y) + 2
+    x_range = max_x - min_x or 1
+    y_range = max_y - min_y or 1
+
+    # Initialize grid with ice dots
+    grid = [[_DOT] * cols for _ in range(rows)]
+
+    def to_grid(wx, wy):
+        gx = int((wx - min_x) / x_range * (cols - 1))
+        gy = rows - 1 - int((wy - min_y) / y_range * (rows - 1))
+        return max(0, min(cols - 1, gx)), max(0, min(rows - 1, gy))
+
+    def _is_empty(cell):
+        return cell == _DOT or any(cell == f"[{c}]{ch} [/{c}]" for ch, c in _AMBIENT)
+
+    # Scatter ambient terrain with clumping (deterministic, coordinate-seeded)
+    # Use a "seed + neighbor" approach: cells near other terrain are more likely
+    # to also be terrain, creating natural-looking clusters
+    for r in range(rows):
+        for c in range(cols):
+            h = hash((r * 97, c * 53)) & 0xFFFF
+            # Base ~6% chance, but boosted if adjacent cells would also be terrain
+            neighbor_h = hash(((r // 3) * 41, (c // 3) * 29)) & 0xFFFF
+            threshold = 16 if neighbor_h % 4 == 0 else 6  # clump: 25% of regions are denser
+            if h % 100 < threshold:
+                char, color = _AMBIENT[h % len(_AMBIENT)]
+                grid[r][c] = f"[{color}]{char} [/{color}]"
+
+    # Scatter biome halos with dithered falloff
+    sorted_locs = sorted(locations, key=lambda loc: loc["distance"])
+    for loc in sorted_locs:
+        gx, gy = to_grid(loc["x"], loc["y"])
+        terrain = _TERRAIN_CHARS.get(loc["type"])
+        if not terrain:
+            continue
+        char, color = terrain
+        for radius, density in _BIOME_DENSITY.items():
+            for dr in range(-radius, radius + 1):
+                for dc in range(-radius, radius + 1):
+                    dist = max(abs(dr), abs(dc))  # Chebyshev distance
+                    if dist != radius:
+                        continue  # only process cells at exactly this radius
+                    nr, nc = gy + dr, gx + dc
+                    if 0 <= nr < rows and 0 <= nc < cols and _is_empty(grid[nr][nc]):
+                        h = hash((nr * 71, nc * 37, ord(char))) & 0xFFFF
+                        if h % 100 < density:
+                            grid[nr][nc] = f"[{color}]{char} [/{color}]"
+
+    # Track occupied cells for label collision detection
+    occupied = set()
+
+    # Place location markers with inline distance (collision-aware)
+    for loc in sorted_locs:
+        gx, gy = to_grid(loc["x"], loc["y"])
+        abbrev, color = _LOC_ABBREV.get(loc["type"], ("??", "dim"))
+        grid[gy][gx] = f"[{color}]{abbrev}[/{color}]"
+        occupied.add((gy, gx))
+
+        if loc["distance"] >= 0.1:
+            dist_str = f"{loc['distance']:.0f}"
+            risk = "[red]*[/red]" if loc["distance"] >= _RISK_THRESHOLD_KM else ""
+            label = f"[dim]{dist_str}[/dim]{risk}"
+            # Try right, then left, then above, then below
+            placed = False
+            for dy, dx in [(0, 1), (0, -1), (-1, 0), (1, 0)]:
+                ny, nx = gy + dy, gx + dx
+                if 0 <= ny < rows and 0 <= nx < cols and (ny, nx) not in occupied:
+                    grid[ny][nx] = label
+                    occupied.add((ny, nx))
+                    placed = True
+                    break
+            if not placed:
+                # Last resort: overwrite cell to the right
+                nx = gx + 1
+                if nx < cols:
+                    grid[gy][nx] = label
+
+    # Place player marker last
+    px, py = to_grid(player_x, player_y)
+    grid[py][px] = "[bold green]@ [/bold green]"
+
+    # Build scale bar below the map grid
+    scale_km = int(x_range / 2)
+    # Scale bar spans half the grid width (represents half the x-range)
+    bar_width = cols // 2
+    bar = "\u2500" * (bar_width * 2 - 2)
+    scale_line = f"[dim]|{bar}| {scale_km} km[/dim]"
+
+    # Build map panel with scale bar inside
+    map_lines = ["".join(row) for row in grid]
+    map_lines.append("")
+    map_lines.append(scale_line)
+
+    map_panel = Panel(
+        "\n".join(map_lines),
+        title="[bold green]MAP[/bold green]",
+        border_style="green",
+    )
+
+    # Build legend
+    legend_lines = []
+    cur_loc_name = "unknown"
+    for loc in sorted_locs:
+        if loc["distance"] < 0.1:
+            cur_loc_name = loc["name"]
+            break
+    legend_lines.append(f"[bold green]@[/bold green]  You ({cur_loc_name})")
+    legend_lines.append("")
+    for loc in sorted_locs:
+        if loc["distance"] < 0.1:
+            continue
+        abbrev, color = _LOC_ABBREV.get(loc["type"], ("??", "dim"))
+        name = loc["name"][:14]
+        dist = f"{loc['distance']:>5.1f}"
+        risk = "[red]*[/red]" if loc["distance"] >= _RISK_THRESHOLD_KM else " "
+        legend_lines.append(f"[{color}]{abbrev}[/{color}] {name:<14}{dist}{risk}")
+    legend_lines.append("")
+    legend_lines.append("[green]\u2660[/green] forest  [yellow]\u2227[/yellow] hill")
+    legend_lines.append("[dim]\u25cb[/dim] cave    [dim]\u2228[/dim] valley")
+    legend_lines.append("[cyan]\u25ca[/cyan] geyser  [dim]\u2502[/dim] cliff")
+    legend_lines.append("[magenta]\u25aa[/magenta] ruins   [dim]\u2500[/dim] plains")
+    legend_lines.append("[cyan]~[/cyan] lake    [red]\u2737[/red] debris")
+    legend_lines.append("[red]*[/red] [dim]risky trip (>8 km)[/dim]")
+
+    legend_panel = Panel(
+        "\n".join(legend_lines),
+        title="[bold green]LEGEND[/bold green]",
+        border_style="green",
+        width=28,
+    )
+
+    console.print(Columns([map_panel, legend_panel], padding=(0, 1)))
+
+
 def show_gps(locations: list[dict], player_x: float, player_y: float):
-    """Show known locations with distances."""
+    """Show ASCII map followed by location table."""
+    show_map(locations, player_x, player_y)
+    console.print()
+
     table = Table(title="GPS - Known Locations", border_style="green")
     table.add_column("Location", style="cyan")
     table.add_column("Type", style="dim")

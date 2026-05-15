@@ -1005,6 +1005,7 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 | #69 Creature responses too long | **Done** — max_tokens 200 → 120 |
 | #77 Heartbeat catch-all escalation | **Done** — consecutive failure tracking, ERROR after 5 |
 | #59 Python 3.14 tarfile deprecation | **Done** — already fixed (closed) |
+| #10 ASCII minimap in GPS view | **Done** — terrain grid with biome halos, distance labels, risk indicators, scale bar, legend |
 | #4 Screen reader mode | Deferred to v0.6.0 (depends on #55 Screens) |
 | #22 Split commands.py into package | Deferred to v0.6.0 |
 | #72 Build separate CPU/CUDA binary releases | Deferred to v0.6.0 |
@@ -1030,7 +1031,7 @@ Systems that deepen the survival loop:
 |----------|-------|--------|--------|
 | **P0** | #11 Weather system overhaul | L | Dynamic weather affects gameplay. Ties into suit degradation narrative. |
 | **P1** | #13 Crafting system | M | Combine materials, junk redemption. Deepens item loop. |
-| **P1** | #10 ASCII minimap in GPS view | M | Visual navigation aid. |
+| **P1** | #10 ASCII minimap in GPS view | M | **Done** — shipped in v0.5.4 |
 | **P2** | #16 Day/night cycle | M | Affects hazards and creature behavior. |
 
 ### v0.8.0 — Community & Competitive (10-12 weeks)

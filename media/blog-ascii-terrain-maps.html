@@ -1,0 +1,170 @@
+<!--
+  Blog post for techmystery.blogspot.com
+  Title: The Surprisingly Hard Problem of ASCII Terrain Maps — Moon Traveler v0.5.4
+  Copy the content below into Blogger's HTML editor
+
+  Blogger Labels:
+    Python, Textual, TUI, ASCII Art, Maps, Game Development, Terminal,
+    UX Design, Open Source, Moon Traveler, Rich, Developer Experience,
+    Procedural Generation
+-->
+
+<p>I wanted to add a simple map to <a href="https://github.com/elephantatech/moon_traveler" target="_blank">Moon Traveler Terminal</a>. A grid of dots with some letters showing where things are. How hard could it be?</p>
+
+<p>It took five redesigns.</p>
+
+<h3>Attempt 1: Just Put Dots on a Grid</h3>
+
+<p>The first version was a uniform dot grid with single-letter markers. It looked fine with the test data I was using:</p>
+
+<pre style="background:#0c1020; color:#9aa2c0; padding:16px; border-radius:6px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:14px;">
+. . . . . . . . . . . . . . . . .
+. . . . . . . . F . . . . . . . .
+. . . . . . . . . . . . . . . . .
+. . C . . . . . . . . . . . . . .
+. . . . . @ . . . . . . . . . . .
+. . . . . . . . . . . G . . . . .
+. . . . . F . . . . . . . . . . .
+. . P . . . . . . . . . . . . . .
+. R . . . . . U . . . . . . . . .
+</pre>
+
+<p>Clean. Readable. I was happy for about ten minutes.</p>
+
+<p>Then I loaded a real game world. Eight locations scattered across 25 km of procedurally generated Enceladus surface. Some locations clustered together, others isolated in corners. The single-letter markers were ambiguous &mdash; was that <code>F</code> a Forest or had I accidentally typed something? And without distances, the map was useless for planning which location to visit next.</p>
+
+<h3>The Two-Letter Abbreviation Problem</h3>
+
+<p>I switched to two-letter type abbreviations: <code>Fr</code> for forest, <code>Cv</code> for cave, <code>Rd</code> for ridge. Added distance labels: <code>Fr6</code> means "forest, 6 km away." Added a red <code>*</code> for risky trips over 8 km (more hazard rolls during travel).</p>
+
+<p>This worked &mdash; until I discovered two location types that weren't in my abbreviation table. The game has <strong>ten</strong> location types (plains, ridge, cave, geyser field, ice lake, ruins, forest, canyon, settlement, crash site). I'd only mapped eight. The missing <code>ice_lake</code> and <code>canyon</code> types rendered as <code>??</code> on the map. A player would see <code>??5</code> next to a location with no idea what it meant.</p>
+
+<pre style="background:#0c1020; color:#9aa2c0; padding:16px; border-radius:6px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:14px;">
+<span style="color:#c85050">The dreaded ?? marker:</span>
+
+. . . . . . . . . . . . . . . . .
+. . ??5 . . . . . . . . . . . . .    <span style="color:#7c84a4">&larr; What is this?</span>
+. . . . . . . . . . . . . . . . .
+. . . . . @ . . . . . . . . . . .
+. . . . . . . . . . ??9*. . . . .    <span style="color:#7c84a4">&larr; And this?</span>
+</pre>
+
+<p><strong>Lesson:</strong> When you have a mapping table, test it against <em>every possible input</em>, not just the ones in your test fixture. Procedurally generated content will always find the gap you missed.</p>
+
+<h3>The Distance Line Disaster</h3>
+
+<p>I thought connecting locations to the player with path lines would look great. Like a flight planning map. I drew <code>&#x2571;</code> <code>&#x2572;</code> <code>&#x2500;</code> <code>&#x2502;</code> lines from <code>@</code> to each marker.</p>
+
+<pre style="background:#0c1020; color:#9aa2c0; padding:16px; border-radius:6px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:14px;">
+<span style="color:#c85050">It looked like spaghetti:</span>
+
+. . . . . . . . . . . Fr. . . . .
+. . . . . . . . . . &#x2571; . . . . . .
+. . . Cv. . . . . &#x2571; . . . . . . .
+. . . . &#x2572; . . . &#x2571; . . . . . . . .
+. . . . . &#x2572; . &#x2571; . . . . . . . . .
+. . . Pl&#x2500; &#x2500; @ . . . . . . . . . .
+. . . . &#x2571; . &#x2572; . . . . . . . . . .
+. . . &#x2571; . . . &#x2572; . . . Gy. . . . .
+. . Rn. . . . . &#x2572; . . . . . . . .
+. . . . . . . . Fr. . . . . . . .
+</pre>
+
+<p>With two or three locations, the lines looked clean and purposeful. With eight locations radiating from the player, it became an unreadable mess of overlapping diagonals. The lines fought with each other, overwrote terrain, and made the markers harder to find, not easier.</p>
+
+<p><strong>Lesson:</strong> A visual element that works beautifully with 3 data points can be catastrophic with 8. Always test your maximum case, not your ideal case.</p>
+
+<h3>The Multi-Digit Distance Problem</h3>
+
+<p>Distance labels seemed simple: put the number next to the marker. <code>Fr6</code>. Clean. But what about locations 12 km away?</p>
+
+<p>My first approach put each digit in its own grid cell (every cell is 2 characters wide for alignment). So <code>12</code> became <code>1 2</code> with a visible gap:</p>
+
+<pre style="background:#0c1020; color:#9aa2c0; padding:16px; border-radius:6px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:14px;">
+. . . Rd1 2 * . . .    <span style="color:#7c84a4">&larr; "12*" split across cells</span>
+</pre>
+
+<p>The fix was to pack the entire distance string into a single adjacent cell: <code>Rd12*</code>. But now the cell is wider than others, throwing off alignment. In a terminal, every character counts.</p>
+
+<p><strong>Lesson:</strong> Fixed-width grids and variable-length content are natural enemies. You either truncate (losing info), overflow (breaking alignment), or find creative compromises.</p>
+
+<h3>Label Collision</h3>
+
+<p>The "put the distance to the right" strategy breaks when two locations are adjacent on the grid. <code>Fr6</code> at column 10 overwrites <code>Cv</code> at column 11.</p>
+
+<p>I added a collision detection system that tries four directions:</p>
+
+<ol>
+<li>Right of marker (default)</li>
+<li>Left of marker</li>
+<li>Above the marker</li>
+<li>Below the marker</li>
+</ol>
+
+<p>It tracks which cells are occupied and picks the first available direction. In the worst case (all four neighbors occupied), it falls back to overwriting right.</p>
+
+<h3>The "Wall of Dots" Problem</h3>
+
+<p>Even with markers, distances, and collision handling, the map still felt dead. A uniform grid of <code>. . . . .</code> is visually monotonous. Your eye has no landmarks to anchor on between locations.</p>
+
+<p>The solution was terrain symbols. Each location type radiates a "biome halo" &mdash; characteristic symbols scattered in a radius around the marker:</p>
+
+<pre style="background:#0c1020; color:#9aa2c0; padding:16px; border-radius:6px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:14px;">
+<span style="color:#5ac870">&spades;</span> forest    <span style="color:#c89450">&and;</span> hill/ridge    <span style="color:#9aa2c0">&cir;</span> cave
+<span style="color:#5ca8c8">&loz;</span> geyser    <span style="color:#c478d0">&#x25aa;</span> ruins         <span style="color:#9aa2c0">&horbar;</span> plains
+<span style="color:#5ca8c8">~</span> lake      <span style="color:#c85050">&#x2737;</span> debris        <span style="color:#9aa2c0">&or;</span> valley
+</pre>
+
+<p>The key insight was <strong>density falloff</strong>. A flat 50% density at every distance from the marker creates an ugly square block. Instead, I used dithered falloff:</p>
+
+<ul>
+<li><strong>Radius 1:</strong> 70% density (thick biome presence)</li>
+<li><strong>Radius 2:</strong> 30% density (thinning out)</li>
+<li><strong>Radius 3:</strong> 10% density (rare outliers bleeding into ice)</li>
+</ul>
+
+<p>This makes biomes feel like they're naturally fading into the ice surface rather than being stamped on with a cookie cutter.</p>
+
+<p>On top of that, ambient terrain (hills, valleys, cliffs) is scattered across the open ice using coordinate-based clustering. Instead of pure random placement, I group cells into 3&times;3 regions and randomly make some regions denser. This creates natural-looking "ranges" of hills rather than a salt-and-pepper noise pattern.</p>
+
+<h3>The Final Design</h3>
+
+<p>Here's what the map looks like now:</p>
+
+<pre style="background:#0c1020; color:#9aa2c0; padding:16px; border-radius:6px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:14px;">
+&#x256d;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500; MAP &#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256e;  &#x256d;&#x2500;&#x2500;&#x2500;&#x2500; LEGEND &#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256e;
+&#x2502; . . &and; . . . . . <span style="color:#5ac870">&spades; &spades;</span> <span style="color:#5ac870">Fr</span>6 <span style="color:#5ac870">&spades;</span> . &#x2502;  &#x2502; <span style="color:#5ac870">@</span>  You (Crash Site) &#x2502;
+&#x2502; . . . &or; . . . . . . <span style="color:#5ac870">&spades;</span> . . &#x2502;  &#x2502;                     &#x2502;
+&#x2502; . . . . . . . . . . . . . &#x2502;  &#x2502; <span style="color:#9aa2c0">Cv</span> Geyser Warren 3.7 &#x2502;
+&#x2502; <span style="color:#c89450">&and;</span> <span style="color:#c89450">Rd</span>12<span style="color:#c85050">*</span><span style="color:#c89450">&and;</span> . . . . . . . . &#x2502;  &#x2502; <span style="color:#5ac870">Fr</span> Bright Pillars 5.7 &#x2502;
+&#x2502; . <span style="color:#c89450">&and;</span> . <span style="color:#9aa2c0">&horbar;</span> <span style="color:#9aa2c0">Pl</span>9<span style="color:#c85050">*</span>. . . . <span style="color:#5ac870">@</span> . &#x2502;  &#x2502; <span style="color:#5ca8c8">Gy</span> Geyser Geysers 7.9 &#x2502;
+&#x2502; . . . <span style="color:#9aa2c0">&horbar;</span> . . <span style="color:#9aa2c0">&cir;</span> <span style="color:#9aa2c0">Cv</span>4 . . . . &#x2502;  &#x2502; <span style="color:#5ac870">Fr</span> Frost Spires   8.8<span style="color:#c85050">*</span> &#x2502;
+&#x2502; . . . . . . . <span style="color:#9aa2c0">&cir;</span> . . . . . &#x2502;  &#x2502; <span style="color:#9aa2c0">Pl</span> Bright Stretch  9.0<span style="color:#c85050">*</span> &#x2502;
+&#x2502; <span style="color:#c478d0">&#x25aa;</span> <span style="color:#c478d0">Rn</span>12<span style="color:#c85050">*</span><span style="color:#c478d0">&#x25aa;</span> . . . . . . . . &#x2502;  &#x2502; <span style="color:#c89450">Rd</span> Frost Edge    12.3<span style="color:#c85050">*</span> &#x2502;
+&#x2502; . <span style="color:#c478d0">&#x25aa;</span> . . . . . . . . . . . &#x2502;  &#x2502; <span style="color:#c478d0">Rn</span> Silent Fdns   12.3<span style="color:#c85050">*</span> &#x2502;
+&#x2502; . . . . . <span style="color:#5ac870">&spades;</span> <span style="color:#5ac870">Fr</span>9<span style="color:#c85050">*</span>. <span style="color:#5ca8c8">&loz;</span> <span style="color:#5ca8c8">Gy</span>8 . &#x2502;  &#x2502;                     &#x2502;
+&#x2502;                               &#x2502;  &#x2502; <span style="color:#5ac870">&spades;</span> forest  <span style="color:#c89450">&and;</span> hill    &#x2502;
+&#x2502; |&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;| 8 km            &#x2502;  &#x2502; <span style="color:#9aa2c0">&cir;</span> cave    <span style="color:#9aa2c0">&or;</span> valley  &#x2502;
+&#x2570;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256f;  &#x2502; <span style="color:#c85050">*</span> risky trip (&gt;8km) &#x2502;
+                                    &#x2570;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256f;
+</pre>
+
+<h3>What I Learned</h3>
+
+<p>Building an ASCII map for a terminal game is deceptively hard because you're fighting constraints that don't exist in graphical games:</p>
+
+<ol>
+<li><strong>Fixed character width</strong> &mdash; no anti-aliasing, no sub-pixel positioning. Everything snaps to a grid.</li>
+<li><strong>No layering</strong> &mdash; you can't draw a marker "on top of" terrain. You replace the cell entirely.</li>
+<li><strong>Variable data density</strong> &mdash; a map that looks great with 4 locations becomes unreadable with 12.</li>
+<li><strong>Terminal width limits</strong> &mdash; you have maybe 80 columns. A sidebar legend eats 28 of them.</li>
+<li><strong>Missing test data</strong> &mdash; procedural generation will always find the edge case your hand-crafted test data missed.</li>
+</ol>
+
+<p>The final design isn't flashy, but it's functional. You can glance at it and immediately know: where you are, what's nearby, how far things are, and which trips are dangerous. That's all a survival game map needs to do.</p>
+
+<p>The map feature ships in v0.5.4. Try it: type <code>map</code> or <code>gps</code> in-game.</p>
+
+<p style="font-size:0.85em; color:#7c84a4; margin-top:24px;">
+  <a href="https://github.com/elephantatech/moon_traveler" target="_blank">Moon Traveler Terminal</a> is a text-based survival game on Saturn's moon Enceladus with LLM-powered alien conversations. 100% local, no cloud. Open source under Apache 2.0.
+</p>

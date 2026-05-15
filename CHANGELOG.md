@@ -6,6 +6,7 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 
 ### Added
 
+- **ASCII terrain map (#10)** — `map`/`gps` renders a terrain grid with biome halos (dithered falloff), ambient terrain (hills, valleys, cliffs), 2-letter location markers with distance labels, risk indicators for trips >8 km, collision-aware label placement, scale bar, and sidebar legend
 - **CLI argparse** — `--help` / `-h` flag shows all options with PyApp management commands
 - **Beta install flag** — `install.sh --beta` and `install.ps1 -Beta` download latest pre-release
 - **Binary self-upgrade** — `update` command directly replaces the running binary (rename-then-move, Windows-safe)

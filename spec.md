@@ -693,7 +693,7 @@ Save slot names are validated with regex `^[\w\-\.]+$` (alphanumeric, hyphens, u
 |---------|---------|-------------|
 | look | l | Describe current location |
 | scan | — | Use drone to discover nearby locations (costs 10% battery) |
-| gps | map | Show known locations with distances and resource markers |
+| gps | map | ASCII terrain map with biome halos, distance labels, risk indicators, and sidebar legend + location table |
 | travel | go | Travel to a known location |
 | take | get, pick | Pick up an item |
 | inventory | inv, i | Show inventory |
@@ -1175,7 +1175,7 @@ src/
   difficulty.py            MODE_DIFFICULTY scaling, junk items
   llm.py                   LLM loading, inference, NPC memory, action tags, prompt injection defense
   ship_ai.py               ARIA warnings, summaries, +/- delta display
-  ui.py                    Rich output, _BridgeConsoleShim, status bar (dual mode)
+  ui.py                    Rich output, _BridgeConsoleShim, status bar, ASCII terrain map (show_map)
   tui_app.py               Textual App, widgets, worker thread, tab cycling, command history
   tui_bridge.py            Queue bridge, ask mode, console shim connector
   game.tcss                Textual CSS layout
