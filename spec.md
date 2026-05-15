@@ -1508,3 +1508,62 @@ Major containers within the system:
 | AI & Creature | `docs/diagrams/c4-component-ai-creature.excalidraw` | Creature dataclass, ROLE_CAPABILITIES, LLM pipeline (build→generate→parse→apply), memory system, auto-compaction, security layers |
 | Player & Companions | `docs/diagrams/c4-component-player.excalidraw` | Player (vitals, inventory), Drone (battery, upgrades, translation), ShipAI ARIA (warnings, reminders), 9 upgrade types |
 | Persistence | `docs/diagrams/c4-component-persistence.excalidraw` | SQLite 4-table schema, config system, model files, save/load/auto-save operations, directory layout |
+
+---
+
+## 24. Planned: Creature Intel Network (v0.6.0)
+
+Enceladus has a natural subsurface communication network — thermal vents and ice crystal formations conduct low-frequency vibrations that creatures evolved to use for long-distance signaling. It is the creatures' private survival lifeline. The player never accesses it directly.
+
+### 24.1 Three-Tier Access
+
+| Average Trust | Creature Behavior |
+|---|---|
+| < 40 | Deny — creatures never mention the network |
+| 40–69 | Acknowledge — creatures confirm it exists but refuse details |
+| 70+ | Share — creatures voluntarily share intel; trust decay stops permanently |
+
+Average trust = sum of all known creature trusts / count of known creatures.
+
+### 24.2 SQLite Storage (RAG)
+
+Two new tables in the save database:
+
+- `network_events` — game actions broadcast here (trust changes, gifts, trades, relocations)
+- `creature_knowledge` — per-creature accumulated knowledge, filtered by archetype role
+
+During conversations, relevant entries are retrieved (top 5 knowledge + 3 recent events) and injected into the LLM system prompt as "network whispers" (~200 tokens max).
+
+### 24.3 Archetype Network Roles
+
+| Archetype | Network Role | What They Accumulate |
+|---|---|---|
+| Wise Elder | Deep listener | Everything — backstories, preferences, histories |
+| Enforcer | Authority monitor | Trust levels, player reputation |
+| Wanderer | Terrain broadcaster | Creature locations, migration patterns |
+| Merchant | Trade tracker | Item ownership, trade histories |
+| Hermit | Selective eavesdropper | Secrets, riddle answers |
+| Trickster | Gossip spreader | Rumors (may distort) |
+| Others | Passive listeners | Events about their archetype's allies/rivals |
+
+## 25. Planned: Trust Mechanics Overhaul (v0.6.0)
+
+### 25.1 LLM-Evaluated Conversation Quality
+
+New action tag `[TRUST:+N]` / `[TRUST:-N]` (bounded by difficulty). The creature evaluates player responses and awards trust based on engagement quality, not just exchange count.
+
+### 25.2 Gift Preferences
+
+Each archetype has preferred and disliked gift types. Preferred: 1.5x trust. Disliked: 0.5x trust. Discoverable via Wise Elder intel.
+
+### 25.3 Trust Decay
+
+Pre-network (avg trust < 70): -1 trust per 10 game hours of no contact. Stops at tier boundaries (35, 70). Post-network (avg trust 70+): decay disabled permanently.
+
+## 26. Planned: Resource Node System (v0.6.0)
+
+No direct food/water exists. Raw alien resources (ice crystals, bio gel, thermal lichen, frost moss, mineral salts) must be harvested from respawning resource nodes at locations, then converted at the Kitchen Bay or by a Healer creature.
+
+## 27. Project Vision
+
+The TUI (Textual) is the game logic prototype. The final release is a retro 8-bit/16-bit GUI (old-school Zelda style) for Steam (#94). All game logic must remain UI-agnostic — shared engine, separate rendering frontends.

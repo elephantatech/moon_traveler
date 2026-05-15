@@ -1006,57 +1006,105 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 | #77 Heartbeat catch-all escalation | **Done** — consecutive failure tracking, ERROR after 5 |
 | #59 Python 3.14 tarfile deprecation | **Done** — already fixed (closed) |
 | #10 ASCII minimap in GPS view | **Done** — terrain grid with biome halos, distance labels, risk indicators, scale bar, legend |
-| #4 Screen reader mode | Deferred to v0.6.0 (depends on #55 Screens) |
-| #22 Split commands.py into package | Deferred to v0.6.0 |
-| #72 Build separate CPU/CUDA binary releases | Deferred to v0.6.0 |
+| #4 Screen reader mode | Deferred to v0.9.0 (TUI-specific, GUI handles natively) |
+| #22 Split commands.py into package | Deferred to v0.9.0 (before GUI port) |
+| #72 Build separate CPU/CUDA binary releases | Deferred — workaround exists |
 
-### v0.6.0 — Architecture + World Expansion (8-10 weeks)
+### v0.5.5 — LLM Stability Hardening (MUST DO BEFORE v0.6.0)
 
-Screens refactor lands first, then creature economy built on clean foundation:
+| Issue | Priority | Risk |
+|-------|----------|------|
+| #71 LLM inference timeout (30s threaded wrapper) | **CRITICAL** | Blocks TUI forever on slow systems |
+| #106 Thread-unsafe LLM globals → LLMEngine class | **CRITICAL** | Data race in concurrent access |
+| #107 Unknown/malformed tag logging + negative tests | **HIGH** | New tags fail without diagnostics |
+| #73 Verify Windows LLM hang fix on beta.3 | **MEDIUM** | Likely fixed by #75 WriterThread fix |
 
-| Priority | Issue | Effort | Impact |
-|----------|-------|--------|--------|
-| **P0** | #55 Textual Screens — replace implicit states with Screen classes | L | Clean input routing, per-screen keybindings, eliminate ask_mode race conditions. Foundation for all future UI work. |
-| **P0** | #56 Formalize game state transitions with Textual Modes | M | Explicit transitions, easier to add new states. Ships with #55. |
-| **P0** | #47 Creature economy | L | Food/water trading, merchant maps, creature items. Core gameplay loop expansion. |
-| **P1** | #12 Creature relationships | L | Social graph, vouching, location reveals. Makes the world feel alive. |
-| **P1** | #15 Location events | M | One-time narrative scenes with bonuses. Rewards exploration. |
-| **P1** | #14 New archetypes: Scholar, Scout, Priest | M | More creature variety; enables richer economy. |
+### v0.6.0 — Game Mechanics Overhaul (next)
 
-### v0.7.0 — Gameplay Depth (6-8 weeks)
+Core gameplay improvements — creature agency, survival depth, trust mechanics. All changes are UI-agnostic (shared between TUI and future GUI #94).
 
-Systems that deepen the survival loop:
+**PR 1 — Creature Agency:**
 
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
-| **P0** | #11 Weather system overhaul | L | Dynamic weather affects gameplay. Ties into suit degradation narrative. |
-| **P1** | #13 Crafting system | M | Combine materials, junk redemption. Deepens item loop. |
-| **P1** | #10 ASCII minimap in GPS view | M | **Done** — shipped in v0.5.4 |
+| **P0** | #88 Companion travel effects | S-M | Escorts actively change travel outcomes. Strategic escort choice. |
+| **P0** | #89 Wanderer dynamic relocation | S | World feels alive. Time pressure on creature visits. |
+
+**PR 2 — Survival Overhaul:**
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #103 Resource nodes with respawn | L | No direct food/water — harvest raw resources, convert at Kitchen. Core survival loop change. |
+| **P0** | #104 Kitchen Bay overhaul | S-M | Raw resource conversion recipes (ice→water, bio gel→food, new resources). |
+| **P1** | #105 Healer field conversion | S | Healers process resources in the field — essential for long trips. |
+
+**PR 3 — Trust Overhaul:**
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #100 LLM-evaluated conversation quality (TRUST tag) | M | Conversations match gifts in value. Flagship feature becomes mechanically rewarding. |
+| **P1** | #101 Gift preferences per creature | S | "Right gift" discovery adds puzzle. Intel reveals preferences. |
+| **P1** | #102 Trust decay + network lock | M | Pre-network: trust decays. Post-network (avg 70+): trust locked permanently. |
+
+**PR 4 — Intel Network:**
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #95 Network SQLite tables | S | Foundation — network_events + creature_knowledge tables. |
+| **P0** | #96 Event broadcasting | S | Game actions write to network automatically. |
+| **P1** | #97 Knowledge accumulation | M | Creatures learn passively based on archetype. |
+| **P1** | #98 Access gate (3-tier) | M | <40: deny, 40-69: acknowledge, 70+: share intel. |
+
+**PR 5 — Strategic Layer:**
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #90 Faction tensions | M | Befriending one archetype costs trust with rivals. Strategic creature choice. |
+| **P1** | #91 Creature intel (Elder/Enforcer) | M | Information brokers — reveal backstories, thresholds, locations. |
+
+**PR 6 — Puzzle Mechanics:**
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P1** | #92 Trickster gambles | M | Stake items for better rewards. High-risk alternative. |
+| **P1** | #93 Hermit riddles | M | Knowledge puzzles answered via intel. Interconnected information flow. |
+
+### v0.7.0 — World Systems (6-8 weeks)
+
+| Priority | Issue | Effort | Impact |
+|----------|-------|--------|--------|
+| **P0** | #11 Weather system overhaul | L | Dynamic weather affects travel, hazards, creature behavior. |
+| **P1** | #15 Location events | M | One-time narrative scenes with bonuses. |
+| **P1** | #13 Crafting system (extended) | M | Combine junk → tools, creature-taught recipes. Builds on #103/#104. |
 | **P2** | #16 Day/night cycle | M | Affects hazards and creature behavior. |
+| **P2** | #14 New archetypes: Scholar, Scout, Priest | M | More creature variety for richer faction dynamics. |
 
 ### v0.8.0 — Community & Competitive (10-12 weeks)
 
-Social features and replayability:
-
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
-| **P0** | #20 Achievement system | L | 30+ milestones, unlock notifications. Major retention driver. |
+| **P0** | #20 Achievement system | L | 30+ milestones. Major retention driver. |
 | **P1** | #21 Challenge modes | M | Speedrun, ironman, pacifist. Replayability. |
-| **P1** | #18 Seed sharing | S | Community engagement, challenge runs. Quick win. |
+| **P1** | #18 Seed sharing | S | Community engagement. Quick win. |
 
-### v0.9.0+ — Platform Expansion
+### v0.9.0+ — Platform & Architecture
 
 | Priority | Issue | Effort | Impact |
 |----------|-------|--------|--------|
-| **P0** | #41 Web deployment | XL | Textual Web, mobile support. Massive reach expansion. Requires #55 Screens refactor. |
-| **P1** | #5 Text-to-speech output | L | Accessibility — builds on screen reader mode (#4). |
-| **P1** | Cloud leaderboard (#17 remainder) | L | Global top-10. Requires server infra. |
+| **P0** | #94 Retro 8-bit/16-bit GUI for Steam | XL | Final release. Shared game engine, new rendering frontend. |
+| **P1** | #55/#56 Textual Screens refactor | L | TUI-specific. Deprioritized — GUI will have own rendering. |
+| **P1** | #22 Split commands.py | M | Tech debt (2000+ LOC). Do before GUI port. |
+| **P2** | #41 Web deployment | XL | Textual Web. Low priority given GUI plans. |
+| **P2** | #4/#5/#6 Accessibility (screen reader, TTS, voice input) | L-XL | TUI-specific. GUI will handle accessibility natively. |
 
-### Backlog (unscheduled)
+### Infrastructure (ongoing)
 
-| Issue | Effort | Notes |
+| Issue | Status | Notes |
 |-------|--------|-------|
-| #6 Voice input via Whisper.cpp | XL | Requires external binary. Niche audience. |
+| #71 LLM inference timeout | Open | Stretch goal — add progress indicator for slow inference |
+| #72 CPU/CUDA binary releases | Open | Pre-build llama-cpp-python wheels in CI |
+| #73 Windows LLM inference hang | Open | Verify on v0.5.4-beta.3 — may be fixed by WriterThread fix |
+| #70 GPU detection | Open | Depends on #72 |
 | #19 Mod support | XL | YAML custom archetypes/locations. High effort. |
 | Steam release | XL | Achievements sync, Cloud saves, notarization. |
 | TUI integration tests | M | Zero coverage on tui_app/tui_bridge. Becomes easier after #55 Screens refactor. |
