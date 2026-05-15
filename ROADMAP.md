@@ -1,7 +1,7 @@
 # Moon Traveler Terminal — Product Roadmap
 
-**Last updated:** 2026-05-12
-**Current version:** v0.5.4-beta.2 (testing)
+**Last updated:** 2026-05-14
+**Current version:** v0.5.4-beta.3 (testing)
 **Next:** v0.6.0 (Screens & Economy)
 
 This roadmap covers planned development from the current dev build through v1.0.0 (full release). Each feature entry includes a description, technical approach grounded in the existing architecture, effort estimate, dependencies, and affected files.

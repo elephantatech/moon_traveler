@@ -2,28 +2,32 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
-## [0.5.4] - 2026-05-05
+## [0.5.4] - 2026-05-14
 
 ### Added
 
-- **ASCII terrain map (#10)** — `map`/`gps` renders a terrain grid with biome halos (dithered falloff), ambient terrain (hills, valleys, cliffs), 2-letter location markers with distance labels, risk indicators for trips >8 km, collision-aware label placement, scale bar, and sidebar legend
+- **ASCII terrain map (#10)** — `map`/`gps` renders a terrain grid with biome halos (dithered falloff at radius 1/2/3), ambient terrain clusters (hills, valleys, cliffs), 2-letter location markers with distance labels, risk indicators for trips >8 km, collision-aware label placement, scale bar, sidebar legend. All 10 location types supported including ice_lake and canyon
 - **CLI argparse** — `--help` / `-h` flag shows all options with PyApp management commands
 - **Beta install flag** — `install.sh --beta` and `install.ps1 -Beta` download latest pre-release
 - **Binary self-upgrade** — `update` command directly replaces the running binary (rename-then-move, Windows-safe)
 - **SHA-256 checksum validation** — binary upgrades and install scripts verify `.sha256` checksums from GitHub Releases
 - **Beta release workflow** — pre-release tag detection (`beta`/`rc`/`alpha`), GitHub pre-releases, pages deploy skipped for betas
 - **Beta testing page** — `docs/beta.html` with install instructions and testing checklist
-- **53 new tests** — `test_sound.py` (16), `test_tui_bridge.py` (21 incl. heartbeat), `test_create_llama.py` (7), `test_upgrade.py` (+9 checksum tests). Total: 335 → 389
+- **54 new tests** — `test_sound.py` (16), `test_tui_bridge.py` (21 incl. heartbeat), `test_create_llama.py` (7), `test_upgrade.py` (+10 checksum tests). Total: 335 → 389
 
 ### Fixed
 
 - **Creature responses too verbose (#69)** — `max_tokens` reduced from 200 to 120, enforcing 2-4 sentence responses per prompt instructions
-- **Heartbeat failure escalation (#77)** — tracks consecutive callback failures, escalates from WARNING to ERROR after 5 in a row
+- **Heartbeat failure escalation (#77)** — per-tick local counter with rate-limited ERROR logging (fires at failure 5 and every 100th after)
+- **Heartbeat counter persistence (#80)** — counter no longer accumulates across idle ticks
+- **Log flooding (#81)** — ERROR logs rate-limited after threshold
+- **Test reliability (#83, #84, #85)** — lock release from correct thread, st_ino assertions, polling replaces sleep-based sync
 - **Release workflow tag detection** — guards against branch names matching pre-release patterns on `workflow_dispatch`
+- **C4 diagrams** — updated for bridge queue, game.log, max_tokens changes
 
 ### Changed
 
-- **CI matrix** — dropped Python 3.11/3.12, now 3 OS x Python 3.13 only
+- **CI matrix** — dropped Python 3.11/3.12, now 3 OS x Python 3.13 only (including lint job)
 
 ## [0.5.3] - 2026-05-02
 
