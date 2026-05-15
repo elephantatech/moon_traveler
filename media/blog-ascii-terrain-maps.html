@@ -149,6 +149,52 @@
                                     &#x2570;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256f;
 </pre>
 
+<h3>The Layout Problem: Map + Legend on Any Terminal Width</h3>
+
+<p>A sidebar legend is great for readability &mdash; you see the map and the key side by side. But terminals come in all widths. An 80-column terminal fits both panels comfortably. A 60-column terminal doesn't.</p>
+
+<p>The solution uses Rich's <code>Columns</code> component, which handles this automatically. When there's enough horizontal space, the map and legend render side by side:</p>
+
+<pre style="background:#0c1020; color:#9aa2c0; padding:16px; border-radius:6px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:13px;">
+<span style="color:#7c84a4">Wide terminal (&ge;90 cols):</span>
+
+&#x256d;&#x2500;&#x2500; MAP &#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256e; &#x256d;&#x2500; LEGEND &#x2500;&#x2500;&#x2500;&#x2500;&#x256e;
+&#x2502; . &spades; Fr6 &spades; . . &#x2502; &#x2502; @ You (Crash) &#x2502;
+&#x2502; . . . . . . . &#x2502; &#x2502; Fr Pillars 5.7 &#x2502;
+&#x2502; . . . @ . . . &#x2502; &#x2502; Cv Warren  3.7 &#x2502;
+&#x2502; . . &cir; Cv4 . . &#x2502; &#x2502; ...            &#x2502;
+&#x2502;               &#x2502; &#x2502;                &#x2502;
+&#x2502; |&#x2500;&#x2500;&#x2500;&#x2500;| 5 km   &#x2502; &#x2502; &spades; forest &and; hill &#x2502;
+&#x2570;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256f; &#x2570;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256f;
+</pre>
+
+<p>When the terminal is too narrow, Rich automatically stacks them vertically &mdash; map on top, legend below:</p>
+
+<pre style="background:#0c1020; color:#9aa2c0; padding:16px; border-radius:6px; overflow-x:auto; font-family:'JetBrains Mono',monospace; font-size:13px;">
+<span style="color:#7c84a4">Narrow terminal (&lt;80 cols):</span>
+
+&#x256d;&#x2500;&#x2500; MAP &#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256e;
+&#x2502; . &spades; Fr6 &spades; . . &#x2502;
+&#x2502; . . . . . . . &#x2502;
+&#x2502; . . . @ . . . &#x2502;
+&#x2502; . . &cir; Cv4 . . &#x2502;
+&#x2502;               &#x2502;
+&#x2502; |&#x2500;&#x2500;&#x2500;&#x2500;| 5 km   &#x2502;
+&#x2570;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256f;
+&#x256d;&#x2500; LEGEND &#x2500;&#x2500;&#x2500;&#x2500;&#x256e;
+&#x2502; @ You (Crash) &#x2502;
+&#x2502; Fr Pillars 5.7&#x2502;
+&#x2502; Cv Warren  3.7&#x2502;
+&#x2502; &spades; forest &and; hill &#x2502;
+&#x2570;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x256f;
+</pre>
+
+<p>This is "responsive design" for the terminal. The map always gets priority because it's the first panel &mdash; on a narrow terminal, you see the full map grid and scroll down for the legend. The map never gets squashed or truncated to make room for the sidebar.</p>
+
+<p>The key insight: <strong>don't fight the terminal width &mdash; let the layout engine handle it.</strong> Rich's <code>Columns</code> does the same thing CSS flexbox does for web layouts: arrange items horizontally when there's space, wrap vertically when there isn't. No breakpoint math, no manual width calculations. You declare the intent ("put these panels side by side if possible") and the library adapts.</p>
+
+<p>This matters because Moon Traveler runs on everything from a full-width iMac terminal to a 60-column SSH session on a phone. The map has to work in both. By giving the map panel no fixed width (it grows to fit the grid) and the legend a fixed 28-column width, the layout naturally prioritizes the map. If there's room for both, great. If not, the map wins and the legend wraps below.</p>
+
 <h3>What I Learned</h3>
 
 <p>Building an ASCII map for a terminal game is deceptively hard because you're fighting constraints that don't exist in graphical games:</p>
@@ -159,9 +205,10 @@
 <li><strong>Variable data density</strong> &mdash; a map that looks great with 4 locations becomes unreadable with 12.</li>
 <li><strong>Terminal width limits</strong> &mdash; you have maybe 80 columns. A sidebar legend eats 28 of them.</li>
 <li><strong>Missing test data</strong> &mdash; procedural generation will always find the edge case your hand-crafted test data missed.</li>
+<li><strong>Responsive layout</strong> &mdash; terminals come in all widths. Your layout has to degrade gracefully from 120 columns to 60.</li>
 </ol>
 
-<p>The final design isn't flashy, but it's functional. You can glance at it and immediately know: where you are, what's nearby, how far things are, and which trips are dangerous. That's all a survival game map needs to do.</p>
+<p>The final design isn't flashy, but it's functional. You can glance at it and immediately know: where you are, what's nearby, how far things are, and which trips are dangerous. On a wide terminal you see it all at once; on a narrow one, you scroll. That's all a survival game map needs to do.</p>
 
 <p>The map feature ships in v0.5.4. Try it: type <code>map</code> or <code>gps</code> in-game.</p>
 
