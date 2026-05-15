@@ -13,12 +13,12 @@ All notable changes to Moon Traveler CLI will be documented in this file.
 - **SHA-256 checksum validation** — binary upgrades and install scripts verify `.sha256` checksums from GitHub Releases
 - **Beta release workflow** — pre-release tag detection (`beta`/`rc`/`alpha`), GitHub pre-releases, pages deploy skipped for betas
 - **Beta testing page** — `docs/beta.html` with install instructions and testing checklist
-- **53 new tests** — `test_sound.py` (16), `test_tui_bridge.py` (21 incl. heartbeat), `test_create_llama.py` (7), `test_upgrade.py` (+9 checksum tests). Total: 335 → 389
+- **54 new tests** — `test_sound.py` (16), `test_tui_bridge.py` (21 incl. heartbeat), `test_create_llama.py` (7), `test_upgrade.py` (+10 checksum tests). Total: 335 → 389
 
 ### Fixed
 
 - **Creature responses too verbose (#69)** — `max_tokens` reduced from 200 to 120, enforcing 2-4 sentence responses per prompt instructions
-- **Heartbeat failure escalation (#77)** — per-tick local counter with rate-limited ERROR logging (fires at #5 and every 100th after)
+- **Heartbeat failure escalation (#77)** — per-tick local counter with rate-limited ERROR logging (fires at failure 5 and every 100th after)
 - **Heartbeat counter persistence (#80)** — counter no longer accumulates across idle ticks
 - **Log flooding (#81)** — ERROR logs rate-limited after threshold
 - **Test reliability (#83, #84, #85)** — lock release from correct thread, st_ino assertions, polling replaces sleep-based sync
