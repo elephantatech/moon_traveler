@@ -780,7 +780,7 @@ Away from Crash Site:
 | `show_panel(title, content, style)` | Rich panel |
 | `show_location(...)` | Location info panel with items and creatures |
 | `show_inventory(items)` | Table of items with quantities |
-| `show_gps(locations, x, y)` | Location table with distances + food/water resource markers |
+| `show_gps(locations, x, y)` | ASCII terrain map (`show_map`) + location table with distances and resource markers |
 | `show_status(...)` | Status table: food, water, suit, time, repair progress |
 | `show_drone_status(drone_dict)` | Drone stats panel (magenta border) |
 | `show_ship_repair(checklist)` | Repair progress table |
