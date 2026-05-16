@@ -65,19 +65,23 @@ Source of truth: `pyproject.toml` (not `requirements.txt`, which is legacy).
 
 Launches the Textual `MoonTravelerApp` which runs `game.main()` in a worker thread with the UIBridge console shim active.
 
-### Flags
+### CLI Flags (argparse)
 
-Supports:
+Parsed by `_parse_flags()` in `src/game.py` using Python's `argparse`. The `--help` flag is intercepted in `run_tui()` before the Textual app starts (since argparse must print to the raw terminal, not the TUI).
 
-- `--dev` — Start with dev mode enabled (diagnostic logging)
-- `--super` — Start with max trust, all repair materials, full drone upgrades (testing)
-- `--upgrade` — Check for updates via GitHub API and exit
-- `--disable-animation` — Disable ASCII animations for the session
-- `--dev --super` — Both
+| Flag | Description |
+|------|-------------|
+| `--help`, `-h` | Show help message and exit |
+| `--dev` | Start with developer diagnostics enabled |
+| `--super` | Max trust, all items, full upgrades (testing) |
+| `--upgrade` | Check for game updates and exit |
+| `--disable-animation` | Disable ASCII animations for this session |
+
+PyApp management commands (binary builds only): `self remove`, `self update`, `self restore`. These are handled by the PyApp Rust wrapper before Python runs.
 
 ### `src/game.py` — `main()`
 
-1. Parse `--dev`, `--super`, `--upgrade`, and `--disable-animation` flags
+1. Parse flags via `argparse` (`_parse_flags()`)
 2. TUI boot sequence displays title and ARIA intro
 3. Check for existing saves → offer "New Game" / "Load Game"
 4. If new game: prompt difficulty (Easy/Medium/Hard/Brutal), prompt player name (default "Commander"), clear screen, load LLM (quiet mode — drone-style messages), init world, apply `--super` if flagged, run boot sequence (skipped if tutorial_completed), start game loop
@@ -816,6 +820,62 @@ GPS table includes a "Resources" column showing food/water availability for **vi
 
 Storage bay menu includes a "Stash all items" option (option 3) that moves entire inventory to ship storage in one action.
 
+### 12.7 ASCII Terrain Map (`show_map`)
+
+The `map`/`gps` command renders a terrain grid with sidebar legend using Rich `Columns` (responsive — side-by-side on wide terminals, stacked on narrow).
+
+**Grid (36x17 cells, 2-char per cell):**
+
+Rendering uses a four-pass pipeline, each layer overwriting lower-priority cells:
+
+1. **Ice surface** — all cells start as `.` (dim dots)
+2. **Ambient terrain** — ~8% of cells get hills `∧`, valleys `∨`, or cliffs `│` via coordinate-seeded hash. Cells are grouped into 3x3 regions with 25% of regions denser, creating natural-looking clusters rather than uniform noise.
+3. **Biome halos** — each location radiates terrain symbols within a dithered falloff radius:
+   - Radius 1: 70% density
+   - Radius 2: 30% density
+   - Radius 3: 10% density (rare outliers)
+   - Uses Chebyshev distance (`max(abs(dr), abs(dc))`) for square halos that pack well on character grids
+4. **Location markers + labels** — 2-letter type abbreviation with inline distance. Collision-aware: tries right, left, above, below for distance label placement. Tracks occupied cells in a `set()`.
+5. **Player marker** — `@` in bold green, placed last (highest priority)
+
+**Terrain symbols per biome:**
+
+| Symbol | Biome | Color |
+|--------|-------|-------|
+| ♠ | Forest | green |
+| ∧ | Ridge/hill | yellow |
+| ○ | Cave | dim |
+| ◊ | Geyser field | cyan |
+| ▪ | Ruins | magenta |
+| ─ | Plains | dim |
+| □ | Settlement | bold yellow |
+| ✷ | Crash debris | red |
+| ~ | Ice lake | cyan |
+| ∨ | Canyon | yellow |
+
+**Location abbreviations (10 types):**
+
+| Abbrev | Type | Color |
+|--------|------|-------|
+| X | Crash site | bold red |
+| Cv | Cave | dim |
+| Fr | Forest | green |
+| Rd | Ridge | yellow |
+| Rn | Ruins | magenta |
+| Gy | Geyser field | cyan |
+| St | Settlement | bold yellow |
+| Pl | Plains | dim |
+| Lk | Ice lake | cyan |
+| Cn | Canyon | yellow |
+
+**Distance labels:** Rounded km appended to marker (e.g., `Fr6`, `Rd12`). Red `*` for trips >8 km (higher hazard probability).
+
+**Scale bar:** `|────────────────| N km` at bottom of map panel, spanning half the grid width.
+
+**Legend sidebar (28 cols):** Player location, all discovered locations sorted by distance with risk indicators, terrain symbol key.
+
+**Responsive layout:** Rich `Columns` renders map + legend side-by-side when terminal is wide enough, stacks vertically (map on top) when narrow. Map panel has fluid width; legend has fixed 28-col width.
+
 ---
 
 ## 13. Tutorial System (`src/tutorial.py`)
@@ -1072,6 +1132,33 @@ from main ref (environment protection rules block direct tag-ref deploys).
 12 hooks run locally before every commit: ruff (lint + format), markdownlint-cli2, shellcheck, yamllint, trailing-whitespace, end-of-file-fixer, mixed-line-ending (LF), check-ast, debug-statements, check-yaml/json/toml, check-merge-conflict, check-added-large-files.
 
 Setup: `pip install pre-commit && pre-commit install`
+
+### 18.11 Install Scripts
+
+**`install.sh`** (macOS / Linux):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/.../install.sh | bash          # stable
+curl -fsSL https://raw.githubusercontent.com/.../install.sh | bash -s -- --beta  # beta
+```
+
+**`install.ps1`** (Windows PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/.../install.ps1 | iex                    # stable
+& ([scriptblock]::Create((irm .../install.ps1))) -Beta                         # beta
+$env:MOON_TRAVELER_BETA=1; irm .../install.ps1 | iex                          # beta (alt)
+```
+
+Both scripts:
+
+1. Detect platform (Linux/macOS/Windows)
+2. Check for C compiler on Linux (required for llama-cpp-python)
+3. Fetch latest release (or latest pre-release with `--beta`)
+4. Download binary from GitHub Releases
+5. Download `.sha256` checksum file and verify integrity
+6. Install to `~/.local/bin/` (Linux/macOS) or `%LOCALAPPDATA%\Programs\` (Windows)
+7. Add to PATH if needed
 
 ---
 
