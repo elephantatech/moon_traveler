@@ -1,7 +1,7 @@
 # Moon Traveler Terminal — Product Roadmap
 
-**Last updated:** 2026-05-14
-**Current version:** v0.5.4-beta.3 (testing)
+**Last updated:** 2026-05-15
+**Current version:** v0.5.4 (released)
 **Next:** v0.6.0 (Screens & Economy)
 
 This roadmap covers planned development from the current dev build through v1.0.0 (full release). Each feature entry includes a description, technical approach grounded in the existing architecture, effort estimate, dependencies, and affected files.
@@ -996,7 +996,7 @@ Unsigned `.exe` files trigger Windows SmartScreen. Required for Steam. Wire `sig
 | Log consolidation | **Done** — single `game.log` file via Python logging module |
 | #59 Python 3.14 tarfile deprecation | **Done** — `filter="data"` added |
 
-### v0.5.4 — Stability, Testing & Beta (in progress)
+### v0.5.4 — Stability, Testing & Maps (shipped 2026-05-15)
 
 | Issue | Status |
 |-------|--------|

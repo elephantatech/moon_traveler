@@ -2,7 +2,7 @@
 
 All notable changes to Moon Traveler CLI will be documented in this file.
 
-## [0.5.4] - 2026-05-14
+## [0.5.4] - 2026-05-15
 
 ### Added
 
